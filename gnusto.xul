@@ -7,20 +7,16 @@
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	xmlns:html="http://www.w3.org/1999/xhtml"
 	persist="width height sizemode"
-	width="640" height="480"
-	onload="catcher('play()')">
+	width="640" height="480">
+
+<!-- The main Gnusto library. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
 
 <!-- Glue for Mozilla. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/mozilla-glue.js"/>
 
 <!-- Upper window. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/upper.js"/>
-
-<!-- Hard-coded Z-code -->
-<script type="application/x-javascript" src="chrome://gnusto/content/troll.js"/>
-
-<!-- The main Gnusto library. -->
-<script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
 
 <menubar>
 
@@ -39,7 +35,9 @@
 
 <menu id="item-menu" label="Story" accesskey="S">
 <menupopup>
-<menuitem label="Open..." disabled="true" accesskey="O"/>
+<menuitem label="Open..." accesskey="O" oncommand="catcher('loadStory()')"/>
+<menuitem label="What's an .mz5, anyway?" accesskey="W"
+	oncommand="open('http://gnusto.mozdev.org/nullbytes.html')"/>
 </menupopup>
 </menu>
 
@@ -66,8 +64,7 @@
 
 <vbox flex="1">
 
-<html:pre id="upper">(no game loaded)</html:pre>
-<iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
+<html:pre id="upper"></html:pre><iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
 <textbox flex="0" id="input" onkeypress="catcher('gotInput('+event.keyCode+')')"/>
 
