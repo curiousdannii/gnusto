@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.17 2003/03/09 14:22:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.18 2003/03/09 22:56:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -431,13 +431,6 @@ function gotInput(event) {
 		}
 }
 
-function aboutBox() {
-    // simple JS alert for now.
-    alert('Gnusto v0.2.0\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
-					'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
-					'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
-}
-
 function loadStory() {
 
     var ifp = Components.interfaces.nsIFilePicker;
@@ -528,20 +521,29 @@ var transcription_file = 0;
 // shouldn't go ahead (e.g. the user cancelled.)
 function gnustoglue_notify_transcription(whether) {
 
-		alert(whether);
-
 		if (whether) {
 				if (!transcription_file) {
 						var target_filename = '/tmp/TRANSCRIPT'; // fixme
 
 						transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")(target_filename), 0xA, 0600, 0);
+
+						if (!transcription_file) {
+								return 0;
+						} else {
+								return 1;
+						}
 				}
 		}
+		return 1;
 }
 
 function gnustoglue_transcribe(text) {
-		alert('ts: '+current_window+text);
 		if (current_window==0) {
+				if (!transcription_file) {
+						if (!gnustoglue_notify_transcription(1)) {
+								throw "Can't create spontaneous transcript";
+						}
+				}
 				transcription_file.write(text, text.length);
 				transcription_file.flush();
 		}
