@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.12 2003/02/28 12:23:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.13 2003/03/02 15:26:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -398,7 +398,7 @@ function gotInput(event) {
 
 function aboutBox() {
     // simple JS alert for now.
-    alert('Gnusto v0.1.0\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
+    alert('Gnusto v0.2.0\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
 					'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
 					'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
 }
