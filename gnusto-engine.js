@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.13 2003/03/02 15:26:18 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.14 2003/03/02 17:22:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1364,20 +1364,19 @@ function setup() {
 		param_counts = [];
 		result_eaters = [];
 
-		setbyte(0x1c, 1); // flags 1
 		// (This is partially dependent on the environment...
 		// it should probably ask what's available.)
 		setbyte(80, 32); // width (notional)
 		setbyte(25, 33); // height (notional)
-		himem      = get_unsigned_word(0x4)
-				pc         = get_unsigned_word(0x6)
-				dict_start = get_unsigned_word(0x8)
-				objs_start = get_unsigned_word(0xA)
-				vars_start = get_unsigned_word(0xC)
-				stat_start = get_unsigned_word(0xE)
-				abbr_start = get_unsigned_word(0x18)
+		himem      = get_unsigned_word(0x4);
+		pc         = get_unsigned_word(0x6);
+		dict_start = get_unsigned_word(0x8);
+		objs_start = get_unsigned_word(0xA);
+		vars_start = get_unsigned_word(0xC);
+		stat_start = get_unsigned_word(0xE);
+		abbr_start = get_unsigned_word(0x18);
 
-				rebound = 0;
+		rebound = 0;
 
 		output_to_console = 1;
 		set_transcribing(0);
