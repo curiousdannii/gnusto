@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.104 2005/01/12 05:54:35 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.105 2005/01/12 06:13:13 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/01/12 05:54:35 $';
+const CVS_VERSION = '$Date: 2005/01/12 06:13:13 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -109,9 +109,6 @@ const CHILD_REC = 2;
 
 const CALLED_FROM_INTERRUPT = 0;
 
-// Home alphabet is 0.  It will stay 0 for v3 and above, but can
-// be changed in v1/2
-var home_alph = 0;
 
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from run(). See the explanation below
@@ -2067,8 +2064,10 @@ GnustoEngine.prototype = {
       this.m_console_buffer = '';
       this.m_transcript_buffer = '';
     
-      // Reset the default alphabet.
-      home_alph = 0;
+      // Home alphabet is 0.  It will stay 0 for v3 and above, but can
+      // be changed in v1/2
+      this.m_home_alph = 0;
+      
       this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
       this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       // T = magic ten bit flag
@@ -3379,7 +3378,7 @@ GnustoEngine.prototype = {
 			}
 
 			var temp = '';
-			var alph = home_alph;
+			var alph = this.m_home_alph;
 			var running = 1;
 			var start_address = address;
 
@@ -3417,11 +3416,11 @@ GnustoEngine.prototype = {
 											else
 													temp = temp + this.m_zalphabet[alph][code-6];
 											
-											alph = home_alph;
+											alph = this.m_home_alph;
 									} else {
-											if (code==0) { temp = temp + ' '; alph=home_alph; }
+											if (code==0) { temp = temp + ' '; alph=this.m_home_alph; }
 											else if (code<4) { 
-											    if (engine.m_version > 3) {abbreviation = code;}
+											    if (this.getByte(0) > 3) {abbreviation = code;}
 											    else {
 											      if (code==2){
 											          alph += 1;
@@ -3431,13 +3430,13 @@ GnustoEngine.prototype = {
 											      	  if (alph < 0) {alph=2;}											      
 											      }
 											      else {
-											        if (engine.m_version==2) {abbreviation=1;}
+											        if (this.getByte(0)==2) {abbreviation=1;}
 											        else {temp = temp + '\n';} // in z1 1 is a newline
 											      } 
 											    }
 											}
 											else {
-											  if (engine.m_version > 2) {alph = code-3;}
+											  if (this.getByte(0) > 2) {alph = code-3;}
 											  else {
 											      if (code==4){
 											          alph += 1;
@@ -3446,7 +3445,7 @@ GnustoEngine.prototype = {
 											      	  alph -= 1;
 											      	  if (alph < 0) {alph=2;}											      
 											      }
-											      home_alph=alph;											   
+											      this.m_home_alph=alph;											   
 											  }
 											
 											}
@@ -4155,6 +4154,7 @@ GnustoEngine.prototype = {
   // Address of custom alphabet table (if any).
   m_alpha_start: 0,
 
+  m_home_alph: 0,
   m_zalphabet: [],
   
   // Address of start of strings.
