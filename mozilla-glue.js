@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.23 2003/03/26 00:53:25 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.24 2003/03/26 00:55:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -368,7 +368,6 @@ function go_wrapper(answer) {
 						// There are many more impotrant things to fix first,
 						// though. So let's just say "yes" for now.
 
-						alert('verify');
 						answer = 1;
 						looping = 1;
 
