@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.9 2003/02/25 10:35:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.10 2003/02/25 10:48:16 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -59,6 +59,13 @@ function loadMangledZcode(zcode) {
 
 		// We're required to modify some bits according to what we're able to supply.
 		setbyte(0x11, getbyte(0x11) & 0xC2);
+		// It's not at all clear what architecture we should claim to be. We could
+		// decide to be the closest to the real machine we're running on (6=PC, 3=Mac,
+		// and so on), but the story won't be able to tell the difference because of
+		// the thick layers of interpreters between us and the metal. At least,
+		// we hope it won't.
+		setbyte(0x1E, 1); // uh, let's be a vax.
+		setbyte(0x1F, 103); // little "g" for gnusto
 }
 
 function getbyte(address) {
@@ -449,7 +456,8 @@ function gnusto_error(n) {
 }
 
 function gnustoglue_notify_transcription(whether) {
-		alert('Transcription is now '+whether);
+		// here we'll ask for a filename if |whether|, and we don't
+		// already have a filename
 }
 
 function gnustoglue_transcribe(text) {
@@ -466,10 +474,7 @@ function doTranscript() {
 				set_transcribing(0);
 				//				menuItem.setProperty('label', 'Stop transcript');
 		} else {
-
-				alert('(ask for a filename...)');
 				set_transcribing(1);
-
 				//				menuItem.setProperty('label', 'Start transcript...');
 		}
 }
