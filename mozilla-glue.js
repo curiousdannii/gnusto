@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.59 2003/04/22 10:51:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.60 2003/04/22 13:27:30 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -301,38 +301,6 @@ function glue__get_font_metrics() {
 
 ////////////////////////////////////////////////////////////////
 
-function glue_store_screen_size() {
-
-		// FIXME: sensible minima (see the spec)
-
-		var screen_width = 80;
-		var screen_height = 25;
-
-		if (window.innerHeight!=1 && window.innerWidth!=1) {
-
-				screen_width  = Math.floor(window.innerWidth/glue__font_width)-1;
-				screen_height = Math.floor(window.innerHeight/glue__font_height)-1;
-
-				// Why -1? Check whether we're off-by-one anywhere.
-
-				// Screen minima (s8.4): 60x14.
-				if (screen_width<60) screen_width=60;
-				if (screen_height<14) screen_height=14;
-		}
-
-		setbyte(screen_height,                   0x20); // screen h, chars
-		setbyte(screen_width,                    0x21); // screen w, chars
-		setword(screen_width *glue__font_width,  0x22); // screen w, units
-		setword(screen_height*glue__font_height, 0x24); // screen h, units
-		setbyte(glue__font_width,                0x26); // font w, units
-		setbyte(glue__font_height,               0x27); // font h, units
-
-		// Tell the window drivers about it
-		win_resize(screen_width, screen_height);
-}
-
-////////////////////////////////////////////////////////////////
-
 function camenesbounce_catch(e) {
 		eval(e.target.toString().substring(13));
 }
@@ -346,10 +314,6 @@ function start_up() {
 
 		glue__get_font_metrics();
 
-		// Do that every time the size changes, actually.
-//		window.addEventListener('resize',
-//														glue_store_screen_size,	0);
-
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);
 
@@ -360,7 +324,7 @@ function play() {
 		document.getElementById('input').focus();
 		win_setup();
     setup();
-		glue_store_screen_size();
+		/* FIXME: later... glue_store_screen_size(); */
 
 		if (!single_step) {
 				go_wrapper(0);

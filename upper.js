@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.26 2003/04/22 10:55:26 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.27 2003/04/22 13:27:30 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -35,9 +35,7 @@ var win__screen_height = 25; // a good default size
 
 // Called on startup.
 function win_init() {
-
 		// Does nothing at present.
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -50,19 +48,49 @@ function win_setup() {
 		barbarix_clear(body);
 		win__screen_window = win__screen_doc.createElement('pre');
 		win__screen_window.setAttribute('class', 'bocardo');
+		win__screen_window.setAttribute('id', 'bocardomain');
 		body.appendChild(win__screen_window);
 
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
 
 		win_set_top_window_size(0);
+
+		win_resize();
+		// Do that every time the size changes, actually.
+		window.addEventListener('resize', win_resize, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
-function win_resize(width, height) {
-		win__screen_width = width;
-		win__screen_height = height;
+function win_resize() {
+		/*		win__screen_width = width;
+					win__screen_height = height; */
+
+		// FIXME: Is this guaranteed to be pixels?
+
+		var bocardoHeight = parseInt(win__screen_doc.defaultView.getComputedStyle(win__screen_window,null).getPropertyValue('height'));
+		var bocardoWidth = parseInt(win__screen_doc.defaultView.getComputedStyle(win__screen_window,null).getPropertyValue('width'));
+
+		var totalLinesHeight = 0;
+		var maxLineWidth = 0;
+
+		var lines = win__screen_window.childNodes;
+
+		for (var i=0; i<lines.length; i++) {
+
+				// Need to base calculations on spans, and only spans with text in.
+				// Or perhaps only on textnodes.
+
+				var lineWidth = parseInt(win__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('width'));
+				var lineHeight = parseInt(win__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('height'));
+
+				if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
+				totalLinesHeight += lineHeight;
+		}
+
+
+		// window.title = 'Bocardo resize: '+bocardoWidth+'x'+bocardoHeight+' max '+maxLineWidth+','+totalLinesHeight;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -453,6 +481,49 @@ function win__subchalk(win, text) {
 				current_line.insertBefore(newSpan, spans[appendPoint]);
 		}
 }
+
+////////////////////////////////////////////////////////////////
+
+/*
+
+// FIXME: In transition from mozilla-glue.
+function win__store_screen_size() {
+
+		var screen_width = 80;
+		var screen_height = 25;
+
+		if (window.innerHeight!=1 && window.innerWidth!=1) {
+
+				// FIXME: work something out about getting font metrics
+				screen_width  = Math.floor(window.innerWidth/glue__font_width)-1;
+				screen_height = Math.floor(window.innerHeight/glue__font_height)-1;
+
+				// Why -1? Check whether we're off-by-one anywhere.
+
+				// Screen minima (s8.4): 60x14.
+				if (screen_width<60) screen_width=60;
+				if (screen_height<14) screen_height=14;
+
+				// Maxima: we can't have a screen > 255 in either direction
+				// (which is really possible these days).
+
+				if (screen_width>255) screen_width=255;
+				if (screen_height>255) screen_height=255;
+		}
+
+		//	FIXME: Figure out how to signal this to the environment
+		setbyte(screen_height,                   0x20); // screen h, chars
+		setbyte(screen_width,                    0x21); // screen w, chars
+		setword(screen_width *glue__font_width,  0x22); // screen w, units
+		setword(screen_height*glue__font_height, 0x24); // screen h, units
+		setbyte(glue__font_width,                0x26); // font w, units
+		setbyte(glue__font_height,               0x27); // font h, units
+
+		// Tell the window drivers about it
+		win_resize(screen_width, screen_height);
+}
+
+*/
 
 ////////////////////////////////////////////////////////////////
 UPPER_HAPPY = 1;
