@@ -23,7 +23,7 @@ var engine = Components.Constructor('@gnusto.org/engine;1',
 				    'gnustoIEngine',
 				    'loadStoryMZ5')(content);
 
-engine.goldenTrail = 1;
+// engine.goldenTrail = 1;
 
 dump('\n---- Gnusto starting (build of '+engine.cvsVersion+') ----\n');
 
