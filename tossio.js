@@ -773,47 +773,11 @@ var tossio_verbs = {
 							 }
 
 					 }],
-		'ta': ['(temporary testing function for new screen handler)','',
+		'at': ['(temporary testing function for new screen handler)','',
 					function(a) {
-							var newLine = window_documents[0].createElement('span');
-
-							var newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Aaaaaaaaaa'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Bbbbbbbbbb'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Cccccccccc'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Dddddddddd'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Eeeeeeeeee'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Ffffffffff'));
-							newLine.appendChild(newSpan);
-
-							newSpan = window_documents[0].createElement('span');
-							newSpan.appendChild(window_documents[0].createTextNode('Gggggggggg'));
-							newLine.appendChild(newSpan);
-
-							newLine.appendChild(window_documents[0].createTextNode('\n'));
-
-							windows[0].appendChild(newLine);
-					}],
-		'tb': ['(temporary testing function for new screen handler)','',
-					function(a) {
-							window_current_x[0] = 25;
-							window_current_y[0] = 0;
-							chalk(0, 0, 0, 0, 'X');
+							window_current_x[0] = a[1];
+							window_current_y[0] = a[2];
+							chalk(0, 0, 0, 0, a[3]);
 					}],
 		'about': ['show the about box',
 						 '...',
