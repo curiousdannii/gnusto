@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.104 2003/08/28 22:07:51 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.105 2003/08/29 01:03:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2648,16 +2648,19 @@ function engine_effect_parameters() {
 ////////////////////////////////////////////////////////////////
 
 function zGetByte(address) {
+		if (address<0) { address &= 0xFFFF; }
     return engine__memory[address];
 }
 
 function zSetByte(value, address) {
-    engine__memory[address & 0xFFFF] = value;
+		if (address<0) { address &= 0xFFFF; }
+    engine__memory[address] = value;
 }
 
-function zGetWord(addr) {
-		return unsigned2signed((engine__memory[addr]<<8)|
-													 engine__memory[addr+1]);
+function zGetWord(address) {
+		if (address<0) { address &= 0xFFFF; }
+		return unsigned2signed((engine__memory[address]<<8)|
+													 engine__memory[address+1]);
 }
 
 function unsigned2signed(value) {
@@ -2668,13 +2671,15 @@ function signed2unsigned(value) {
 		return value & 0xFFFF;
 }
 
-function zGetUnsignedWord(addr) {
-		return (engine__memory[addr]<<8)|engine__memory[addr+1];
+function zGetUnsignedWord(address) {
+		if (address<0) { address &= 0xFFFF; }
+		return (engine__memory[address]<<8)|engine__memory[address+1];
 }
 
-function zSetWord(value, addr) {
-		zSetByte((value>>8) & 0xFF, addr);
-		zSetByte((value) & 0xFF, addr+1);
+function zSetWord(value, address) {
+		if (address<0) { address &= 0xFFFF; }
+		zSetByte((value>>8) & 0xFF, address);
+		zSetByte((value) & 0xFF, address+1);
 }
 
 function IsSeparator(value) {
