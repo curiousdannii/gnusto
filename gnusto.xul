@@ -80,7 +80,7 @@
 
 <menu id="help-menu" label="Help" accesskey="H">
 <menupopup>
-<menuitem label="About Gnusto..." accesskey="A" oncommand="try{aboutBox()}catch(e){deal_with_exception(e)}"/>
+<menuitem label="About Gnusto..." accesskey="A" oncommand="try{tossio_debug_instruction(['about']);}catch(e){deal_with_exception(e)}"/>
 </menupopup>
 </menu>
 
