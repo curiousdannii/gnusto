@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.109 2003/08/29 08:52:00 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.110 2003/08/29 20:16:39 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1485,7 +1485,7 @@ function zscii_char_to_ascii(zscii_code) {
 				// FIXME: It's not clear what to do if they request a character
 				// that's off the end of the table.
 		}	else {  //let's do nothing for the release-- we'll check the spec afterwards.
-				//gnusto_error(703, zscii_code); // unknown zscii code
+				gnusto_error(703, zscii_code); // unknown zscii code
 		}
 
 		return String.fromCharCode(result);
@@ -1575,15 +1575,15 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 						entries_count = -entries_count;
 				}
 
-				var oldword = word;				
+				//var oldword = word;				
 				word = into_zscii(word);
 
 				for (var i=0; i<entries_count; i++) {
 						//really ugly kludge until into_zscii is fixed properly
 						// FIXME: it is now. remove this?
 						var address = entries_start+i*entry_length;
-					 	if (zscii_from(address)==oldword) {
-								return address;}
+					 	//if (zscii_from(address)==oldword) {
+						//		return address;}
 
 						var j=0;
 						while (j<word.length &&		
@@ -1600,7 +1600,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
                        
 			var lexical = look_up(curword, dictionary);
 
-                        //alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
+                        alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
 			if (!(overwrite && (lexical==0))) {
 			    zSetWord(lexical, cursor);
 			
@@ -1609,9 +1609,10 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 			    zSetByte(curword.length, cursor++);
 			    zSetByte(wordpos+2, cursor++);
 	
-		  	    zSetByte(zGetByte(words_count)+1, words_count);
-			}
+		} else cursor +=4;
 		
+		zSetByte(zGetByte(words_count)+1, words_count);		
+			
                         return 1;        	
                 } 
 
