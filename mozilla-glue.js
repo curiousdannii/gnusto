@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.102 2003/08/08 23:30:47 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.103 2003/08/29 03:51:28 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -162,6 +162,7 @@ function command_exec(args) {
 						var eep = engine_effect_parameters();
 						glue__input_buffer_max_chars = eep.maxchars;
 						win_set_input([win_recaps(eep.recaps), '']);
+						glue__command_history_position = -1;
 						break;
 
 				case GNUSTO_EFFECT_SAVE:
@@ -474,6 +475,9 @@ function glue_play(memory) {
 		}
 }
 
+var glue__command_history = [];
+var glue__command_history_position = -1;
+
 function gotInput(e) {
 
 		if (win_waiting_for_more()) {
@@ -505,6 +509,9 @@ function gotInput(e) {
 
 						glue_print(result+'\n');
 						//VERBOSE burin('COMMAND:',result);
+
+						glue__command_history.unshift(result);
+
 						glue_set_answer(result);
 						dispatch('exec');
 
@@ -547,6 +554,26 @@ function gotInput(e) {
 								current[1] = current[1].substring(1);
 						} else glue__beep();
 						win_set_input(current);
+
+				} else if (e.keyCode==38) {
+						// cursor up
+						if (glue__command_history_position >= glue__command_history.length-1) {
+								glue__beep();
+						} else {
+								current[0] = glue__command_history[++glue__command_history_position];
+								current[1] = '';
+								win_set_input(current);
+						}
+
+				} else if (e.keyCode==40) {
+						// cursor down
+						if (glue__command_history_position < 1) {
+								glue__beep();
+						} else {
+								current[0] = glue__command_history[--glue__command_history_position];
+								current[1] = '';
+								win_set_input(current);
+						}
 
 				} else if (e.keyCode==46) {
 						// delete (to the right)
