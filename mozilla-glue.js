@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.43 2003/04/05 16:52:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.44 2003/04/05 17:06:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -586,10 +586,10 @@ function gotInput(event) {
 						switch (event.keyCode) {
 
 								// Arrow keys
-						case  37 : go_wrapper(129); break;
-						case  38 : go_wrapper(130); break;
-						case  39 : go_wrapper(131); break;
-						case  40 : go_wrapper(132); break;
+						case  37 : go_wrapper(131); break;
+						case  38 : go_wrapper(129); break;
+						case  39 : go_wrapper(132); break;
+						case  40 : go_wrapper(130); break;
 
 								// Function keys
 						case 112 : go_wrapper(133); break;
