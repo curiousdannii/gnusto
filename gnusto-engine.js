@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.76 2003/06/13 21:15:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.77 2003/06/13 22:00:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2270,7 +2270,9 @@ function zSetByte(value, address) {
 // Only do this when things are stable, though.
 
 function zGetWord(addr) {
-		return unsigned2signed(zGetUnsignedWord(addr));
+		return unsigned2signed((engine__memory[addr]<<8)|
+													 engine__memory[addr+1]);
+		// was: return unsigned2signed(zGetUnsignedWord(addr));
 }
 
 function unsigned2signed(value) {
@@ -2282,7 +2284,8 @@ function signed2unsigned(value) {
 }
 
 function zGetUnsignedWord(addr) {
-		return zGetByte(addr)*256+zGetByte(addr+1);
+		return (engine__memory[addr]<<8)|engine__memory[addr+1];
+		// was: return zGetByte(addr)*256+zGetByte(addr+1);
 }
 
 function zSetWord(value, addr) {
