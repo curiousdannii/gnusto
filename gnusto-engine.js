@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.105 2005/01/12 06:13:13 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.106 2005/01/12 07:33:01 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/01/12 06:13:13 $';
+const CVS_VERSION = '$Date: 2005/01/12 07:33:01 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -2067,6 +2067,7 @@ GnustoEngine.prototype = {
       // Home alphabet is 0.  It will stay 0 for v3 and above, but can
       // be changed in v1/2
       this.m_home_alph = 0;
+      this.m_alph = 0;
       
       this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
       this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -3378,9 +3379,10 @@ GnustoEngine.prototype = {
 			}
 
 			var temp = '';
-			var alph = this.m_home_alph;
 			var running = 1;
 			var start_address = address;
+			var home_alph=0;
+			var alph = home_alph;
 
 			// Should be:
 			//   -2 if we're not expecting a ten-bit character
@@ -3406,19 +3408,20 @@ GnustoEngine.prototype = {
 							var code = ((word>>(j*5))&0x1f);
 
 							if (abbreviation) {
-									temp = temp + this._zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+this.m_abbr_start)*2);
+								        temp = temp + this._zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+this.m_abbr_start)*2);
 									abbreviation = 0;	
+									alph=home_alph;
 						} else if (tenbit==-2) {
 
 									if (code>5) {
 											if (alph==2 && code==6)
 													tenbit = -1;
-											else
+											else {
 													temp = temp + this.m_zalphabet[alph][code-6];
-											
-											alph = this.m_home_alph;
+											                alph = home_alph;
+											}
 									} else {
-											if (code==0) { temp = temp + ' '; alph=this.m_home_alph; }
+											if (code==0) { temp = temp + ' '; alph=home_alph; }
 											else if (code<4) { 
 											    if (this.getByte(0) > 3) {abbreviation = code;}
 											    else {
@@ -3430,8 +3433,12 @@ GnustoEngine.prototype = {
 											      	  if (alph < 0) {alph=2;}											      
 											      }
 											      else {
-											        if (this.getByte(0)==2) {abbreviation=1;}
-											        else {temp = temp + '\n';} // in z1 1 is a newline
+											        if (this.getByte(0)==2) {
+											        	abbreviation=1;}
+											        else {
+											            temp = temp + '\n';  //in z-1 this is a newline
+											            alph = home_alph;
+											        }
 											      } 
 											    }
 											}
@@ -3439,13 +3446,13 @@ GnustoEngine.prototype = {
 											  if (this.getByte(0) > 2) {alph = code-3;}
 											  else {
 											      if (code==4){
-											          alph += 1;
-											          if (alph > 2) {alph=0;}                       								      											      	
+											          home_alph += 1;
+											          if (home_alph > 2) {home_alph=0;}                       								      											      	
 											      } else {
-											      	  alph -= 1;
-											      	  if (alph < 0) {alph=2;}											      
+											      	  home_alph -= 1;
+											      	  if (home_alph < 0) {home_alph=2;}											      
 											      }
-											      this.m_home_alph=alph;											   
+											      alph=home_alph;											   
 											  }
 											
 											}
@@ -3456,6 +3463,7 @@ GnustoEngine.prototype = {
 							} else {
 									temp = temp + this._zscii_char_to_ascii((tenbit<<5) + code);
 									tenbit = -2;
+									alph=home_alph;
 							}
 					}
 			}
@@ -3560,7 +3568,9 @@ GnustoEngine.prototype = {
 							var z2 = this.m_zalphabet[2].indexOf(String.fromCharCode(ch));
 							
 							if (z2!=-1) {
-									emit(5); // shift to weird stuff
+								        if (this.getbyte(0)>3) {
+									  emit(5); // shift to weird stuff
+									} else { emit(3);} //use a shift as 5 is shift_lock in z1-2
 
 									// XXX FIXME. This ought logically to be z2+6
 									// (and Frotz also uses 6 here.) For some reason,
@@ -3568,7 +3578,9 @@ GnustoEngine.prototype = {
 									// Find out what's up.
 									emit(z2+6);
 							} else {
-									emit(5);
+								        if (this.getbyte(0)>3) {
+									  emit(5);
+									} else { emit(3);} //use a shift as 5 is shift_lock in z1-2
 									emit(6);
 									emit(ch >> 5);
 									emit(ch &  0x1F);
@@ -4154,7 +4166,12 @@ GnustoEngine.prototype = {
   // Address of custom alphabet table (if any).
   m_alpha_start: 0,
 
+  // Current "home" alphabet-- always 0 in v3+, changed via shift_lock
   m_home_alph: 0,
+  // Current alphabet-- differs from home if shifted
+  m_alph: 0,
+  
+  // Holder for the z-alphabet
   m_zalphabet: [],
   
   // Address of start of strings.
