@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.5 2003/09/15 03:12:33 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.6 2003/09/15 05:35:52 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 03:12:33 $';
+const CVS_VERSION = '$Date: 2003/09/15 05:35:52 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -50,7 +50,7 @@ const CHILD_REC = 10;
 ////  }
 ////function golden_trail(addr) {
 ////  var text = '\npc : '+addr.toString(16);
-////  print(text);*/
+////  print(text);
 ////burin('gold',text);
 ////
 ////// Extra debugging information which may sometimes be useful
@@ -144,107 +144,6 @@ var default_unicode_translation_table = {
   223:0xbf, // inverted query
 };
 
-
-////////////////////////////////////////////////////////////////
-//////////////// Functions to support handlers /////////////////
-////////////////////////////////////////////////////////////////
-//
-// Each of these functions is used by the members of the
-// |handlers| array, below.
-//
-
-function call_vn(engine, args, offset) {
-  //VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
-  engine.m_compilation_running = 0;
-  var address = engine.m_pc;
-  if (offset) { address += offset; }
-
-  return 'gosub(this,'+
-    engine.m_pc_translate_for_routine(args[0])+','+
-    '['+args.slice(1)+'],'+
-    (address) + ',0)';
-}
-
-function brancher(engine, condition) {
-  var inverted = 1;
-  var temp = engine.getByte(engine.m_pc++);
-  var target_address = temp & 0x3F;
-
-  if (temp & 0x80) inverted = 0;
-  if (!(temp & 0x40)) {
-    target_address = (target_address << 8) | engine.getByte(engine.m_pc++);
-    // and it's signed...
-
-    if (target_address & 0x2000) {
-      // sign bit's set; propagate it
-				target_address =
-						(~0x1FFF) | (target_address & 0x1FFF);
-    }
-  }
-
-  var if_statement = condition;
-
-  if (inverted) {
-    if_statement = 'if(!('+if_statement+'))';
-  } else {
-    if_statement = 'if('+if_statement+')';
-  }
-
-  // Branches to the addresses 0 and 1 are actually returns with
-  // those values.
-
-  if (target_address == 0)
-    return if_statement + '{func_return(this,0);return;}';
-
-  if (target_address == 1)
-    return if_statement + '{func_return(this,1);return;}';
-
-  target_address = (engine.m_pc + target_address) - 2;
-
-  // This is an optimisation that's currently unimplemented:
-  // if there's no code there, we should mark that we want it later.
-  //  [ if (!engine.m_jit[target_address]) engine.m_jit[target_address]=0; ]
-
-  return if_statement + '{this.m_pc='+(target_address)+';return;}';
-}
-
-function store_into(engine, lvalue, rvalue) {
-  if (rvalue.substring && rvalue.substring(0,5)=='gosub') {
-    // Special case: the results of gosubs can't
-    // be stored synchronously.
-
-    engine.m_compilation_running = 0; // just to be sure we stop here.
-
-    if (rvalue.substring(rvalue.length-3)!=',0)') {
-      // You really shouldn't pass us gosubs with
-      // the result function filled in.
-      gnusto_error(100, rvalue); // can't modify gosub
-    }
-
-    // Twist the lvalue into a function definition.
-
-    return rvalue.substring(0,rvalue.length-2) +
-      'function(r){'+
-      store_into(engine, lvalue, 'r')+
-      '})';
-  }
-
-  if (lvalue=='gamestack.pop()') {
-    return 'gamestack.push('+rvalue+')';
-  } else if (lvalue.substring(0,13)=='this.getWord(') {
-    return 'this.setWord('+rvalue+','+lvalue.substring(13);
-  } else if (lvalue.substring(0,13)=='this.getByte(') {
-    return 'this.setByte('+rvalue+','+lvalue.substring(13);
-  } else {
-    return lvalue + '=' + rvalue;
-  }
-}
-
-function storer(engine, rvalue) {
-  return store_into(engine,
-										engine._code_for_varcode(engine.getByte(engine.m_pc++)),
-										rvalue);
-}
 
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from run(). See the explanation below
@@ -357,11 +256,12 @@ var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
 //
 // Support functions for the functions within |handlers|
 
+// FIXME: Should this be a method?
 function handler_call(engine, target, arguments) {
   engine.m_compilation_running=0; // Got to stop after this.
-  var functino = "function(r){"+storer(engine,"r")+";});";
+  var functino = "function(r){"+engine._storer("r")+";});";
   // (get it calculated so's the engine.m_pc will be right)
-  return "gosub(this,"+engine.m_pc_translate_for_routine(target)+",["+arguments+"],"+engine.m_pc+","+
+  return "_func_gosub("+engine.m_pc_translate_for_routine(target)+",["+arguments+"],"+engine.m_pc+","+
     functino;
 }
 
@@ -473,7 +373,6 @@ function unmz5(encoded) {
 // the function was a method), and 2) the list of actual arguments
 // given in the z-code for that function.
 
-
 function handleZ_je(engine, a) { 		
 
     if (a.length<2) { 
@@ -481,7 +380,7 @@ function handleZ_je(engine, a) {
       return ''; // it's a no-op
     } else if (a.length==2) { 
       //VERBOSE burin('je',a[0] + '==' + a[1]);
-      return brancher(a[0]+'=='+a[1]);
+      return engine._brancher(a[0]+'=='+a[1]);
     } else {
       var condition = '';
       for (var i=1; i<a.length; i++) {
@@ -489,46 +388,46 @@ function handleZ_je(engine, a) {
 	condition = condition + 't=='+a[i];
       }
       //VERBOSE burin('je','t=' + a[0] + ';' + condition);
-      return 't='+a[0]+';'+brancher(condition);
+      return 't='+a[0]+';'+engine._brancher(condition);
     }
   }
 
 function handleZ_jl(engine, a) {
     //VERBOSE burin('jl',a[0] + '<' + a[1]); 
-    return brancher(a[0]+'<'+a[1]); }
+    return engine._brancher(a[0]+'<'+a[1]); }
 
 function handleZ_jg(engine, a) { 
     //VERBOSE burin('jg',a[0] + '>'+a[1]);
-    return brancher(a[0]+'>'+a[1]); }
+    return engine._brancher(a[0]+'>'+a[1]); }
 
 function handleZ_dec_chk(engine, a) {
     //VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
-    return 't='+a[0]+';t2=this._varcode_get(t)-1;this._varcode_set(t2,t);'+brancher('t2<'+a[1]);
+    return 't='+a[0]+';t2=this._varcode_get(t)-1;this._varcode_set(t2,t);'+engine._brancher('t2<'+a[1]);
   }
 function handleZ_inc_chk(engine, a) {
     //VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
-    return 't='+a[0]+';t2=this._varcode_get(t)+1;this._varcode_set(t2,t);'+brancher('t2>'+a[1]);
+    return 't='+a[0]+';t2=this._varcode_get(t)+1;this._varcode_set(t2,t);'+engine._brancher('t2>'+a[1]);
   }
 
 function handleZ_jin(engine, a) {
     //VERBOSE burin('jin',a[0] + ',' + a[1]);
-    return brancher("obj_in(this,"+a[0]+','+a[1]+')');
+    return engine._brancher("obj_in(this,"+a[0]+','+a[1]+')');
   }
 function handleZ_test(engine, a) {
     //VERBOSE burin('test','t='+a[1]+';br(' + a[0] + '&t)==t)');
-    return 't='+a[1]+';'+brancher('('+a[0]+'&t)==t');
+    return 't='+a[1]+';'+engine._brancher('('+a[0]+'&t)==t');
   }
 function handleZ_or(engine, a) {
     //VERBOSE burin('or','('+a[0] + '|' + a[1]+')&0xFFFF');
-    return storer(engine, '('+a[0]+'|'+a[1]+')&0xffff');
+    return engine._storer('('+a[0]+'|'+a[1]+')&0xffff');
   }
 function handleZ_and(engine, a) {
     //VERBOSE burin('and',a[0] + '&' + a[1] + '&0xFFFF');
-    return storer(engine, a[0]+'&'+a[1]+'&0xffff');
+    return engine._storer(a[0]+'&'+a[1]+'&0xffff');
   }
 function handleZ_test_attr(engine, a) {
     //VERBOSE burin('test_attr',a[0] + ',' + a[1]);
-    return brancher('test_attr(this,'+a[0]+','+a[1]+')');
+    return engine._brancher('test_attr(this,'+a[0]+','+a[1]+')');
   }
 function handleZ_set_attr(engine, a) {
     //VERBOSE burin('set_attr',a[0] + ',' + a[1]);
@@ -548,40 +447,40 @@ function handleZ_insert_obj(engine, a) {
   }
 function handleZ_loadw(engine, a) {
     //VERBOSE burin('loadw',"this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
-    return storer(engine, "this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+    return engine._storer("this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
   }
 function handleZ_loadb(engine, a) {
     //VERBOSE burin('loadb',"this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
-    return storer(engine, "this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+    return engine._storer("this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
   }
 function handleZ_get_prop(engine, a) {
     //VERBOSE burin('get_prop',a[0]+','+a[1]);
-    return storer(engine, "get_prop(this,"+a[0]+','+a[1]+')');
+    return engine._storer("get_prop(this,"+a[0]+','+a[1]+')');
   }
 function handleZ_get_prop_addr(engine, a) {
     //VERBOSE burin('get_prop_addr',a[0]+','+a[1]);
-    return storer(engine, "get_prop_addr(this,"+a[0]+','+a[1]+')');
+    return engine._storer("get_prop_addr(this,"+a[0]+','+a[1]+')');
   }
 function handleZ_get_next_prop(engine, a) {
     //VERBOSE burin('get_next_prop',a[0]+','+a[1]);
-    return storer(engine, "get_next_prop(this,"+a[0]+','+a[1]+')');
+    return engine._storer("get_next_prop(this,"+a[0]+','+a[1]+')');
   }
 function handleZ_add(engine, a) { 
     //VERBOSE burin('add',a[0]+'+'+a[1]);
-    return storer(engine, a[0]+'+'+a[1]); }
+    return engine._storer(a[0]+'+'+a[1]); }
 function handleZ_sub(engine, a) { 
     //VERBOSE burin('sub',a[0]+'-'+a[1]);
-    return storer(engine, a[0]+'-'+a[1]); }
+    return engine._storer(a[0]+'-'+a[1]); }
 function handleZ_mul(engine, a) { 
     //VERBOSE burin('mul',a[0]+'*'+a[1]);
-    return storer(engine, a[0]+'*'+a[1]); }
+    return engine._storer(a[0]+'*'+a[1]); }
 function handleZ_div(engine, a) {
     //VERBOSE burin('div',a[0]+'/'+a[1]);
-    return storer(engine, 'trunc_divide('+a[0]+','+a[1]+')');
+    return engine._storer('trunc_divide('+a[0]+','+a[1]+')');
   }
 function handleZ_mod(engine, a) { 
     //VERBOSE burin('mod',a[0]+'%'+a[1]);
-    return storer(engine, a[0]+'%'+a[1]);
+    return engine._storer(a[0]+'%'+a[1]);
   }
 function handleZ_call_2s(engine, a) {
     //VERBOSE burin('call2s',a[0]+'-'+a[1]);
@@ -591,7 +490,7 @@ function handleZ_call_2n(engine, a) {
     //VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
     // can we use handler_call here, too?
     engine.m_compilation_running=0; // Got to stop after this.
-    return "gosub(this,"+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
+    return "_func_gosub("+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
   }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
@@ -604,25 +503,25 @@ function handleZ_throw(engine, a) {
   }
 function handleZ_js(engine, a) {
     //VERBOSE burin('js',a[0]+'==0');
-    return brancher(a[0]+'==0');
+    return engine._brancher(a[0]+'==0');
   }
 function handleZ_get_sibling(engine, a) {
     //VERBOSE burin('get_sibling',"t=get_sibling("+a[0]+");");
-    return "t=get_sibling("+a[0]+");"+storer(engine, "t")+";"+brancher("t");
+    return "t=get_sibling("+a[0]+");"+engine._storer("t")+";"+engine._brancher("t");
   }
 function handleZ_get_child(engine, a) {
     //VERBOSE burin('get_child',"t=get_child("+a[0]+");");
     return "t=get_child("+a[0]+");"+
-      storer(engine, "t")+";"+
-      brancher("t");
+      engine._storer("t")+";"+
+      engine._brancher("t");
   }
 function handleZ_get_parent(engine, a) {
     //VERBOSE burin('get_parent',"get_parent("+a[0]+");");
-    return storer(engine, "get_parent("+a[0]+")");
+    return engine._storer("get_parent("+a[0]+")");
   }
 function handleZ_get_prop_len(engine, a) {
     //VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
-    return storer(engine, "get_prop_len(engine,"+a[0]+')');
+    return engine._storer("get_prop_len(engine,"+a[0]+')');
   }
 function handleZ_inc(engine, a) {
     //VERBOSE burin('inc',c + '+1');
@@ -669,13 +568,13 @@ function handleZ_print_paddr(engine, a) {
   }
 function handleZ_load(engine, a) {
     //VERBOSE burin('load',"store " + c);
-    return storer(engine, 'this._varcode_get('+a[0]+')');
+    return engine._storer('this._varcode_get('+a[0]+')');
   }
 function handleZ_call_1n(engine, a) {
     // can we use handler_call here, too?
     engine.m_compilation_running=0; // Got to stop after this.
     //VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
-    return "gosub(this,"+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
+    return "_func_gosub("+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
       }
 		
 function handleZ_rtrue(engine, a) {
@@ -714,7 +613,7 @@ function handleZ_catch(engine, a) {
     // The stack frame cookie is specified by Quetzal 1.3b s6.2
     // to be the number of frames on the stack.
     //VERBOSE burin('catch',"store call_stack.length");
-    return storer(engine, "call_stack.length");
+    return engine._storer("call_stack.length");
   }
 function handleZ_quit(engine, a) {
     //VERBOSE burin('quit','');
@@ -735,7 +634,7 @@ function handleZ_show_status(engine, a){ //(illegal from V4 onward)
 function handleZ_verify(engine, a) {
     engine.m_compilation_running = 0;
 
-    var setter = 'rebound=function(n){'+brancher('n')+'};';
+    var setter = 'rebound=function(n){'+engine._brancher('n')+'};';
     //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
     return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
   }
@@ -749,14 +648,14 @@ function handleZ_illegal_extended(engine, a) {
 function handleZ_piracy(engine, a) {
     engine.m_compilation_running = 0;
 				
-    var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
+    var setter = 'rebound=function(n){'+engine._brancher('(!n)')+'};';
     //VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
     return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
   }
 		
 function handleZ_call_vs(engine, a) {
     //VERBOSE burin('call_vs','see call_vn');
-    return storer(engine, call_vn(engine, a, 1));
+    return engine._storer(engine._call_vn(a, 1));
 }
 
 function handleZ_store_w(engine, a) {
@@ -789,7 +688,7 @@ function handleZ_read(engine, a) {
     engine.m_compilation_running = 0;
 				
     var setter = "rebound=function(n){" +
-      storer(engine, "aread(this, n, a0," + a[1] + ")") +
+      engine._storer("aread(this, n, a0," + a[1] + ")") +
       "};";
 
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
@@ -817,11 +716,11 @@ function handleZ_print_num(engine, a) {
   }
 function handleZ_random(engine, a) {
     //VERBOSE burin('random',"random_number("+a[0]+")");
-    return storer(engine, "random_number("+a[0]+")");
+    return engine._storer("random_number("+a[0]+")");
   }
 function handleZ_push(engine, a) {
     //VERBOSE burin('push',a[0]);
-    return store_into(engine, 'gamestack.pop()', a[0]);
+    return engine._store_into('gamestack.pop()', a[0]);
   }
 function handleZ_pull(engine, a) {
     //VERBOSE burin('pull',c +'=gamestack.pop()');
@@ -839,7 +738,7 @@ function handleZ_set_window(engine, a) {
   }
 function handleZ_call_vs2(engine, a) {
     //VERBOSE burin('call_vs2',"see call_vn");
-    return storer(engine, call_vn(engine, a,1));
+    return engine._storer(engine._call_vn(a,1));
   }
 function handleZ_erase_window(engine, a) {
     engine.m_compilation_running=0;
@@ -911,7 +810,7 @@ function handleZ_read_char(engine, a) {
     engine.m_compilation_running = 0;
 				
     var setter = "rebound=function(n) { " +
-      storer(engine, "n") +
+      engine._storer("n") +
       "};";
 				
     return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
@@ -921,17 +820,22 @@ function handleZ_scan_table(engine, a) {
     //VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
     if (a.length == 4) {
       return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
-	storer(engine, "t") + ";" +  brancher('t');
+	engine._storer("t") + ";" +  engine._brancher('t');
     } else { // must use the default for Form, 0x82
       return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
-	storer(engine, "t") + ";" +  brancher('t');
+	engine._storer("t") + ";" +  engine._brancher('t');
     }
   }
 		
 function handleZ_not(engine, a) {
-    //VERBOSE burin('not','~'+a[1]+'&0xffff');
-    return storer(engine, '~'+a[1]+'&0xffff');
-  }
+		//VERBOSE burin('not','~'+a[1]+'&0xffff');
+    return engine._storer('~'+a[1]+'&0xffff');
+}
+
+function handleZ_call_vn(engine, a) {
+		// The engine can do this quite well for us on its own.
+		return engine._call_vn(a);
+}
 		
 function handleZ_tokenise(engine, a) {
     //VERBOSE burin('tokenise',"tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
@@ -959,14 +863,14 @@ function handleZ_print_table(engine, a) {
 		
 function handleZ_check_arg_count(engine, a) {
     //VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
-    return brancher(a[0]+'<=this._param_count()');
+    return engine._brancher(a[0]+'<=this._param_count()');
   }
 		
 function handleZ_save(engine, a) {
     //VERBOSE burin('save','');
     engine.m_compilation_running=0;
     var setter = "rebound=function(n) { " +
-      storer(engine, 'n') + "};";
+      engine._storer('n') + "};";
     return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
   }
 		
@@ -974,37 +878,37 @@ function handleZ_restore(engine, a) {
     //VERBOSE burin('restore','');
     engine.m_compilation_running=0;
     var setter = "rebound=function(n) { " +
-      storer(engine, 'n') + "};";
+      engine._storer('n') + "};";
     return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
   }
 		
 function handleZ_log_shift(engine, a) {
     //VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
     // log_shift logarithmic-bit-shift.  Right shifts are zero-padded
-    return storer(engine, "log_shift("+a[0]+','+a[1]+')');
+    return engine._storer("log_shift("+a[0]+','+a[1]+')');
   }
 
 function handleZ_art_shift(engine, a) {
     //VERBOSE burin('log_shift',"art_shift("+a[0]+','+a[1]+')');
     // arithmetic-bit-shift.  Right shifts are sign-extended
-    return storer(engine, "art_shift("+a[0]+','+a[1]+')');
+    return engine._storer("art_shift("+a[0]+','+a[1]+')');
   }
 
 function handleZ_set_font(engine, a) {
     //VERBOSE burin('set_font','('+a[0]+'<2?1:0) <<We only provide font 1.>>');
     // We only provide font 1.
-    return storer(engine, '('+a[0]+'<2?1:0)');
+    return engine._storer('('+a[0]+'<2?1:0)');
   }
 
 function handleZ_save_undo(engine, a) {
     //VERBOSE burin('save_undo','unsupported');
-    return storer(engine, '-1'); // not yet supplied
+    return engine._storer('-1'); // not yet supplied
   }
 
 function handleZ_restore_undo(engine, a) {
     //VERBOSE burin('restore_undo','unsupported');
     gnusto_error(700); // spurious restore_undo
-    return storer(engine, '0');
+    return engine._storer('0');
   }
 
 function handleZ_print_unicode(engine, a) {
@@ -1018,9 +922,8 @@ function handleZ_check_unicode(engine, a) {
     // read or write a character, so let's assume we can
     // read and write all of them. We can always provide
     // methods to do so somehow (e.g. with an onscreen keyboard).
-    return storer(engine, '3');
-  }
-
+    return engine._storer('3');
+}
 
   ////////////////////////////////////////////////////////////////
   //
@@ -1138,8 +1041,8 @@ var handlers_v578 = {
     246: handleZ_read_char,
     247: handleZ_scan_table, 
     248: handleZ_not,
-    249: call_vn,
-    250: call_vn, // call_vn2,
+    249: handleZ_call_vn,
+    250: handleZ_call_vn, // call_vn2,
     251: handleZ_tokenise,
     252: handleZ_encode_text,
     253: handleZ_copy_table,
@@ -1174,6 +1077,7 @@ var handlers_v578 = {
     //1027: make_menu (V6 opcode)
     //1028: picture_table (V6 opcode)
 };
+
 
 ////////////////////////////////////////////////////////////////
 //
@@ -1292,10 +1196,10 @@ GnustoEngine.prototype = {
     var jscode;
     var turns_limit = this.m_single_step? 1: 10000;
 
-    /*if (m_rebound) {
-      m_rebound(0); // answer FIXME
-      m_rebound = 0;
-			}*/
+    //if (m_rebound) {
+    //m_rebound(0); // answer FIXME
+    //m_rebound = 0;
+		//}
 
     while(!stopping) {
 
@@ -1308,17 +1212,27 @@ GnustoEngine.prototype = {
       if (this.m_jit[start_pc]) {
 					jscode = this.m_jit[start_pc];
       } else {
-					eval('jscode=' + this._compile());
-					if (start_pc >= stat_start)
+					jscode=this.eval('dummy='+this._compile());
+
+					// Store it away, if it's in static memory (there's
+					// not much point caching JIT from dynamic memory!)
+					if (start_pc >= this.m_stat_start) {
 							this.m_jit[start_pc] = jscode;
+					}
       }
+
+			dump('\n ** Run loop: **');
+			dump(jscode);
+			dump('\n');
 
       // Some useful debugging code:
       //burin('eng pc', start_pc);
       //burin('eng this.m_jit', jscode);
     
       stopping = jscode();
+			dump('Loop done.\n');
     }
+		dump('STOPPED.\n');
 
     // so, return an effect code.
     return stopping;
@@ -1678,7 +1592,7 @@ GnustoEngine.prototype = {
 			// to have |code| not read or write to the PC at all. So we need to
 			// set it automatically at the end of each fragment.
 			
-			if (single_step||debug_mode) {
+			if (this.m_single_step||this.m_debug_mode) {
 					code = code + 'this.m_pc='+this.m_pc; 
 					//VERBOSE burin(code,'');
 			}
@@ -1698,7 +1612,7 @@ GnustoEngine.prototype = {
 			} else if (target==1) {
 					this.m_output_to_console = 1;
 			} else if (target==2) {
-					this.setByte(engine.getByte(0x11) | 0x1);
+					this.setByte(this.getByte(0x11) | 0x1);
 			} else if (target==3) {
 					
 					if (this.m_streamthrees.length>15) {
@@ -1832,26 +1746,27 @@ GnustoEngine.prototype = {
 			var count = this.getByte(this.m_pc++);
 			for (var i=count; i>=0; i--) {
 					if (i<actuals.length) {
-							locals.unshift(actuals[i]);
+							this.m_locals.unshift(actuals[i]);
 					} else {
-							locals.unshift(0); // except in v.3, but hey
+							this.m_locals.unshift(0); // except in v.3, but hey
 					}
 			}
-			locals_stack.unshift(count+1);
+			this.m_locals_stack.unshift(count+1);
 	},
 
-	_func_gosub: function gosub(to_address, actuals, ret_address, result_eater) {
-			this.call_stack.push(ret_address);
+	_func_gosub: function ge_gosub(to_address, actuals, ret_address, result_eater) {
+			this.m_call_stack.push(ret_address);
 			this.m_pc = to_address;
 			// FIXME: func_prologue only called here. Refactor.
-			func_prologue(actuals);
-			this.param_counts.unshift(actuals.length);
-			this.result_eaters.push(result_eater);
+			this._func_prologue(actuals);
+			this.m_param_counts.unshift(actuals.length);
+			this.m_result_eaters.push(result_eater);
 
 			if (to_address==0) {
 					// Rare special case.
-					this.func_return(0);
+					this._func_return(0);
 			}
+			dump('\nNow leaving F_G.\n');
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -2808,6 +2723,106 @@ GnustoEngine.prototype = {
 			}
 	},
 
+	_brancher: function ge_brancher(condition) {
+
+			var inverted = 1;
+			var temp = this.getByte(this.m_pc++);
+			var target_address = temp & 0x3F;
+
+			if (temp & 0x80) {
+					inverted = 0;
+			}
+
+			if (!(temp & 0x40)) {
+					target_address = (target_address << 8) | this.getByte(this.m_pc++);
+					// and it's signed...
+
+					if (target_address & 0x2000) {
+							// sign bit's set; propagate it
+							target_address = (~0x1FFF) | (target_address & 0x1FFF);
+					}
+			}
+
+			var if_statement = condition;
+
+			if (inverted) {
+					if_statement = 'if(!('+if_statement+'))';
+			} else {
+					if_statement = 'if('+if_statement+')';
+			}
+
+			// Branches to the addresses 0 and 1 are actually returns with
+			// those values.
+
+			if (target_address == 0) {
+					return if_statement + '{func_return(this,0);return;}';
+			}
+
+			if (target_address == 1) {
+					return if_statement + '{func_return(this,1);return;}';
+			}
+
+			target_address = (this.m_pc + target_address) - 2;
+
+			// This is an optimisation that's currently unimplemented:
+			// if there's no code there, we should mark that we want it later.
+			//  [ if (!this.m_jit[target_address]) this.m_jit[target_address]=0; ]
+
+			return if_statement + '{this.m_pc='+(target_address)+';return;}';
+	},
+
+	_storer: function ge_storer(rvalue) {
+			return this._store_into(this._code_for_varcode(this.getByte(this.m_pc++)),
+															rvalue);
+	},
+
+	_store_into: function ge_store_into(lvalue, rvalue) {
+			if (rvalue.substring && rvalue.substring(0,11)=='_func_gosub') {
+					// Special case: the results of gosubs can't
+					// be stored synchronously.
+
+					this.m_compilation_running = 0; // just to be sure we stop here.
+
+					if (rvalue.substring(rvalue.length-3)!=',0)') {
+							// You really shouldn't pass us gosubs with
+							// the result function filled in.
+							gnusto_error(100, rvalue); // can't modify gosub
+					}
+
+					// Twist the lvalue into a function definition.
+
+					return rvalue.substring(0,rvalue.length-2) +
+							'function(r){'+
+							this._store_into(lvalue, 'r')+
+							'})';
+			}
+
+			if (lvalue=='gamestack.pop()') {
+					return 'gamestack.push('+rvalue+')';
+			} else if (lvalue.substring(0,8)=='getWord(') {
+					return 'setWord('+rvalue+','+lvalue.substring(13);
+			} else if (lvalue.substring(0,8)=='getByte(') {
+					return 'setByte('+rvalue+','+lvalue.substring(13);
+			} else {
+					return lvalue + '=' + rvalue;
+			}
+	},
+
+	_call_vn: function call_vn(args, offset) {
+			//VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
+			this.m_compilation_running = 0;
+			var address = this.m_pc;
+
+			if (offset) {
+					address += offset;
+			}
+
+			return '_func_gosub('+
+			this.m_pc_translate_for_routine(args[0])+','+
+			'['+args.slice(1)+'],'+
+			(address) + ',0)';
+	},
+
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
@@ -3022,7 +3037,6 @@ GnustoEngine.prototype = {
 
 };
 
-
 ////////////////////////////////////////////////////////////////
 //
 // The Factory
@@ -3048,6 +3062,7 @@ function gef_createinstance(outer, interface_id)
   dump("Ugh, weird interface.\n");
   throw Components.results.NS_ERROR_INVALID_ARG;
 }
+
 
 ////////////////////////////////////////////////////////////////
 //
@@ -3102,7 +3117,7 @@ function mod_canunload(compMgr) {
 // It all starts here!
 
 function NSGetModule(compMgr, fileSpec) {
-  return Module;
+		return Module;
 }
 
 // EOF gnusto-engine.js //
