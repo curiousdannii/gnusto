@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.98 2004/10/01 00:10:55 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.99 2004/10/01 00:12:32 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/10/01 00:10:55 $';
+const CVS_VERSION = '$Date: 2004/10/01 00:12:32 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -2790,11 +2790,7 @@ GnustoEngine.prototype = {
 
 			// Force the gamestack to be the length it was when this
 			// routine started. (ZMSD 6.3.2.)
-			var templength = this.m_gamestack_callbreaks.pop();
-			if ((templength < 1) || (!templength)) {
-				templength = 1;
-			}
-			this.m_gamestack.length = templength;
+			this.m_gamestack.length = this.m_gamestack_callbreaks.pop();
 
 			var target = this.m_result_targets.pop();
 			if (target!=-1 && value!=null) {
