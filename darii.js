@@ -2,7 +2,7 @@
 //
 // Gnusto's event mechanism.
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.9 2003/06/19 17:15:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.10 2003/07/20 01:24:32 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -64,7 +64,7 @@ function dispatch(what) {
 
 		try{
 
-				burin('dispatch', what);
+				// burin('dispatch', what);
 
 				var args = [];
 
