@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.9 2003/04/25 18:46:01 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.10 2003/04/25 20:23:41 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -113,6 +113,9 @@ function command_open(a) {
 						content[0x27] = 1; // font height, units
 
 						glue_receive_zcode(content);
+
+                                                dirty_reset();
+
 						return 1;
 				}
 
@@ -292,6 +295,7 @@ function command_open(a) {
 		}
 
 		if (filename && result==1) {
+
 				sys_notify_of_load(filename);
 				sys_show_story_title(filename);
 		}
@@ -490,6 +494,28 @@ function sys_show_story_title(newname) {
 				window.title = sys__story_name + " - Gnusto";
 		}
 }
+
+// reset important screen variables between games.  This is a *very* dirty
+// implementation and should be replaced by something that doesn't suck as
+// soon as we can manage.
+function dirty_reset() {
+                
+        win__current_style = 0;
+        win__current_foreground = 1;
+        win__current_background = 1;
+        win__current_css = ['ff bb','ff bb'];
+        win__screen_scroll_count = 0;
+        if (win__screen_doc != 0) {
+            var body = win__screen_doc.getElementsByTagName('body')[0];
+            body.setAttribute('class', 'b' + win__current_background);
+        }
+        win__current_x[0] = 0;
+        win__current_y[0] = 0;
+        win__current_x[1] = 0;
+        win__current_y[1] = 0;
+                               
+}
+
 
 ////////////////////////////////////////////////////////////////
 var DATISI_HAPPY = 1;
