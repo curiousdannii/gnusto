@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.9 2003/03/31 05:09:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.10 2003/03/31 05:12:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -44,8 +44,6 @@ function window_setup() {
 ////////////////////////////////////////////////////////////////
 
 function chalk(win, fg, bg, style, text) {
-
-		alert('chalk '+win+' '+fg+' '+bg+' '+style+' '+text);
 
     // This function is written in terms of subchalk(). All *we*
     // have to do is split up |text| so that it never goes
