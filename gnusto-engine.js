@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.20 2003/10/03 12:54:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.21 2003/10/03 13:57:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/03 12:54:37 $';
+const CVS_VERSION = '$Date: 2003/10/03 13:57:17 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -747,7 +747,7 @@ function handleZ_save(engine, a) {
     engine.m_compilation_running=0;
     var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
-    return "m_state_to_save=_saveable_state(1);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
+    return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
 }
 		
 function handleZ_restore(engine, a) {
@@ -1112,6 +1112,8 @@ GnustoEngine.prototype = {
 	//
   saveGame: function ge_saveGame() {
 
+			var state = this.m_state_to_save;
+
 			var tag_FORM = [0x46, 0x4f, 0x52, 0x4d];
 			var tag_IFZS = [0x49, 0x46, 0x5a, 0x53];
 			var tag_CMem = [0x43, 0x4d, 0x65, 0x6d];
@@ -1129,9 +1131,9 @@ GnustoEngine.prototype = {
 											 this.m_memory[0x17],
 											 this.m_memory[0x1C],    // Checksum
 											 this.m_memory[0x1D],
-											 (this.m_pc>>16) & 0xFF,
-											 (this.m_pc>> 8) & 0xFF,
-											 (this.m_pc    ) & 0xFF,
+											 (state.m_pc>>16) & 0xFF,
+											 (state.m_pc>> 8) & 0xFF,
+											 (state.m_pc    ) & 0xFF,
 											 0];
 
 			var quetzal = tag_FORM;
@@ -1178,7 +1180,8 @@ GnustoEngine.prototype = {
   ////////////////////////////////////////////////////////////////
   // _initial_setup
   //
-  // Initialises global variables.
+  // Initialises our variables.
+	//
   _initial_setup: function ge_initial_setup() {
 
 			this.m_jit = [];
@@ -1205,6 +1208,8 @@ GnustoEngine.prototype = {
 			this.m_alpha_start = this.getUnsignedWord(0x34);
 			this.m_hext_start  = this.getUnsignedWord(0x36);		
 	
+ 			this.m_original_memory = this.m_memory.slice(0, this.m_stat_start);
+
 			// Use the correct addressing mode for this Z-machine version...
 
 			if (this.m_version<=3) {
@@ -1213,6 +1218,7 @@ GnustoEngine.prototype = {
 					this.m_pc_translate_for_string = pc_translate_v123;
 			} else if (this.m_version<=5) {
 					// Versions 3 ("Standard"), 4 ("Plus") and 5 ("Advanced")
+					// XXX FIXME this is wrong for v3! (not that we support that yet)
 					this.m_pc_translate_for_routine = pc_translate_v45;
 					this.m_pc_translate_for_string = pc_translate_v45;
 			} else if (this.m_version<=7) {
@@ -3099,6 +3105,14 @@ GnustoEngine.prototype = {
 	// Saved Quetzal image. Only well-defined between a call to saveGame()
 	// and a call to saveGameData().
 	m_quetzal_image: 0,
+
+	// Original state of the story file. Used when saving to produce
+	// a compressed image by comparison.
+	//
+	// FIXME: This should make the restart and verify effects redundant.
+	// Make it so.
+	m_original_memory: [],
+
 };
 
 ////////////////////////////////////////////////////////////////
