@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.17 2003/09/24 22:41:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.18 2003/09/29 06:04:05 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/24 22:41:38 $';
+const CVS_VERSION = '$Date: 2003/09/29 06:04:05 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -27,9 +27,6 @@ const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
 const PARENT_REC = 6;
 const SIBLING_REC = 8;
 const CHILD_REC = 10;
-
-// FIXME: Result eaters now take TWO parameters (engine and value)
-// FIXME: Some of the indep. fns should really be methods (e.g. gosub)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -375,16 +372,6 @@ function handleZ_mod(engine, a) {
     //VERBOSE burin('mod',a[0]+'%'+a[1]);
     return engine._storer(a[0]+'%'+a[1]);
   }
-function handleZ_call_2s(engine, a) {
-    //VERBOSE burin('call2s',a[0]+'-'+a[1]);
-    return engine._handler_call(a[0], a[1]);
-  }
-function handleZ_call_2n(engine, a) {
-    //VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
-    // can we use handler_call here, too?
-    engine.m_compilation_running=0; // Got to stop after this.
-    return "_func_gosub("+engine.m_pc_translate_for_routine(a[0])+",["+a[1]+"],"+engine.m_pc+",0)";
-  }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
     return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return 1";
@@ -428,10 +415,6 @@ function handleZ_print_addr(engine, a) {
     //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
     return engine._handler_zOut('_zscii_from('+a[0]+')',0);
   }
-function handleZ_call_1s(engine, a) {
-    //VERBOSE burin('call_1s','handler_call('+a[0]+')');
-    return engine._handler_call(a[0], '');
-  }
 function handleZ_remove_obj(engine, a) {
     //VERBOSE burin('remove_obj',"remove_obj("+a[0]+','+a[1]+")");
     return "_remove_obj("+a[0]+','+a[1]+")";
@@ -463,13 +446,7 @@ function handleZ_load(engine, a) {
     //VERBOSE burin('load',"store " + c);
     return engine._storer('_varcode_get('+a[0]+')');
   }
-function handleZ_call_1n(engine, a) {
-    // can we use handler_call here, too?
-    engine.m_compilation_running=0; // Got to stop after this.
-    //VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
-    return "_func_gosub("+engine.m_pc_translate_for_routine(a[0])+",[],"+engine.m_pc+",0)"
-      }
-		
+	
 function handleZ_rtrue(engine, a) {
     //VERBOSE burin('rtrue',"_func_return(1);return");
     engine.m_compilation_running=0;
@@ -549,12 +526,47 @@ function handleZ_piracy(engine, a) {
     var setter = 'm_rebound=function(){'+engine._brancher('(!m_answers[0])')+'};';
     //VERBOSE burin('piracy',"pc="+pc+";"+setter+"m_effects=[GNUSTO_EFFECT_PIRACY];return 1;");
     return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_PIRACY+"];return 1";
-  }
-		
-function handleZ_call_vs(engine, a) {
-    //VERBOSE burin('call_vs','see call_vn');
-    return engine._storer(engine._call_vn(a, 1));
 }
+
+////////////////////////////////////////////////////////////////
+//
+// Call handlers:
+//
+// Gosub-generating functions, in increasing order of
+// arity (no args, one arg, many args), with the
+// no-store versions first. The "*_vs2" instructions
+// are conceptually identical to the corresponding
+// "*_vs" instructions, and share the same handlers.
+//
+// naltrexone-- I've removed the VERBOSE lines
+// which were rendered incorrect by this. If you need to turn
+// them on again, I'll put them back in in the new form.
+
+function handleZ_call_1n(engine, a) {
+    return engine._generate_gosub(a[0], '', 0);
+}
+
+function handleZ_call_1s(engine, a) {
+    return engine._generate_gosub(a[0], '', 1);
+}
+
+function handleZ_call_2n(engine, a) {
+    return engine._generate_gosub(a[0], a[1], 0);
+}
+
+function handleZ_call_2s(engine, a) {
+    return engine._generate_gosub(a[0], a[1], 1);
+}
+
+function handleZ_call_vn(engine, a) {
+		return engine._generate_gosub(a[0], a.slice(1), 0);
+}
+
+function handleZ_call_vs(engine, a) {
+    return engine._generate_gosub(a[0], a.slice(1), 1);
+}
+
+////////////////////////////////////////////////////////////////
 
 function handleZ_store_w(engine, a) {
     //VERBOSE burin('storew',"setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")");
@@ -612,7 +624,7 @@ function handleZ_random(engine, a) {
   }
 function handleZ_push(engine, a) {
     //VERBOSE burin('push',a[0]);
-    return engine._store_into('m_gamestack.pop()', a[0]);
+    return 'm_gamestack.push('+a[0]+')';
   }
 function handleZ_pull(engine, a) {
     //VERBOSE burin('pull',c +'=gamestack.pop()');
@@ -628,10 +640,6 @@ function handleZ_set_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_window','win=' + a[0]);
     return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+"];return 1";
-  }
-function handleZ_call_vs2(engine, a) {
-    //VERBOSE burin('call_vs2',"see call_vn");
-    return engine._storer(engine._call_vn(a,1));
   }
 function handleZ_erase_window(engine, a) {
     engine.m_compilation_running=0;
@@ -725,11 +733,6 @@ function handleZ_not(engine, a) {
     return engine._storer('~'+a[1]+'&0xffff');
 }
 
-function handleZ_call_vn(engine, a) {
-		// The engine can do this quite well for us on its own.
-		return engine._call_vn(a);
-}
-		
 function handleZ_tokenise(engine, a) {
     //VERBOSE burin('tokenise',"tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
     return "_tokenise(("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
@@ -920,7 +923,7 @@ var handlers_v578 = {
     233: handleZ_pull,
     234: handleZ_split_window,
     235: handleZ_set_window,
-    236: handleZ_call_vs2,
+    236: handleZ_call_vs, // call_vs2
     237: handleZ_erase_window,
     238: handleZ_erase_line,
     239: handleZ_set_cursor,
@@ -1063,7 +1066,6 @@ GnustoEngine.prototype = {
 
 	set goldenTrail(value) {
 			if (value) {
-					this.m_jit = []; // Got to trash the JIT here.
 					this.m_goldenTrail = 1;
 			} else {
 					this.m_goldenTrail = 0;
@@ -1125,8 +1127,9 @@ GnustoEngine.prototype = {
       }
 
       // Some useful debugging code:
-      //burin('eng pc', start_pc.toString(16));
-      //burin('eng this.m_jit', jscode);
+			// FIXME: make this togglable (copper trail)
+      burin('eng pc', start_pc.toString(16));
+      burin('eng jit', jscode);
     
       stopping = jscode();
     }
@@ -1175,7 +1178,7 @@ GnustoEngine.prototype = {
 			this.m_locals = [];
 			this.m_locals_stack = [];
 			this.m_param_counts = [];
-			this.m_result_eaters = [];
+			this.m_result_targets = [];
 
 			this.m_goldenTrail = 0;
 
@@ -1385,7 +1388,6 @@ GnustoEngine.prototype = {
 					if (instr==0) {
 							// If we just get a zero, we've probably
 							// been directed off into deep space somewhere.
-					
 							gnusto_error(201); // lost in space
 					
 					} else if (instr==190) { // Extended opcode.
@@ -1624,13 +1626,13 @@ GnustoEngine.prototype = {
 			this.m_locals_stack.unshift(count+1);
 	},
 
-	_func_gosub: function ge_gosub(to_address, actuals, ret_address, result_eater) {
-			this.m_call_stack.push(ret_address);
+	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
+			this.m_call_stack.push(from_address);
 			this.m_pc = to_address;
 			// FIXME: func_prologue only called here. Refactor.
 			this._func_prologue(actuals);
 			this.m_param_counts.unshift(actuals.length);
-			this.m_result_eaters.push(result_eater);
+			this.m_result_targets.push(result_target);
 
 			if (to_address==0) {
 					// Rare special case.
@@ -1812,8 +1814,8 @@ GnustoEngine.prototype = {
 
 	// Returns from a z-machine routine.
 	// |value| is the numeric result of the routine.
-	// It can also be null, in which case the remaining results of
-	// the current opcode won't be executed (it won't run the "result eater").
+	// It can also be null, in which case the store
+	// won't happen (useful for returning from @throw).
 	_func_return: function ge_func_return(value) {
 			for (var i=this.m_locals_stack.shift(); i>0; i--) {
 					this.m_locals.shift();
@@ -1821,9 +1823,9 @@ GnustoEngine.prototype = {
 			this.m_param_counts.shift();
 			this.m_pc = this.m_call_stack.pop();
 
-			var eater = this.m_result_eaters.pop();
-			if (eater && (value!=null)) {
-					eater(value);
+			var target = this.m_result_targets.pop();
+			if (target!=-1 && value!=null) {
+					this._varcode_set(value, target);
 			}
 	},
 
@@ -2647,65 +2649,71 @@ GnustoEngine.prototype = {
 	},
 
 	_storer: function ge_storer(rvalue) {
-			return this._store_into(this._code_for_varcode(this.getByte(this.m_pc++)),
-															rvalue);
-	},
+			var lvalue_varcode = this.getByte(this.m_pc++);
 
-	_store_into: function ge_store_into(lvalue, rvalue) {
 			if (rvalue.substring && rvalue.substring(0,11)=='_func_gosub') {
 					// Special case: the results of gosubs can't
 					// be stored synchronously.
 
 					this.m_compilation_running = 0; // just to be sure we stop here.
 
-					if (rvalue.substring(rvalue.length-3)!=',0)') {
+					if (rvalue.substring(rvalue.length-4)!=',-1)') {
 							// You really shouldn't pass us gosubs with
-							// the result function filled in.
+							// the result target filled in.
 							gnusto_error(100, rvalue); // can't modify gosub
 					}
 
-					// Twist the lvalue into a function definition.
+					return rvalue.substring(0,rvalue.length-3) +
+							lvalue_varcode + ')';
 
-					return rvalue.substring(0,rvalue.length-2) +
-							'function(r){'+
-							this._store_into(lvalue, 'r')+
-							'})';
-			}
+					// Otherwise it must be a synchronous write, so...
 
-			if (lvalue=='m_gamestack.pop()') {
+			} else if (lvalue_varcode==0) {
 					return 'm_gamestack.push('+rvalue+')';
-			} else if (lvalue.substring(0,8)=='getWord(') {
-					return 'setWord('+rvalue+','+lvalue.substring(8);
-			} else if (lvalue.substring(0,8)=='getByte(') {
-					return 'setByte('+rvalue+','+lvalue.substring(8);
+			} else if (lvalue_varcode < 0x10) {
+					return 'm_locals['+(lvalue_varcode-1)+']='+rvalue;
 			} else {
-					return lvalue + '=' + rvalue;
+					return 'setWord('+rvalue+','+(this.m_vars_start+(lvalue_varcode-16)*2)+')';
 			}
+
+			gnusto_error(170); // impossible
 	},
 
-	_call_vn: function call_vn(args, offset) {
-			//VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
-			this.m_compilation_running = 0;
-			var address = this.m_pc;
+	////////////////////////////////////////////////////////////////
+	//
+	// _generate_gosub
+	//
+	// Returns a JITstring which enters a new Zroutine (by calling
+	// _func_gosub).
+  //
+	// |target| is the packed address to jump to. (The packing
+  // algorithm varies according to the version of the Z-machine
+  // we're using.
+	//
+	// |args| is something whose string representation is a
+	// comma-delimited list of actual parameters to the function.
+	// (An array is fine for this, as is a single number, as is
+	// an empty string.)
+	//
+  // If |get_varcode| is defined and nonzero, we read one byte
+	// and use that varcode as the return target of the call.
+	// Otherwise the call will throw away its result.
+	//
+	_generate_gosub: function call_vn(target, arguments, get_varcode) {
 
-			if (offset) {
-					address += offset;
+			this.m_compilation_running = 0;
+
+			var varcode = -1;
+
+			if (get_varcode) {
+					varcode = this.getByte(this.m_pc++);
 			}
 
 			return '_func_gosub('+
-			this.m_pc_translate_for_routine(args[0])+','+
-			'['+args.slice(1)+'],'+
-			(address) + ',0)';
-	},
-
-	_handler_call: function ge_handler_call(target, arguments) {
-			this.m_compilation_running=0; // Got to stop after this.
-			var functino = "function(r){"+this._storer("r")+";});";
-			// (get it calculated so's the pc will be right)
-
-			return "_func_gosub("+
-			this.m_pc_translate_for_routine(target)+
-			",["+arguments+"],"+this.m_pc+","+functino;
+			this.m_pc_translate_for_routine(target)+','+
+			'['+arguments.toString()+'],'+
+			this.m_pc+','+
+			varcode+')';
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -2718,7 +2726,6 @@ GnustoEngine.prototype = {
 	// If it's clear, the result will set the PC to the
 	// address immediately after the current instruction.
 	//
-	// (will possibly soon be redundant)
 	_handler_zOut: function ge_handler_zOut(text, is_return) {
 
 			var setter;
@@ -2803,6 +2810,8 @@ GnustoEngine.prototype = {
 			if (this.m_goldenTrail) {
 					dump("pc : "+address.toString(16)+"\n");
 			}
+
+			this.m_pc = address;
 	},
 
   ////////////////////////////////////////////////////////////////
@@ -2863,9 +2872,19 @@ GnustoEngine.prototype = {
   m_himem: 0,
   
   // |pc| is the Z-machine's program counter.
+  //
+	// During compilation:
+  //    it points at the place in memory which we're currently decoding.
+	//    This may be in the middle of an instruction. (See m_current_instr
+	//    for a way not to have this problem.)
+	// During execution (within or outside JITspace):
+	//    it points to the next address to be executed. It gets set
+  //    using _touch().
   m_pc: 0,
   
-  // |this_instr_pc| is the address of the current instruction.
+  // |this_instr_pc| is the address of the start of the current instruction.
+	// during compilation. This is not identical to |m_pc|, because that
+	// can point to addresses within the middles of instructions.
   m_this_instr_pc: 0,
   
   // |dict_start| is the address of the dictionary in the Z-machine's memory.
@@ -2931,9 +2950,9 @@ GnustoEngine.prototype = {
   // param_counts[0]). (Hmm, that's a bit inconsistent. We should change it.)
   m_param_counts: 0,
   
-  // |result_eaters| is a stack whose use parallels |call_stack|. Instead of
-  // storing return addresses, though, |result_eaters| stores function objects.
-  // Each of these gets executed as the function returns. For example, if a
+  // |result_targets| is a stack whose use parallels |call_stack|. Instead of
+  // storing return addresses, though, |result_targets| stores varcodes to
+  // store a function's result into as it returns. For example, if a
   // function contains:
   //
   //    b000: locals[7] = foo(locals[1])
@@ -2942,16 +2961,14 @@ GnustoEngine.prototype = {
   // and we're just now returning from the call to foo() in b000, the only
   // legitimate value we can set the PC to is b005 (b000 would cause an
   // infinite loop, after all), but we can't go on to b005 because we haven't
-  // finished executing b000 yet. So on the top of |result_eaters| there'll be
-  // a function object which stores values in locals[7].
+  // finished executing b000 yet. So on the top of |result_targets| there'll be
+  // a varcode which represents locals[7]. Varcodes are as defined in ZSD 4.2.2:
+	//    0     = push to game stack
+	//    1-15  = local variables
+	//    16 up = global variables
   //
-  // |result_eaters| may contain zeroes as well as function objects. These are
-  // treated as no-ops.
-  //
-  // It might seem sensible to do without |call_stack| altogether, since an entry
-  // in |result_eaters| may set the PC. However, having a list of return
-  // addresses enables us to print a call stack.
-  m_result_eaters: {},
+  // Also, the magic value -1 causes the function's result to be thrown away.
+  m_result_targets: [],
   
   // The function object to run first next time run() gets called,
   // before any other execution gets under way. Its argument will be the
