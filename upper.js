@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.40 2003/06/05 02:37:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.41 2003/06/16 05:00:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -376,7 +376,7 @@ function bocardo__subchalk(win, text) {
 
 						charactersTrimmed =
 								current_line.childNodes[cursor].getAttribute('value').length - amountToKeep;
-
+	
 						current_line.childNodes[cursor].setAttribute('value',
 
 																			 current_line.childNodes[cursor].getAttribute('value').
@@ -423,7 +423,7 @@ function bocardo__subchalk(win, text) {
 
 		// ..and append our text.
 		var newSpan = bocardo__screen_doc.createElement('description');
-		newSpan.setAttribute('class', bocardo__current_css);
+		newSpan.setAttribute('class', 'bocardo '+bocardo__current_css);
 		newSpan.setAttribute('value', text);
 
 		if (appendPoint == -1) {
@@ -431,7 +431,6 @@ function bocardo__subchalk(win, text) {
 		} else {
 				current_line.insertBefore(newSpan, current_line.childNodes[appendPoint]);
 		}
-
 }
 
 ////////////////////////////////////////////////////////////////
