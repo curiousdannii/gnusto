@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.108 2003/08/29 07:07:53 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.109 2003/08/29 08:52:00 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1547,10 +1547,12 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 //
 function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
+	        var cursor = parse_buffer + 2;                	
 		if (isNaN(dictionary)) dictionary = 0;
 		if (isNaN(overwrite)) overwrite = 0;
 
 		// burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
+
 
 		function look_up(word, dict_addr) {
 
@@ -1594,6 +1596,26 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				return 0;
 		}
 
+                function add_to_parse_table(curword, wordindex, wordpos) {
+                       
+			var lexical = look_up(curword, dictionary);
+
+                        //alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
+			if (!(overwrite && (lexical==0))) {
+			    zSetWord(lexical, cursor);
+			
+
+			    cursor+=2;
+			    zSetByte(curword.length, cursor++);
+			    zSetByte(wordpos+2, cursor++);
+	
+		  	    zSetByte(zGetByte(words_count)+1, words_count);
+			}
+		
+                        return 1;        	
+                } 
+
+
 		if (dictionary==0) {
 				// Use the standard game dictionary.
 				dictionary = dict_start;
@@ -1608,9 +1630,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		var words_count = parse_buffer + 1;
 		zSetByte(0, words_count);
-		var cursor = parse_buffer+2;
-		//var cursor = ((zGetByte[cursor+1]&0xFF)*4) + 2
-
+		
 		var words = [];
 		var curword = '';
 		var wordindex = 0;
@@ -1618,14 +1638,21 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		for (var cpos=0; cpos < result.length; cpos++) {
 				if (result[cpos]  == ' ') {
 						if (curword != '') {
-								words[wordindex++] = curword;
+								words[wordindex] = curword;
+					  			add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
+					  			wordindex++;
 								curword = '';
 						}
 				} else {
 						if (IsSeparator(result[cpos])) {
 								if (curword != '') {
-										words[wordindex++] = curword;}
-								words[wordindex++] = result[cpos];
+										words[wordindex] = curword;
+										add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
+										wordindex++;
+								}
+								words[wordindex] = result[cpos];
+								add_to_parse_table(words[wordindex], wordindex, cpos);
+								wordindex++;
 								curword = '';		
 						} else {
 								curword += result[cpos];	
@@ -1633,33 +1660,16 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				}
 		}
 		
-		if (curword != '') words[wordindex++] = curword;
+		if (curword != '') {			
+			words[wordindex] = curword;
+			add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
+		}
 		
 		//display the broken-up text for visual validation 
 		//for (var i=0; i < words.length; i++){
-		//		print (i + ': ' + words[i] + ' ' + words[i].length);
+		//		alert(i + ': ' + words[i] + ' ' + words[i].length);
 		//}
 
-		var position = 2;
-
-		for (var i in words) {
-				if ((words[i] != '') && (words[i] != ' ')) {
-						var lexical = look_up(words[i], dictionary);
-
-						// burin('token', words[i]+' '+lexical);
-
-						if (!(overwrite && lexical==0)) {
-								zSetWord(lexical, cursor);
-						}
-
-						cursor+=2;
-						zSetByte(words[i].length, cursor++);
-						zSetByte(position, cursor++);
-		
-						position += words[i].length+1;
-						zSetByte(zGetByte(words_count)+1, words_count);
-				}
-		}
 }
 
 // Very very very limited implementation:
