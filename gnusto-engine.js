@@ -1,5 +1,5 @@
 // gnusto-lib.js -- the Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.5 2003/02/04 21:32:00 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.6 2003/02/24 22:09:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -227,7 +227,7 @@ function code_for_varcode(varcode) {
 	else
 		return 'getword('+(vars_start+(varcode-16)*2)+')';
 
-	throw "impossible";
+	gnusto_error(170); // impossible
 }
 
 function store_into(lvalue, rvalue) {
@@ -240,7 +240,7 @@ function store_into(lvalue, rvalue) {
 		if (rvalue.substring(rvalue.length-3)!=',0)') {
 			// You really shouldn't pass us gosubs with
 			// the result function filled in.
-			throw "can't modify gosub! "+rvalue;
+			gnusto_error(100, rvalue); // can't modify gosub
 		}
 
 		// Twist the lvalue into a function definition.
@@ -538,7 +538,7 @@ var handlers = {
 	// the environment would pass back a boolean.
 
 	// 190 can't be generated; it's the start of an extended opcode
-	190: function(a) { throw "impossible"; },
+	190: function(a) { gnusto_error(199); },
 
 	191: function(a) { // piracy
 		return brancher("1");
@@ -690,7 +690,8 @@ var handlers = {
 	},
 
 	1010: function(a) { // restore_undo
-		return "throw 'spurious restore_undo'";
+		gnusto_error(700); // spurious restore_undo
+		return storer('0');
 	},
 
 }
@@ -737,8 +738,7 @@ function dissemble() {
 			// If we just get a zero, we've probably
 			// been directed off into deep space somewhere.
 
-			var where = pc-1;
-			throw "lost in space at "+where.toString(16)
+			gnusto_error(201, pc-1); // lost in space
 		} else if (instr==190) {
 			form = 'E';
 			ops = -1;
@@ -801,7 +801,7 @@ function dissemble() {
 				args[argcursor++] =
 					code_for_varcode(getbyte(pc++));
 			} else {
-				throw "impossible";
+				gnusto_error(171); // impossible
 			}
 			types = (types << 2) + 0x3;
 		}
@@ -814,8 +814,7 @@ function dissemble() {
 		if (handlers[instr]) {
 			code = code + handlers[instr](args)+';';
 		} else {
-			throw "No handler for opcode "+instr+" at "+
-				pc.toString(16);
+			gnusto_error(200, instr, pc.toString(16)); // no handler
 		}
 
 	}
@@ -834,8 +833,10 @@ function dissemble() {
 
 function rounded_divide(over, under) {
 
-	if (under==0)
-		throw "division by zero";
+	if (under==0) {
+		gnusto_error(701); // division by zero
+		return 0;
+	}
 
 	var result = over / under;
 
@@ -846,8 +847,9 @@ function rounded_divide(over, under) {
 }
 
 function zscii_char_to_ascii(zscii_code) {
-	if (zscii_code<0 || zscii_code>1023)
-		throw "illegal zscii code output! "+zscii_code;
+	if (zscii_code<0 || zscii_code>1023) {
+		gnusto_error(702, zscii_code); // illegal zscii code
+	}
 
 	var result;
 
@@ -855,8 +857,9 @@ function zscii_char_to_ascii(zscii_code) {
 		result = 10;
 	else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
 		result = zscii_code;
-	else
-		throw "don't know how to convert zscii code "+zscii_code;
+	else {
+		gnusto_error(703, zscii_code); // unknown zscii code
+	}
 
 	return String.fromCharCode(result);
 }
@@ -925,8 +928,8 @@ function look_up(word) {
 // in text_buffer, since it knows it already. It means we don't have
 // to figure it out ourselves.
 function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
-	if (dictionary) throw 'no user dictionaries yet -- '+dictionary;
-	if (overwrite) throw 'no overwrite yet';
+	if (dictionary) gnusto_error(101, 'no user dictionaries yet', dictionary);
+	if (overwrite) gnusto_error(101, 'no overwrite yet');
 
 	var max_chars = getbyte(text_buffer);
 
@@ -1018,7 +1021,7 @@ function get_prop_len(address) {
 			return 1;
 	}
 
-	throw "impossible";
+	gnusto_error(172); // impossible
 }
 
 function get_next_prop(object, property) {
@@ -1042,11 +1045,11 @@ function get_next_prop(object, property) {
 		} else {
 			// Because the one we wanted didn't exist.
 			// They shouldn't have asked for it: barf.
-			throw "get_next_prop of an unreal property";
+			gnusto_error(205, property);
 		}
 	}
 
-	throw "impossible";
+	gnusto_error(173); // impossible
 }
 
 function get_prop(object, property) {
@@ -1059,32 +1062,11 @@ function get_prop(object, property) {
 		return getword(temp[0]);
 	} else if (temp[1]==1) {
 		return getbyte(temp[0]); // should this be treated as signed?
-	} else {
-		throw "get_prop used on a property of the wrong length";
-	}
-	throw "impossible";
-}
+	} else
+		// get_prop used on a property of the wrong length
+		gnusto_error(706, object, property);
 
-// result:
-//   [0] property
-//   [1] length
-//   [2] new address
-function goat_property_block(where) {
-	var address = where;
-	var prop = getbyte(address++);
-	var len = 1;
-
-	if (prop & 0x80) {
-		// Long format.
-		len = getbyte(address++) & 0x3F;
-		if (len==0) len = 64;
-	} else {
-		// Short format.
-		if (prop & 0x40) len = 2;
-	}
-	prop = prop & 0x3F;
-
-	return [prop, len, address];
+	gnusto_error(174); // impossible
 }
 
 // This is the function which does all searching of property lists.
@@ -1159,7 +1141,7 @@ function property_search(object, property, previous_property) {
 		props_address += len;
 		previous_prop = prop;
 	}
-	throw "impossible";
+	gnusto_error(175); // impossible
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1195,14 +1177,13 @@ function test_attr(object, bit) {
 function put_prop(object, property, value) {
 	var address = property_search(object, property, -1);
 
-	if (!address[2]) throw "put_prop on an undefined property";
+	if (!address[2]) gnusto_error(704); // undefined property
 	if (address[1]==1) {
 		setbyte(value & 0xff, address[0]);
 	} else if (address[1]==2) {
 		setword(value&0xffff, address[0]);
-	} else {
-		throw "put_prop on a property with a weird length";
-	}
+	} else
+		gnusto_error(705); // weird length
 }
 
 PARENT_REC = 6;
@@ -1302,7 +1283,7 @@ function set_output_stream(target, address) {
 	} else if (target==3) {
 
 		if (streamthrees.length>15)
-			throw "too many nested stream-3s";
+			gnusto_error(202); // too many nested stream-3s
 
 		streamthrees.unshift([address, address+2]);
 
@@ -1315,16 +1296,15 @@ function set_output_stream(target, address) {
 	} else if (target==-3) {
 
 		if (streamthrees.length<1)
-			throw "not enough nested stream-3s";
+			gnusto_error(203); // not enough nested stream-3s
 
 		var latest = streamthrees.shift();
 		setword((latest[1]-latest[0])-2, latest[0]);
 
 	} else if (target==-4) {
 		output_to_script = 0;
-	} else {
-		throw "weird output stream number: "+target
-	}
+	} else
+		gnusto_error(204, target); // weird output stream number
 }
 
 ////////////////////////////////////////////////////////////////
