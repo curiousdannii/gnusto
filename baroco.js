@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.8 2003/05/04 22:30:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.9 2003/05/04 23:39:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -69,8 +69,10 @@ function win_resize() {
 				}
 		}
 
+		var fudge = document.getElementById('statusbox').boxObject.height + 30;
+
 		win__dimensions = [window.innerWidth,
-											window.innerHeight-30, // horrid fudge
+											window.innerHeight-fudge,
 											];
 		document.title = win__dimensions[0]+'x'+win__dimensions[1];
 
@@ -190,6 +192,12 @@ function win_print_table(win, lines) {
 		// FIXME: not fully implemented
 
 		bocardo_print_table(win, lines);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_set_status_line(text) {
+		document.getElementById('status').setAttribute('label', text);
 }
 
 ////////////////////////////////////////////////////////////////
