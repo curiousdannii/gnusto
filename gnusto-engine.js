@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.15 2003/09/21 01:24:59 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.16 2003/09/24 00:30:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/21 01:24:59 $';
+const CVS_VERSION = '$Date: 2003/09/24 00:30:14 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -240,6 +240,19 @@ function unmz5(encoded) {
 
 ////////////////////////////////////////////////////////////////
 //
+// burin
+//
+// Not the real burin, just something to dump test information.
+
+function burin(where, what) {
+		dump(where);
+		dump(':\t');
+		dump(what);
+		dump('\n');
+}
+
+////////////////////////////////////////////////////////////////
+//
 //                       PART THE SECOND
 //
 // THE HANDLERS AND HANDLER ARRAYS
@@ -326,11 +339,11 @@ function handleZ_insert_obj(engine, a) {
     return "_insert_obj("+a[0]+','+a[1]+")";
   }
 function handleZ_loadw(engine, a) {
-    //VERBOSE burin('loadw',"this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+    //VERBOSE burin('loadw',"getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
     return engine._storer("getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
   }
 function handleZ_loadb(engine, a) {
-    //VERBOSE burin('loadb',"this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+    //VERBOSE burin('loadb',"getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
     return engine._storer("getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
   }
 function handleZ_get_prop(engine, a) {
@@ -374,7 +387,7 @@ function handleZ_call_2n(engine, a) {
   }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
-    return "m_pc="+pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return 1";
   }
 function handleZ_throw(engine, a) {
     //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
@@ -504,7 +517,7 @@ function handleZ_catch(engine, a) {
 function handleZ_quit(engine, a) {
     //VERBOSE burin('quit','');
     engine.m_compilation_running=0;
-    return "return "+GNUSTO_EFFECT_QUIT;
+    return "m_effects=["+GNUSTO_EFFECT_QUIT+"];return 1";
   }
 
 function handleZ_new_line(engine, a) {
@@ -521,7 +534,7 @@ function handleZ_verify(engine, a) {
     engine.m_compilation_running = 0;
     var setter = 'm_rebound=function(){'+engine._brancher('m_answers[0]')+'};';
     //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
-    return "m_pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_VERIFY+"];return 1";
   }
 		
 function handleZ_illegal_extended(engine, a) {
@@ -534,8 +547,8 @@ function handleZ_piracy(engine, a) {
     engine.m_compilation_running = 0;
 				
     var setter = 'm_rebound=function(){'+engine._brancher('(!m_answers[0])')+'};';
-    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
-    return "m_pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
+    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"m_effects=[GNUSTO_EFFECT_PIRACY];return 1;");
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_PIRACY+"];return 1";
   }
 		
 function handleZ_call_vs(engine, a) {
@@ -656,7 +669,7 @@ function handleZ_buffer_mode(engine, a) {
 		
 function handleZ_output_stream(engine, a) {
     //VERBOSE burin('output_stream',a[0]+', ' + a[1]);
-    return 'this._set_output_stream('+a[0]+','+a[1]+')';
+    return '_set_output_stream('+a[0]+','+a[1]+')';
   }
 		
 function handleZ_input_stream(engine, a) {
@@ -1004,25 +1017,23 @@ GnustoEngine.prototype = {
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
 
-  loadStory: function ge_loadStory(story) {
-    dump('And in loadStory. story is ');
-    dump(story);
-    dump('\n');
+  loadStory: function ge_loadStory(sourceFile, length) {
 
-    bis = new Components.Constructor('@mozilla.org/binaryinputstream;1',
-				     'nsIBinaryInputStream');
-    dump(bis);
-    dump('\n');
+			try {
 
-    bis.setInputStream(story);
-    dump(bis);
-    dump('\n');
+					var binis = Components.Constructor("@mozilla.org/binaryinputstream;1",
+																						 "nsIBinaryInputStream",
+																						 "setInputStream")(sourceFile);
+					
+					this.m_memory = binis.readByteArray(length);
 
-    rba = bis.readByteArray();
-    dump(rba);
-    dump('\n');
+			} catch(e) {
+					dump('Failure: ');
+					dump(e);
+					dump('\n');
+			}
 
-    this.m_story = story;
+			this._initial_setup();
   },
 
   loadStoryMZ5: function ge_loadStory(story) {
@@ -1095,7 +1106,8 @@ GnustoEngine.prototype = {
 
 				if (turns++ >= turns_limit) {
 					// Wimp out for now.
-						return GNUSTO_EFFECT_WIMP_OUT;
+						m_effects = [GNUSTO_EFFECT_WIMP_OUT];
+						return 1;
 				}
 
       start_pc = this.m_pc;
@@ -1113,14 +1125,13 @@ GnustoEngine.prototype = {
       }
 
       // Some useful debugging code:
-      //burin('eng pc', start_pc);
-      //burin('eng this.m_jit', jscode);
+      burin('eng pc', start_pc.toString(16));
+      burin('eng this.m_jit', jscode);
     
       stopping = jscode();
     }
 
-    // so, return an effect code.
-    return stopping;
+		burin('run STOP', this.m_effects);
   },
   
   walk: function ge_walk(answer) {
@@ -2466,12 +2477,13 @@ GnustoEngine.prototype = {
 
 	_print_leftovers: function ge_print_leftovers() {
 
-			this._zOut(leftovers);
+			burin('print_leftovers','called');
+			this._zOut(this.m_leftovers);
 
 			// May as well clear it out and save memory,
 			// although we won't be called again until it's
 			// set otherwise.
-			this.leftovers = '';
+			this.m_leftovers = '';
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -2511,8 +2523,8 @@ GnustoEngine.prototype = {
 
 					if (changed) {
 							
-							m_leftovers = text;
-							m_rebound = print_leftovers;
+							this.m_leftovers = text;
+							this.m_rebound = this._print_leftovers;
 
 							return 1;
 
@@ -2752,7 +2764,7 @@ GnustoEngine.prototype = {
 			}
 
 			return 'if(_zOut('+text+')){' + setter +
-			';return '+ GNUSTO_EFFECT_FLAGS_CHANGED +	'}';
+			';m_effects=['+ GNUSTO_EFFECT_FLAGS_CHANGED +	'];return 1}';
 	},
 
 	////////////////////////////////////////////////////////////////
