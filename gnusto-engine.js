@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.38 2003/03/27 05:06:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.39 2003/03/27 05:36:53 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1669,6 +1669,78 @@ function go(answer) {
 		// so, return an effect code.
 		return stopping;
 }
+
+var default_unicode_translation_table = {
+		155:0xe4, // a-diaeresis
+		156:0xf6, // o-diaeresis
+		157:0xfc, // u-diaeresis
+		158:0xc4, // A-diaeresis
+		159:0xd6, // O-diaeresis
+		160:0xdc, // U-diaeresis
+		161:0xdf, // German "sz" ligature
+		162:0xbb, // right quotation marks
+		163:0xab, // left quotation marks
+		164:0xeb, // e-diaeresis
+		165:0xef, // i-diaeresis
+		166:0xff, // y-diaeresis
+		167:0xcb, // E-diaeresis
+		168:0xcf, // I-diaeresis
+		169:0xe1, // a-acute
+		170:0xe9, // e-acute
+		171:0xed, // i-acute
+		172:0xf3, // o-acute
+		173:0xfa, // u-acute
+		174:0xfd, // y-acute
+		175:0xc1, // A-acute
+		176:0xc9, // E-acute
+		177:0xcd, // I-acute
+		178:0xd3, // O-acute
+		179:0xda, // U-acute
+		180:0xdd, // Y-acute
+		181:0xe0, // a-grave
+		182:0xe8, // e-grave
+		183:0xec, // i-grave
+		184:0xf2, // o-grave
+		185:0xf9, // u-grave
+		186:0xc0, // A-grave
+		187:0xc8, // E-grave
+		188:0xcc, // I-grave
+		189:0xd2, // O-grave
+		190:0xd9, // U-grave
+		191:0xe2, // a-circumflex
+		192:0xea, // e-circumflex
+		193:0xee, // i-circumflex
+		194:0xf4, // o-circumflex
+		195:0xfb, // u-circumflex
+		196:0xc2, // A-circumflex
+		197:0xca, // E-circumflex
+		198:0xce, // I-circumflex
+		199:0xd4, // O-circumflex
+		200:0xdb, // U-circumflex
+		201:0xe5, // a-ring
+		202:0xc5, // A-ring
+		203:0xf8, // o-slash
+		204:0xd8, // O-slash
+		205:0xe3, // a-tilde
+		206:0xf1, // n-tilde
+		207:0xf5, // o-tilde
+		208:0xc3, // A-tilde
+		209:0xd1, // N-tilde
+		210:0xd5, // O-tilde
+		211:0xe6, // ae-ligature
+		212:0xc6, // AE-ligature
+		213:0xe7, // c-cedilla
+		214:0xc7, // C-cedilla
+		215:0xfe, // thorn
+		216:0xf0, // eth
+		217:0xde, // Thorn
+		218:0xd0, // Eth
+		219:0xa3, // pound sterling sign
+		220:0x153, // oe-ligature
+		221:0x152, // OE-ligature
+		222:0xa1, // inverted pling
+		223:0xbf, // inverted query
+};
 
 // This should probably be done programmatically...
 var zalphabet = {
