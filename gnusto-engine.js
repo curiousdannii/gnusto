@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.42 2003/04/04 11:16:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.43 2003/04/04 13:23:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -364,15 +364,38 @@ var GNUSTO_EFFECT_VERIFY     = 0x600;
 // You probably just want to return 0.
 var GNUSTO_EFFECT_PIRACY     = 0x610;
 
-// New effect codes still to be described:
+// Returned if the story wants to set the text style.
+// engine_effect_parameters() will return a list:
+//  [0] = a bitcoded text style, as in the Z-spec,
+//         or -1 not to set the style.
+//  [1] = the foreground colour to use, as in the Z-spec
+//  [2] = the background colour to use, as in the Z-spec
+// Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_STYLE          = 0x700;
+
+// Returned if the story wants to cause a sound effect.
+// engine_effect_parameters() will return a list, whose
+// vales aren't fully specified at present.
+// (Just go "bleep" for now.)
+//
+// Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_SOUND          = 0x800;
 
 var GNUSTO_EFFECT_SPLITWINDOW    = 0x900;
 var GNUSTO_EFFECT_SETWINDOW      = 0x910;
 var GNUSTO_EFFECT_ERASEWINDOW    = 0x920;
 var GNUSTO_EFFECT_ERASELINE      = 0x930;
+
+// Returned if the story wants to set the position of
+// the cursor in the upper window. The upper window should
+// be currently active.
+//
+// engine_effect_parameters() will return a list:
+//  [0] = the new Y coordinate
+//  [1] = the new X coordinate
+// Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_SETCURSOR      = 0x940;
+
 var GNUSTO_EFFECT_SETBUFFERMODE  = 0x950;
 var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
 
