@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.26 2003/10/14 19:27:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.27 2003/10/14 19:54:49 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/14 19:27:40 $';
+const CVS_VERSION = '$Date: 2003/10/14 19:54:49 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1219,6 +1219,10 @@ GnustoEngine.prototype = {
 
 			var locals_cursor = this.m_locals.length - 17;
 			var gamestack_cursor = 0;
+
+			for (var m=0; m<this.m_gamestack_callbreaks[0]; m++) {
+					stacks = stacks.concat(int_to_bytes(this.m_gamestack[gamestack_cursor++],
+			}
 
 			for (var j=0; j<this.m_call_stack.length; j++) {
 
