@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.105 2003/08/29 01:03:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.106 2003/08/29 02:10:19 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -97,6 +97,14 @@ var hext_start;
 // Address of custom alphabet table (if any).
 var alpha_start;
 
+// Address of start of strings.
+// Only used in versions 6 and 7; otherwise undefined.
+var string_start;
+
+// Address of start of routines.
+// Only used in versions 6 and 7; otherwise undefined.
+var routine_start;
+
 // Address of Unicode Translation Table (if any).
 var unicode_start = 0;
 var custom_unicode_charcount = 0;
@@ -104,6 +112,9 @@ var custom_unicode_charcount = 0;
 // Information about the defined list of word separators
 var separator_count = 0;
 var separators = [];
+
+// |version| is the current Z-machine version.
+var version;
 
 // |call_stack| stores all the return addresses for all the functions
 // which are currently executing.
@@ -208,25 +219,31 @@ var engine__printing_header_bits = 0;
 var engine__leftovers = '';
 
 ////////////////////////////////////////////////////////////////
+//
+// pc_translate_*
+// 
+// Each of these functions returns a string of JS code to set the PC
+// to the address in |packed_target|, based on the current architecture.
+//
+// TODO: Would be good if we could pick up when it was a constant.
+
+function pc_translate_v123(p) { return '(('+p+')&0xFFFF)*2'; }
+function pc_translate_v45(p)  { return '(('+p+')&0xFFFF)*4'; }
+function pc_translate_v67R(p) { return '(('+p+')&0xFFFF)*4+'+routine_start; }
+function pc_translate_v67S(p) { return '(('+p+')&0xFFFF)*4+'+string_start; }
+function pc_translate_v8(p)   { return '(('+p+')&0xFFFF)*8'; }
+
+// These pointers point at the currently-selected functions:
+var pc_translate_for_routine = pc_translate_v45;
+var pc_translate_for_string = pc_translate_v45;
+
+////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
 ////////////////////////////////////////////////////////////////
 //
 // Each of these functions is used by the members of the
 // |handlers| array, below.
 //
-////////////////////////////////////////////////////////////////
-//
-// Returns a string of JS code to set the PC to the address in
-// |packed_target|, based on the current architecture.
-function pc_translate(packed_target) {
-
-		// Well, we only support z5 at the moment.
-		// Numbers assigned to the PC in z5 are treated as unsigned
-		// and multiplied by four.
-		return '(('+packed_target+')&0xFFFF)*4';
-
-		// Would be good if we could pick up when it was a constant...
-}
 
 function call_vn(args, offset) {
 		//VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
@@ -235,7 +252,7 @@ function call_vn(args, offset) {
 		if (offset) { address += offset; }
 
 		return 'gosub('+
-				pc_translate(args[0])+','+
+				pc_translate_for_routine(args[0])+','+
 				'['+args.slice(1)+'],'+
 				(address) + ',0)';
 }
@@ -501,7 +518,7 @@ function handler_call(target, arguments) {
 		compiling=0; // Got to stop after this.
 		var functino = "function(r){"+storer("r")+";});";
 		// (get it calculated so's the pc will be right)
-		return "gosub("+pc_translate(target)+",["+arguments+"],"+pc+","+
+		return "gosub("+pc_translate_for_routine(target)+",["+arguments+"],"+pc+","+
 				functino;
 }
 
@@ -702,7 +719,7 @@ var handlers = {
 				//VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
 				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
-				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
+				return "gosub("+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
 		27: function Z_set_colour(a) {
 				//VERBOSE burin('set_colour',a[0] + ',' + a[1]);
@@ -780,7 +797,7 @@ var handlers = {
 		},
 		141: function Z_print_paddr(a) {
 				//VERBOSE burin('print_paddr',"zscii_from((("+a[0]+")&0xFFFF)*4)");
-				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
+				return handler_zOut("zscii_from("+pc_translate_for_string(a[0])+")",0);
 		},
 		142: function Z_load(a) {
 				//VERBOSE burin('load',"store " + c);
@@ -790,7 +807,7 @@ var handlers = {
 				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
 				//VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
-				return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
+				return "gosub("+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
 		},
 		
 		176: function Z_rtrue(a) {
@@ -2163,6 +2180,8 @@ function engine_start_game(memory) {
 		param_counts = [];
 		result_eaters = [];
 
+		version    = zGetByte(0);
+
 		himem      = zGetUnsignedWord(0x4);
 		pc         = zGetUnsignedWord(0x6);
 		dict_start = zGetUnsignedWord(0x8);
@@ -2173,6 +2192,24 @@ function engine_start_game(memory) {
 		alpha_start = zGetUnsignedWord(0x34);
 		hext_start = zGetUnsignedWord(0x36);		
 	
+		if (version<=3) {
+				pc_translate_for_routine = pc_translate_v123;
+				pc_translate_for_string = pc_translate_v123;
+		} else if (version<=5) {
+				pc_translate_for_routine = pc_translate_v45;
+				pc_translate_for_string = pc_translate_v45;
+		} else if (version<=7) {
+				routine_start  = zGetUnsignedWord(0x28);
+				string_start   = zGetUnsignedWord(0x2a);		
+				pc_translate_for_routine = pc_translate_v67R;
+				pc_translate_for_string = pc_translate_v67S;
+		} else if (version==8) {
+				pc_translate_for_routine = pc_translate_v8;
+				pc_translate_for_string = pc_translate_v8;
+		} else {
+				gnusto_error(170, 'impossible: unknown z-version got this far');
+		}
+
 		separator_count = zGetByte(dict_start);
 		for (var i=0; i<separator_count; i++) {		  
 				separators[i]=zscii_char_to_ascii(zGetByte(dict_start + i+1));
