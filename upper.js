@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.15 2003/04/05 08:25:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.16 2003/04/05 10:53:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -30,22 +30,21 @@ var win__current_x = [];
 var win__current_y = [];
 var win__top_window_height = 0;
 
-// FIXME: We need some way of figuring out the font size,
-// especially relative to the screen width and height.
-// For now, we'll assume the screen is 80x25.
-
-var win__screen_width = 80;
-var win__screen_height = 25;
+var win__screen_width = 80; //  a good default size
+var win__screen_height = 25; // a good default size
 
 ////////////////////////////////////////////////////////////////
 
-function win_setup() {
+function win_setup(width, height) {
     win__screen_doc = frames[0].document;
 
     win__screen_window = win__screen_doc.getElementById('text');
 
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
+
+		win__screen_width = width;
+		win__screen_height = height;
 
 		win_set_top_window_size(0);
 }
