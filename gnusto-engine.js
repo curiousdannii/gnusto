@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.64 2003/11/30 01:53:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.65 2003/12/03 08:46:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/30 01:53:09 $';
+const CVS_VERSION = '$Date: 2003/12/03 08:46:38 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -580,14 +580,14 @@ function handleZ_read(engine, a) {
 		if (engine.m_version>=5) {
 				// In z5-z8 it's a store instruction.
 				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
-						engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])") +
+						engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1],m_answers[1])") +
 						"};";
 				recaps_getter = "getByte(a0+1)";
 				char_count_getter = "getByte(a0)";
 		} else {
 				// In z1-z4 it's not a store instruction.
 				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
-						"_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])" +
+						"_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1],m_answers[1])" +
 						"};";
 				recaps_getter = '0';
 				char_count_getter = "getByte(a0)+1";
@@ -602,7 +602,8 @@ function handleZ_read(engine, a) {
 				"m_effects=["+
 				GNUSTO_EFFECT_INPUT + "," +
 				recaps_getter + "," +
-				char_count_getter + "];return 1";
+				char_count_getter + "," +
+				"_terminating_characters()];return 1";
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
@@ -1001,7 +1002,7 @@ var handlers_fixups = {
 				190: 0, // no extended opcodes
 				191: 0, // piracy
 				// 224 is shown in the ZMSD as being "call" before v4 and
-				// "call_vs" thence; this appears to be simply a name change
+				// "call_vs" thence; this appears to be simply a name change.
 				// 228, similarly, is "sread" and then "aread".
 				236: 0, // call_vs
 				237: 0, // erase_window
@@ -2344,9 +2345,11 @@ GnustoEngine.prototype = {
 	},
 
 	// Very very very limited implementation:
-	//  * Doesn't properly handle terminating characters (always returns 10).
-	//  * Doesn't handle word separators.
-	_aread: function ge_aread(source, text_buffer, parse_buffer) {
+	//  * Doesn't handle word separators. (FIXME: Does it yet?)
+	// FIXME: Consider having no parameters; they're always filled in from
+	// the same fields anyway.
+	_aread: function ge_aread(source, text_buffer, parse_buffer,
+														terminating_keypress) {
 
 			text_buffer &= 0xFFFF;
 			parse_buffer &= 0xFFFF;
@@ -2385,10 +2388,37 @@ GnustoEngine.prototype = {
 					this._tokenise(text_buffer, parse_buffer, 0, 0);
 			}
 
-			// Return the ASCII value for the Enter key. aread() is supposed
-			// to return the value of the key which terminated the string, but
-			// (FIXME:) at present we only support termination using Enter.
-			return 10;
+			if (terminating_keypress == 13) {
+					return 10; // goodness knows why, but it's in the spec
+			} else {
+					return terminating_keypress;
+			}
+
+	},
+
+	// Returns a list of current terminating characters.
+	// ASCII 13 will always be in the list, since the Enter key
+	// is always a terminating character.
+	_terminating_characters: function ge_terminating_characters() {
+			if (this.m_version < 5) {
+					// Versions before z5 don't have terminating character tables.
+					return '\r';
+			} else {
+					var terms_address = this.getWord(0x2e);
+					
+					var result = '\r';
+					while(1) {
+							var ch = this.getByte(terms_address++);
+							if (ch==0) {
+									// Zero is a terminator.
+									break;
+							} else if ((ch>=129 && ch<=154) || (ch>=252)) {
+									// Only function-key codes make it into the string.
+									result += String.fromCharCode(ch);
+							}
+					}
+					return result;
+			}
 	},
 
 	// Returns from a z-machine routine.
