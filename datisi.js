@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.1 2003/04/20 12:24:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.2 2003/04/20 23:34:07 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -31,6 +31,105 @@ function command_about(a) {
 
 function command_open(a) {
 
+		// This could be a whole file on its own...
+		// (...and maybe should be.)
+
+		function dealWith(content) {
+
+				function loadAsZCode(content) {
+
+						// We're required to modify some bits
+						// according to what we're able to supply.
+						content[0x01]  = 0x1D; // Flags 1
+						content[0x11] &= 0x47;
+
+						// It's not at all clear what architecture
+						// we should claim to be. We could decide to
+						// be the closest to the real machine
+						// we're running on (6=PC, 3=Mac, and so on),
+						// but the story won't be able to tell the
+						// difference because of the thick layers of
+						// interpreters between us and the metal.
+						// At least, we hope it won't.
+
+						content[0x1E] = 1;   // uh, let's be a vax.
+						content[0x1F] = 103; // little "g" for gnusto
+
+						// Put in some default screen values here until we can
+						// set them properly later.
+						// For now, units are characters. Later they'll be pixels.
+
+						content[0x20] = 25; // screen height, characters
+						content[0x21] = 80; // screen width, characters
+						content[0x22] = 25; // screen width, units
+						content[0x23] = 0;
+						content[0x24] = 80; // screen height, units
+						content[0x25] = 0;
+						content[0x26] = 1; // font width, units
+						content[0x27] = 1; // font height, units
+
+						glue_receive_zcode(content);
+						return 1;
+				}
+
+				// Okay. Our task now is to find what kind of file we've been handed,
+				// and to deal with it accordingly.
+
+				if (content[0]==5) {
+
+						// Looks like a .z5 file, so let's go ahead.
+						if (loadAsZCode(content)) {
+								play();
+								return 1;
+						} else
+								return 0;
+
+				} else if (content[0]==70 && content[0]==79 &&
+									 content[0]==82 && content[0]==77) {
+						// "F, O, R, M". An IFF file, then...
+
+						alert('IFF support is down while we fix the new z5 support. Back soon.');
+						/*
+							var iff_details = iff_parse(content);
+
+							if (iff_details[0]=='IFZS') {
+
+							// Quetzal saved file.
+							// Can't deal with these yet.
+
+							alert("Sorry, Gnusto can't yet load saved games.");
+							return 0;
+
+							} else if (iff_details[0]=='IFRS') {
+
+							// Blorb resources file, possibly containing
+							// Z-code.
+
+							// OK, so go digging for it.
+							for (var j=1; j<iff_details.length; j++) {
+							if (iff_details[j][0]=='ZCOD') {
+							loadMangledZcode(content.substring(iff_details[j][1],
+							iff_details[j][1]+iff_details[j][2]));
+							return 1;
+							}
+							alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
+							return 0;
+							} else {
+
+							// Some other IFF file type which we don't know.
+							
+							gnusto_error(309,'IFF',iff_details[0]);
+							return 0;
+							}*/
+				} else {
+						// Don't know. Complain.
+						gnusto_error(309);
+						return 0;
+				}
+		}
+
+		////////////////////////////////////////////////////////////////
+
 		var localfile = 0;
 
 		switch (a.length) {
@@ -41,7 +140,8 @@ function command_open(a) {
 						createInstance(ifp);
 
 				picker.init(window, "Select a story file", ifp.modeOpen);
-				picker.appendFilter("mangled-z5", "*.mz5");
+				picker.appendFilter("Z-code version 5", "*.z5");
+				picker.appendFilter("Blorb", "*.blb");
 				
 				if (picker.show()==ifp.returnOK)
 						localfile = picker.file;
@@ -61,15 +161,48 @@ function command_open(a) {
 		default:
 				return 'Wrong number of parameters for open.';
 		}
-		
-		if (loadSomeFile(localfile)) {
-				if (single_step) {
-						tossio_print('Loaded OK (use /run or /step now).');
-				}
-				play();
-		} else {
-				tossio_print('Load failed.');
+
+    if (!localfile.exists()) {
+				gnusto_error(301);
+				return;
 		}
+
+		////////////////////////////////////////////////////////////////
+
+		// Actually do the loading.
+		// Based on test code posted by Robert Ginda <rginda@netscape.com> to
+		// bug 170585 on Mozilla's bugzilla.
+
+		var IOS_CTR = "@mozilla.org/network/io-service;1";
+		var nsIIOService = Components.interfaces.nsIIOService;
+
+		var BUFIS_CTR = "@mozilla.org/network/buffered-input-stream;1";
+		var nsIBufferedInputStream = Components.interfaces.nsIBufferedInputStream;
+
+		var BINIS_CTR = "@mozilla.org/binaryinputstream;1";
+		var nsIBinaryInputStream = Components.interfaces.nsIBinaryInputStream;
+
+		var ios = Components.classes[IOS_CTR].getService(nsIIOService);
+
+		var uri = ios.newFileURI(localfile);
+		var is = ios.newChannelFromURI(uri).open();
+
+		// create a buffered input stream
+		var buf = Components.classes[BUFIS_CTR].createInstance(nsIBufferedInputStream);
+		buf.init(is, localfile.fileSize);
+
+		if (!(BINIS_CTR in Components.classes)) {
+				// Oh dear :/ Then we can't load binary files.
+				gnusto_error(310);
+				return;
+		}
+
+		// now wrap the buffered input stream in a binary stream
+		var bin = Components.classes[BINIS_CTR].createInstance(nsIBinaryInputStream);
+		bin.setInputStream(buf);
+
+		dealWith(bin.readByteArray(localfile.fileSize));
+
 }
 
 ////////////////////////////////////////////////////////////////
