@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.10 2003/09/15 14:24:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.11 2003/09/15 23:48:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 14:24:05 $';
+const CVS_VERSION = '$Date: 2003/09/15 23:48:31 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -376,7 +376,7 @@ function handleZ_call_2n(engine, a) {
   }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
-    return "m_pc="+pc+";effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
+    return "m_pc="+pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return 1";
   }
 function handleZ_throw(engine, a) {
     //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
@@ -489,7 +489,7 @@ function handleZ_nop(engine, a) {
 function handleZ_restart(engine, a) {
     //VERBOSE burin('restart','');
     engine.m_compilation_running=0;
-    return "return "+GNUSTO_EFFECT_RESTART;	
+    return "m_effects=["+GNUSTO_EFFECT_RESTART+"];return 1";
   }
 		
 function handleZ_ret_popped(engine, a) {
@@ -580,19 +580,13 @@ function handleZ_read(engine, a) {
       "};";
 
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
-    setter + "effect_parameters={"+
-      "'recaps':" + "this.getByte(a0+1),"+
-      "'maxchars':" + "this.getByte(a0),"+
-      "};" + "return GNUSTO_EFFECT_INPUT";
 
     return "var a0=eval("+ a[0] + ");" +
-      "m_pc=" + pc + ";" +
-      setter +
-      "effect_parameters={"+
-      "'recaps':"   + "this.getByte(a0+1),"+
-      "'maxchars':" + "this.getByte(a0),"+
-      "};" +
-      "return "+GNUSTO_EFFECT_INPUT;
+				"m_pc=" + pc + ";" +
+				setter +
+				"m_effects=["+GNUSTO_EFFECT_INPUT+","+
+				"this.getByte(a0+1),"+
+				"this.getByte(a0)];return 1";
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
@@ -614,15 +608,16 @@ function handleZ_pull(engine, a) {
     //VERBOSE burin('pull',c +'=gamestack.pop()');
     return '_varcode_set(m_gamestack.pop(),'+a[0]+')';
   }
+
 function handleZ_split_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('split_window','lines=' + a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SPLITWINDOW+","+a[0]+"];return 1";
   }
 function handleZ_set_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_window','win=' + a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+";return 1;";
   }
 function handleZ_call_vs2(engine, a) {
     //VERBOSE burin('call_vs2',"see call_vn");
@@ -631,35 +626,35 @@ function handleZ_call_vs2(engine, a) {
 function handleZ_erase_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('erase_window','win=' + a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASEWINDOW+","+a[0]+"];return 1";
   }
 function handleZ_erase_line(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('erase_line',a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASELINE+","+a[0]+"];return 1";
   }
 function handleZ_set_cursor(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
-    return "m_pc="+engine.m_pc+";effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETCURSOR+","+a[0]+","+a[1]+"];return 1";
   }
 		
 function handleZ_get_cursor(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('get_cursor',a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_GETCURSOR+","+a[0]+"];return 1";
   }
 		
 function handleZ_set_text_style(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_text_style',a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+","+a[0]+",0,0];return 1";
   }
 		
 function handleZ_buffer_mode(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('buffer_mode',a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETBUFFERMODE+","+a[0]+"];return 1";
   }
 		
 function handleZ_output_stream(engine, a) {
@@ -670,7 +665,7 @@ function handleZ_output_stream(engine, a) {
 function handleZ_input_stream(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('input_stream',a[0]);
-    return "m_pc="+engine.m_pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETINPUTSTREAM+","+a[0]+"];return 1";
   }
 		
 function handleZ_sound_effect(engine, a) {
@@ -680,7 +675,7 @@ function handleZ_sound_effect(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('sound_effect','better logging later');
     while (a.length < 5) { a.push(0); }
-    return "m_pc="+engine.m_pc+';effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
+    return "m_pc="+engine.m_pc+';m_effects=['+GNUSTO_EFFECT_SOUND+','+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return 1';
   }
 		
 function handleZ_read_char(engine, a) {
@@ -701,7 +696,7 @@ function handleZ_read_char(engine, a) {
       engine._storer("n") +
       "};";
 				
-    return "m_pc="+engine.m_pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_INPUT_CHAR+"];return 1";
   }
 		
 function handleZ_scan_table(engine, a) { 
@@ -746,7 +741,7 @@ function handleZ_print_table(engine, a) {
     if (a.length < 3) { a.push(1); } // default height
     if (a.length < 4) { a.push(0); } // default skip
     //VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
-    return "m_pc="+engine.m_pc+";effect_parameters=print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
+    return "m_pc="+engine.m_pc+";m_effects=_print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return 1";
   }
 		
 function handleZ_check_arg_count(engine, a) {
@@ -759,7 +754,7 @@ function handleZ_save(engine, a) {
     engine.m_compilation_running=0;
     var setter = "rebound=function(n) { " +
       engine._storer('n') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
+    return "m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
   }
 		
 function handleZ_restore(engine, a) {
@@ -767,7 +762,7 @@ function handleZ_restore(engine, a) {
     engine.m_compilation_running=0;
     var setter = "rebound=function(n) { " +
       engine._storer('n') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return 1";
   }
 		
 function handleZ_log_shift(engine, a) {
@@ -812,7 +807,6 @@ function handleZ_check_unicode(engine, a) {
     // methods to do so somehow (e.g. with an onscreen keyboard).
     return engine._storer('3');
 }
-
   ////////////////////////////////////////////////////////////////
   //
   // |handlers|
@@ -966,7 +960,6 @@ var handlers_v578 = {
     //1028: picture_table (V6 opcode)
 };
 
-
 ////////////////////////////////////////////////////////////////
 //
 // pc_translate_*
@@ -1006,7 +999,6 @@ function gnusto_error(number, message) {
 function GnustoEngine() { }
 
 GnustoEngine.prototype = {
-
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
@@ -1130,8 +1122,8 @@ GnustoEngine.prototype = {
       stopping = jscode();
     }
 
-		dump('STOPPED. Effect would be 0x');
-		dump(stopping.toString(16));
+		dump('STOPPED. Effects would be ');
+		dump(this.m_effects);
 		dump('.\n');
 
     // so, return an effect code.
@@ -2249,10 +2241,12 @@ GnustoEngine.prototype = {
 	// roughly the same thing as v6 windows, though, windows don't
 	// "own" any part of the screen, so there's no such thing as
 	// drawing on the lower window per se.)
+	//
+	// FIXME: Add note that we now start with G_E_PRINTTABLE
 
 	_print_table: function ge_print_table(address, width, height, skip) {
 
-			var lines = [];
+			var lines = [GNUSTO_EFFECT_PRINTTABLE];
 
 			for (var y=0; y<height; y++) {
 
@@ -2827,7 +2821,7 @@ GnustoEngine.prototype = {
 
 	// Hash mapping Z-code instructions to functions which return a
 	// JavaScript string to handle them.
-	m_handlers: handlers_v578,
+	m_handlers: 0,
   
   // |this.m_jit| is a cache for the results of compile(): it maps
   // memory locations to JS function objects. Theoretically,
@@ -2915,7 +2909,7 @@ GnustoEngine.prototype = {
   
   // |version| is the current Z-machine version.
   m_version: 0,
-  
+
   // |call_stack| stores all the return addresses for all the functions
   // which are currently executing.
   m_call_stack: 0,
@@ -3001,10 +2995,14 @@ GnustoEngine.prototype = {
   
   // Buffer of text written to transcript.
   m_transcript_buffer: '',
-  
-  // Effect parameters hold additional information for effect codes.
-  m_effect_parameters: 0,
-  
+
+  // |effects| holds the current effect in its zeroth element, and any
+	// parameters needed in the following elements.
+  m_effects: [],
+
+	// |answers| is a list of answers to an effect, given by the environment.
+  m_answers: [],
+
   m_random_seed: 0,
   m_use_seed: 0,
   
@@ -3019,8 +3017,8 @@ GnustoEngine.prototype = {
   m_leftovers: '',
 
   // These pointers point at the currently-selected functions:
-  m_pc_translate_for_routine: this.pc_translate_v45,
-  m_pc_translate_for_string: this.pc_translate_v45,
+  m_pc_translate_for_routine: pc_translate_v45,
+  m_pc_translate_for_string: pc_translate_v45,
 
 };
 
