@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.27 2003/10/14 19:54:49 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.28 2003/10/17 07:26:59 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/14 19:54:49 $';
+const CVS_VERSION = '$Date: 2003/10/17 07:26:59 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -994,6 +994,7 @@ function gnusto_error(number, message) {
 function GnustoEngine() { }
 
 GnustoEngine.prototype = {
+
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
@@ -1161,46 +1162,44 @@ GnustoEngine.prototype = {
 					content = content.concat([0]);
 			}
 
-			/*
-
-			// Experimental code to calculate compressed memory.
-			// This is currently disabled.
-
-			content = content.concat(tag_CMem);
-			var same_count = 0;
-
-			for (var i=0; i<this.m_stat_start; i++) {
-					if (state.m_memory[i] == this.m_original_memory[i]) {
-
-							same_count ++;
-
-							if (same_count == 256) {
-									dump('Dump intermediate same count: ');
-									dump(same_count);
-									dump('\n');
-
-									same_count = 0;
-							}
-
-					} else {
-
-							dump('Dump same count: ');
-							dump(same_count);
-							dump('\n');
-
-							same_count = 0;
-
-							dump('Dump different: ');
-							dump(state.m_memory[i] ^ this.m_original_memory[i]);
-
-					}
-			}
-
-			if (same_count != 0) {
-					dump('Dump remaining same count: ');
-					dump(same_count);
-					dump('\n');
-					}*/
+//			// Experimental code to calculate compressed memory.
+//			// This is currently disabled.
+//
+//			content = content.concat(tag_CMem);
+//			var same_count = 0;
+//
+//			for (var i=0; i<this.m_stat_start; i++) {
+//					if (state.m_memory[i] == this.m_original_memory[i]) {
+//
+//							same_count ++;
+//
+//							if (same_count == 256) {
+//									dump('Dump intermediate same count: ');
+//									dump(same_count);
+//									dump('\n');
+//
+//									same_count = 0;
+//							}
+//
+//					} else {
+//
+//							dump('Dump same count: ');
+//							dump(same_count);
+//							dump('\n');
+//
+//							same_count = 0;
+//
+//							dump('Dump different: ');
+//							dump(state.m_memory[i] ^ this.m_original_memory[i]);
+//
+//					}
+//			}
+//
+//			if (same_count != 0) {
+//					dump('Dump remaining same count: ');
+//					dump(same_count);
+//					dump('\n');
+//					}
 
 			////////////////////////////////////////////////////////////////
 
@@ -1222,6 +1221,7 @@ GnustoEngine.prototype = {
 
 			for (var m=0; m<this.m_gamestack_callbreaks[0]; m++) {
 					stacks = stacks.concat(int_to_bytes(this.m_gamestack[gamestack_cursor++],
+																							2));
 			}
 
 			for (var j=0; j<this.m_call_stack.length; j++) {
@@ -3001,7 +3001,7 @@ GnustoEngine.prototype = {
 
 			return result;
 	},
-
+		
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
