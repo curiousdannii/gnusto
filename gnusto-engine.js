@@ -1,34 +1,143 @@
 ///////////////////////////////////////////////////////////////
 //
-// This is a very early release of the Gnusto JavaScript
+// gnusto v0.0.9
+//
+// This is an early release of the Gnusto JavaScript
 // Z-machine library.
+//
+// This version still has some problems with scope.
 //
 // Copyright (c) 2002, Thomas Thurman <marnanel@marnanel.org>
 // Released under the GNU GPL.
 //
 ////////////////////////////////////////////////////////////////
-
-var jit = []
-var compiling = 0;
-var gamestack = [];
-var sp=0;
-
-var himem      = 0;
-var pc         = 0;
-var dict_start = 0;
-var objs_start = 0;
-var vars_start = 0;
-var stat_start = 0;
-
+/////////////////////// Global variables ///////////////////////
 ////////////////////////////////////////////////////////////////
 
-function word2signed(value) {
-	if (value & 0x8000)
-		return (~0xFFFF) | value;
-	else
-		return value;
+// These are all initialised in the function setup().
 
-}
+// |jit| is a cache for the results of dissemble(): it maps
+// memory locations to JS function objects. Theoretically,
+// executing the function associated with a given address is
+// equivalent to executing the z-code at that address.
+//
+// Note: the results of dissembly in dynamic memory should never
+// be put into this array, since the code can change.
+//
+// Planned features:
+//    1) dissemble() should know about this array, and should stop
+//       dissembly if its program counter reaches any key in it.
+//    2) putting a flag value (probably zero) into this array will
+//       have the effect of 1), but won't stop us replacing it with
+//       real code later.
+var jit;
+
+// In ordinary use, dissemble() attempts to make the functions
+// it creates as long as possible. Sometimes, though, we have to
+// stop dissembling (for example, when we reach a RETURN) or it
+// will seem a good idea (say, when we meet an unconditional jump).
+// In such cases, a subroutine anywhere along the line may set
+// |compiling| to 0, and dissemble() will stop after the current
+// iteration.
+var compiling;
+
+// |gamestack| is the Z-machine's stack.
+var gamestack;
+
+// |himem| is the high memory mark. This is rarely used in practice;
+// we might stop noting it.
+var himem;
+
+// |pc| is the Z-machine's program counter.
+var pc;
+
+// |dict_start| is the address of the dictionary in the Z-machine's memory.
+var dict_start;
+
+// |objs_start| is the address of the object table in the Z-machine's memory.
+var objs_start;
+
+// |vars_start| is the address of the global variables in the Z-machine's
+// memory.
+var vars_start;
+
+// Not sure what this does. It doesn't seem to be used, anyway.
+// We should probably remove it.
+var stat_start;
+
+// |call_stack| stores all the return addresses for all the functions
+// which are currently executing.
+var call_stack;
+
+// |locals| is an array of the Z-machine's local variables.
+var locals;
+
+// |locals_stack| is a stack of the values of |locals| for functions
+// further down the call stack than the current function.
+var locals_stack;
+
+// |param_counts| is an array which stores the number of parameters for
+// each of the variables on |call_stack|, and the current function (so
+// that the number of parameters to the current function is in
+// param_counts[0]). (Hmm, that's a bit inconsistent. We should change it.)
+var param_counts;
+
+// |result_eaters| is a stack whose use parallels |call_stack|. Instead of
+// storing return addresses, though, |result_eaters| stores function objects.
+// Each of these gets executed as the function returns. For example, if a
+// function contains:
+//
+//    b000: locals[7] = foo(locals[1])
+//    b005: something else
+//
+// and we're just now returning from the call to foo() in b000, the only
+// legitimate value we can set the PC to is b005 (b000 would cause an
+// infinite loop, after all), but we can't go on to b005 because we haven't
+// finished executing b000 yet. So on the top of |result_eaters| there'll be
+// a function object which stores values in locals[7].
+//
+// |result_eaters| may contain zeroes as well as function objects. These are
+// treated as no-ops.
+//
+// It might seem sensible to do without |call_stack| altogether, since an entry
+// in |result_eaters| may set the PC. However, having a list of return
+// addresses enables us to print a call stack.
+var result_eaters;
+
+// The function object to run first next time go() gets called,
+// before any other execution gets under way. Its argument will be the
+// |answer| formal parameter of go(). It can also be 0, which
+// is a no-op. go() will clear it to 0 after running it, whatever
+// happens.
+var rebound;
+
+// Whether we're writing output to the ordinary screen (stream 1).
+var output_to_console;
+
+// Whether we're writing output to a game transcript (stream 2).
+var output_to_transcript;
+
+// Streams writing out to main memory (collectively, stream 3).
+// fixme: need more detail as to the format of this variable.
+var streamthrees;
+
+// Whether we're writing copies of input to a script file (stream 4).
+// fixme: This is really something we need to tell the environment about,
+// since we can't deal with it ourselves.
+var output_to_script;
+
+// If this is 1:
+//   * dissemble() won't group JS for more than one opcode together.
+//   * go() will "wimp out" after every opcode.
+var debug_mode;
+
+////////////////////////////////////////////////////////////////
+//////////////// Functions to support handlers /////////////////
+////////////////////////////////////////////////////////////////
+//
+// Each of these functions is used by the members of the
+// |handlers| array, below.
+//
 ////////////////////////////////////////////////////////////////
 
 function call_vn(args, offset) {
@@ -74,22 +183,23 @@ function brancher(condition) {
 
 	target_address = (pc + target_address) - 2;
 
-	// No code there? Mark that we want it later.
-	if (!jit[target_address]) jit[target_address]=0;
+	// This is an optimisation that's currently unimplemented:
+	// if there's no code there, we should mark that we want it later.
+	//  [ if (!jit[target_address]) jit[target_address]=0; ]
 
 	return if_statement + '{pc='+
 		(target_address)+';return;}';
 }
 
 function code_for_varcode(varcode) {
-	if (varcode==0) {
+	if (varcode==0)
 		return 'gamestack.pop()'
-	} else if (varcode < 0x10) {
+	else if (varcode < 0x10)
 		return 'locals['+(varcode-1)+']';
-	} else {
-		address = vars_start+(varcode-16)*2;
-		return 'getword('+address+')';
-	}
+	else
+		return 'getword('+(vars_start+(varcode-16)*2)+')';
+
+	throw "impossible";
 }
 
 function store_into(lvalue, rvalue) {
@@ -118,7 +228,7 @@ function store_into(lvalue, rvalue) {
 	} else if (lvalue.substring(0,8)=='getword(') {
 		return 'setword('+rvalue+','+lvalue.substring(8);
 	} else if (lvalue.substring(0,8)=='getbyte(') {
-		return 'setbyte("a",'+rvalue+','+lvalue.substring(8);
+		return 'setbyte('+rvalue+','+lvalue.substring(8);
 	} else {
 		return lvalue + '=' + rvalue;
 	}
@@ -139,35 +249,84 @@ function simple_call(target, arguments) {
 function simple_print(a) {
 	var zf = zscii_from(pc,65535,1);
 	var message=(zf[0].
-		replace('\\','\\\\').
-		replace('"','\\"').
-		replace('\n','\\n')); // not elegant
+		replace('\\','\\\\','g').
+		replace('"','\\"','g').
+		replace('\n','\\n','g')); // not elegant
 	pc=zf[1];
 	return 'output("'+message+'")';
 }
 
-function cursor_handling_is_a_bit_advanced(a) {
-	return ""; // so just pretend
-}
+////////////////////////////////////////////////////////////////
+// Effect codes, returned from go(). See the explanation below
+// for |handlers|.
+
+// Returned when we're expecting a line of keyboard input.
+// TODO: The lowest nibble may be 1 if the Z-machine has asked
+// for timed input.
+//
+// Answer with the string the user has entered.
+var GNUSTO_EFFECT_INPUT      = 0x100;
+
+// Returned when we're expecting a single keypress (or mouse click).
+// TODO: The lowest nibble may be 1 if the Z-machine has asked
+// for timed input.
+//
+// Answer with the ZSCII code for the key pressed (see the Z-spec).
+var GNUSTO_EFFECT_INPUT_CHAR = 0x110;
+
+// Returned when the Z-machine requests we save the game.
+// Answer as in the Z-spec: 0 if we can't save, 1 if we can, or
+// 2 if we've just restored.
+var GNUSTO_EFFECT_SAVE       = 0x200;
+
+// Returned when the Z-machine requests we load a game.
+// Answer 0 if we can't load. (If we can, we won't be around to answer.)
+var GNUSTO_EFFECT_RESTORE    = 0x300;
+
+// Returned when the Z-machine requests we quit.
+// Not to be answered, obviously.
+var GNUSTO_EFFECT_QUIT       = 0x400;
+
+// Returned if we've run for more than a certain number of iterations.
+// This means that the environment gets a chance to do some housekeeping
+// if we're stuck deep in computation, or to break an infinite loop
+// within the Z-code.
+//
+// Any value may be used as an answer; it will be ignored.
+var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
 
 ////////////////////////////////////////////////////////////////
 //
-// handlers
+// |handlers|
 //
-// An array mapping opcodes to functions. Each function returns
-// a string of JS which can be evaluated to do the job of that
-// opcode. (These can be concatenated to form functions.)
+// An array mapping opcodes to functions. Each function is passed
+// a series of arguments (between zero and eight, as the Z-machine
+// allows) as an array, called |a| below. It returns a string of JS,
+// called |r| in these comments, which can be evaluated to do the job of that
+// opcode. Note, again, that this is a string (not a function object).
 //
+// Extended ("EXT") opcodes are stored 1000 higher than their number.
+// For example, 1 is "je", but 1001 is "restore".
+//
+// |r|'s code may set |compiling| to 0 to stop dissemble() from producing
+// code for any more opcodes after this one. (dissemble() likes to group
+// code up into blocks, where it can.)
+//
+// |r|'s code may contain a return statement for two reasons: firstly, to
+// prevent execution of any further generated code before we get to take
+// our bearings again (for example, |r| must cause a return if it knows that
+// the program counter has been modified: PC changes can't take effect until
+// the next lookup of a code block, so we need to force that to happen
+// immediately). In such cases, return zero or an undefined result. Secondly,
+// we can return a numeric value to cause an effect in the external
+// environment. See "effect codes" above for the values.
+//
+// If |r|'s code contains a return statement, it must make sure to set the PC
+// somehow, either directly or, for example, via gnusto_return().
+
 var handlers = {
 
 	1: function(a) { // je
-		// This could be optimised a good deal.
-		// Use a multiway if statement:
-		// Length <  2: do nothing.
-		// Length == 2: direct comparison
-		// Length >  2: set t, then compare against it
-		//		(length must be 3 or 4)
-
 		if (a.length<2)
 			return ''; // it's a no-op
 		else if (a.length==2)
@@ -239,7 +398,8 @@ var handlers = {
 	20: function(a) { return storer(a[0]+'+'+a[1]); }, // add
 	21: function(a) { return storer(a[0]+'-'+a[1]); }, // sub
 	22: function(a) { return storer(a[0]+'*'+a[1]); }, // mul
-	23: function(a) { return storer(a[0]+'/'+a[1]); }, // div
+	23: function(a) { return storer(
+				'rounded_divide('+a[0]+','+a[1]+')'); }, // div
 	24: function(a) { return storer(a[0]+'%'+a[1]); }, // mod
 
 	25: function(a) { // call_2s
@@ -248,7 +408,7 @@ var handlers = {
 	26: function(a) { // call_2n
 		// can we use simple_call here, too?
 		compiling=0; // Got to stop after this.
-		return "gosub("+a[0]*4+",["+a[1]+"],"+pc+",0);"
+		return "gosub("+a[0]+"*4,["+a[1]+"],"+pc+",0)"
 	},
 	128: function(a) { // jz
 		return brancher(a[0]+'==0');
@@ -277,13 +437,15 @@ var handlers = {
 		var c=code_for_varcode(a[0]);
 		return store_into(c, c+'-1');
 	},
-	135: function(a) {
+	135: function(a) { // print_addr
 		return "output(zscii_from("+a[0]+"*4))";
 	},
-	136: function(a) { // call_1s.
+	136: function(a) { // call_1s
 			return simple_call(a[0], '');
-		},
-	// not implemented:   1OP:137 9       remove_obj object
+	},
+	137: function(a) { // remove_obj
+		return "remove_obj("+a[0]+','+a[1]+")";
+	},
 	138: function(a) { // print_obj
 		return "output(name_of_object("+a[0]+"))";
 		},
@@ -292,7 +454,10 @@ var handlers = {
 		return "gnusto_return("+a[0]+');return';
 		},
 	140: function(a) { compiling=0; // jump
-		var addr=(word2signed(a[0]) + pc) - 2;
+		if (a[0] & 0x8000)
+			a[0] = (~0xFFFF) | a[0];
+
+		var addr=(a[0] + pc) - 2;
 		return "pc="+addr+";return";
 		},
 	141: function(a) { // print_paddr
@@ -303,7 +468,7 @@ var handlers = {
 	143: function(a) { // call_1n
 		// can we use simple_call here, too?
 		compiling=0; // Got to stop after this.
-		return "gosub("+a[0]+"*4,[],"+pc+",0);"
+		return "gosub("+a[0]+"*4,[],"+pc+",0)"
 		},
 
 	176: function(a) { // rtrue
@@ -322,18 +487,28 @@ var handlers = {
 	180: function(a) { // nop
 		return "";
 	},
-	// not implemented: function(a) { compiling=0; and RESTART somehow,
+
 	184: function(a) { // ret_popped
 		compiling=0;
 		return "gnusto_return(gamestack.pop());return";
 	},
-	// not implemented:           0OP:185 9   1   pop                             pop'"},
-	// not implemented:     *                 5/6 catch -> (result)               catch '"},
-	// not implemented:           0OP:186 A       quit                            quit'"},
-	187: function(a) { return "output('\\n')" },
-	// not implemented:        *  0OP:189 D   3   verify ?(label)                 verify '"},
+	// not implemented:           0OP:185 9   5/6 catch -> (result)
 
-	190: function(a) { throw "extended opcodes not implemented"; },
+	186: function(a) { // quit
+		compiling=0;
+		return "return "+GNUSTO_EFFECT_QUIT;
+	},
+
+	187: function(a) {
+		return "output('\\n')";
+	},
+
+	// not implemented:        *  0OP:189 D   3   verify ?(label)
+	// "verify" would probably best be implemented as an effect opcode:
+	// the environment would pass back a boolean.
+
+	// 190 can't be generated; it's the start of an extended opcode
+	190: function(a) { throw "impossible"; },
 
 	191: function(a) { // piracy
 		return brancher("1");
@@ -348,19 +523,29 @@ var handlers = {
 	},
 
 	226: function(a) { // storeb
-		var qqq=pc.toString(16);
-		return "setbyte('b"+qqq+"',"+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
+		return "setbyte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
 	},
 
 	227 : function(a) { // put_prop
 		return "put_prop("+a[0]+','+a[1]+','+a[2]+')';
 	},
 	228: function(a) { // read, aread, sread, whatever it's called today
-		if (a[3])
-			return storer(
-				"aread("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-		else
-			return storer("aread("+a[0]+","+a[1]+",0,0)");
+		// That's something that we can't deal with within gnusto:
+		// ask the environment to magic something up for us.
+
+		if (a[3]) {
+			// ...then we should do something with a[2] and a[3],
+			// which are timed input parameters. For now, though,
+			// we'll just ignore them.
+		}
+
+		compiling = 0;
+
+		var setter = "rebound=function(n){" +
+			storer("aread(n," + a[0]+","+a[1] + ")") +
+			"};";
+
+		return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT;
 	},
 	229: function(a) { // print_char
 		return 'output(zscii_char_to_ascii('+a[0]+'))';
@@ -378,39 +563,105 @@ var handlers = {
 		var c=code_for_varcode(a[0]);
 		return store_into(c, 'gamestack.pop()');
 	},
-	234: cursor_handling_is_a_bit_advanced, // split_window
-	235: cursor_handling_is_a_bit_advanced, // set_window
-	236: function(args) { // call_vs2
-		return storer(call_vn(args,1));
+	234: function(a) { // split_window
+		return 'gnustoglue_split_window('+a[0]+')';
 	},
-	237: cursor_handling_is_a_bit_advanced, // erase_window
-	238: cursor_handling_is_a_bit_advanced, // erase_line
-	239: cursor_handling_is_a_bit_advanced, // set_cursor
+	235: function(a) { // set_window
+		return 'gnustoglue_set_window('+a[0]+')';
+	},
+	236: function(a) { // call_vs2
+		return storer(call_vn(a,1));
+	},
+	237: function(a) { // erase_window
+		return 'gnustoglue_erase_window('+a[0]+')';
+	},
+	238: function(a) { // erase_line
+		return 'gnustoglue_erase_line('+a[0]+')';
+	},
+	239: function(a) { // set_cursor
+		return 'gnustoglue_set_cursor('+a[0]+','+a[1]+')';
+	},
+
 	// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
-	241: cursor_handling_is_a_bit_advanced, // set_text_style
+
+	241: function(a) { // set_text_style
+		return 'gnustoglue_set_text_style('+a[0]+')';
+	},
+		
 	// not implemented:   VAR:242 12 4 buffer_mode flag buffer_mode '"},
-	// not implemented:   VAR:243 13 3 output_stream number output_stream '"},
-	// not implemented:   5 output_stream number table output_stream '"},
-	// not implemented:   6 output_stream number table width output_stream '"},
+
+	243: function(a) { // output_stream
+		return 'set_output_stream('+a[0]+','+a[1]+')';
+	},
+
 	// not implemented:   VAR:244 14 3 input_stream number input_stream '"},
 	// not implemented:   VAR:245 15 5/3 sound_effect number effect volume routine sound_effect '"},
-	// not implemented:   * VAR:246 16 4 read_char 1 time routine -> (result) read_char '"},
-	// not implemented:   * * VAR:247 17 4 scan_table x table len form -> (result) scan_table '"},
-	// not implemented:   * VAR:248 18 5/6 not value -> (result) not '"},
+
+	246: function(a) { // read_char
+
+		// fixme: factor out "read" and this
+
+		// a[0] is always 1; probably not worth checking for this
+
+		if (a[3]) {
+			// ...then we should do something with a[2] and a[3],
+			// which are timed input parameters. For now, though,
+			// we'll just ignore them.
+		}
+
+		compiling = 0;
+
+		var setter = "rebound=function(n) { " +
+			storer("n") +
+			"};";
+
+		return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
+	},
+
+	// not implemented:   * * VAR:247 17 4 scan_table x table len form -> (result)
+
+	248: function(a) { // not
+		return storer('~'+a[1]+'&0xffff');
+	},
 
 	249: call_vn,
+
 	250: call_vn, // call_vn2,
 
 	251: function(a) {
 		return "tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 	},
+
 	// not implemented:   VAR:252 1C 5 encode_text zscii-text length from coded-text encode_text'"},
 	// not implemented:   VAR:253 1D 5 copy_table first second size copy_table '"},
 	// not implemented:   VAR:254 1E 5 print_table zscii-text width height skip print_table '"},
 
 	255: function(a) { // check_arg_count
 		return brancher(a[0]+'<=param_count()');
-	}
+	},
+
+	1000: function(a) { // save
+		compiling=0;
+		var setter = "rebound=function(n) { " +
+			storer('n') + "};";
+		return "pc="+pc+";"+setter+"};return "+GNUSTO_EFFECT_SAVE;
+	},
+
+	1001: function(a) { // restore
+		compiling=0;
+		var setter = "rebound=function(n) { " +
+			storer('n') + "};";
+		return "pc="+pc+";"+setter+"};return "+GNUSTO_EFFECT_RESTORE;
+	},
+
+	1009: function(a) { // save_undo
+		return storer('-1'); // not yet supplied
+	},
+
+	1010: function(a) { // restore_undo
+		return "throw 'spurious restore_undo'";
+	},
+
 }
 
 function getword(addr) {
@@ -427,15 +678,20 @@ function get_unsigned_word(addr) {
 }
 
 function setword(value, addr) {
-	setbyte('c',(value>>8) & 0xFF, addr);
-	setbyte('d',(value) & 0xFF, addr+1);
+	setbyte((value>>8) & 0xFF, addr);
+	setbyte((value) & 0xFF, addr+1);
 }
 
+// dissemble() returns a string of JavaScript code representing the
+// instruction at the program counter (and possibly the next few
+// instructions, too). It will change the PC to point to the end of the
+// code it's dissembled.
 function dissemble() {
-	compiling = 1;
+	compiling = !debug_mode;
 	code = '';
 
 	while(compiling) {
+		// debug: gnustoglue_output(pc.toString(16)+' ');
 		var instr = getbyte(pc++);
 
 		var form = 'L';
@@ -444,10 +700,16 @@ function dissemble() {
 		// Types of operands.
 		var types = 0xFFFF;
 
-		if (instr==190) {
+		if (instr==0) {
+			// If we just get a zero, we've probably
+			// been directed off into deep space somewhere.
+
+			var where = pc-1;
+			throw "lost in space at "+where.toString(16)
+		} else if (instr==190) {
 			form = 'E';
 			ops = -1;
-			instr = getbyte(pc++);
+			instr = 1000+getbyte(pc++);
 		} else if (instr & 0x80) {
 			if (instr & 0x40) {
 				form = 'V';
@@ -517,8 +779,7 @@ function dissemble() {
 		else if (instr>=160 && instr<=175) { instr -= 32; }
 
 		if (handlers[instr]) {
-			var a123 = handlers[instr](args);
-			code = code + a123 +';';
+			code = code + handlers[instr](args)+';';
 		} else {
 			throw "No handler for opcode "+instr+" at "+
 				pc.toString(16);
@@ -526,11 +787,30 @@ function dissemble() {
 
 	}
 
+	// When we're not in debug mode, dissembly only stops at places where
+	// the PC must be reset; but in debug mode it's perfectly possible
+	// to have |code| not read or write to the PC at all. So we need to
+	// set it automatically at the end of each fragment.
+	if (debug_mode) code = code + 'pc='+pc;
+
 	return 'function(){'+code+'}'
 }
 
 ////////////////////////////////////////////////////////////////
 // Library functions
+
+function rounded_divide(over, under) {
+
+	if (under==0)
+		throw "division by zero";
+
+	var result = over / under;
+
+	if (result<0)
+		return Math.ceil(result);
+	else
+		return Math.floor(result);
+}
 
 function zscii_char_to_ascii(zscii_code) {
 	if (zscii_code<0 || zscii_code>1023)
@@ -548,14 +828,12 @@ function zscii_char_to_ascii(zscii_code) {
 	return String.fromCharCode(result);
 }
 
-var func_stack = [];
-var locals = []
-var locals_stack = []
-var param_counts = []
-var result_eaters = []
-
-function gnusto_random() {
-	return 1; // for now
+function gnusto_random(arg) {
+	if (arg>0) {
+		return 1 + (arg * Math.random());
+	} else {
+		// Else we should reseed the RNG. Um.
+	}
 }
 
 function clear_locals() {
@@ -575,7 +853,7 @@ function func_prologue(actuals) {
 }
 
 function gosub(to_address, actuals, ret_address, result_eater) {
-	func_stack.push(ret_address);
+	call_stack.push(ret_address);
 	pc = to_address;
 	func_prologue(actuals);
 	param_counts.unshift(actuals.length);
@@ -588,18 +866,23 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 }
 
 function look_up(word) {
-	// note: very inefficient. We turn all the entries into ascii and
-	// compare. Really we should turn |word| into zscii and compare.
-	word = word.substring(0,9);
+
 	var separator_count = getbyte(dict_start);
 	var entry_length = getbyte(dict_start+separator_count+1);
 	var entries_count = getword(dict_start+separator_count+2);
 	var entries_start = dict_start+separator_count+4;
 
+	word = into_zscii(word);
+
 	for (var i=0; i<entries_count; i++) {
 		var address = entries_start+i*entry_length;
-		var candidate = zscii_from(address, 6);
-		if (candidate==word) return address;
+
+		var j=0;
+		while (j<word.length &&
+			getbyte(address+j)==word.charCodeAt(j))
+				j++;
+
+		if (j==word.length) return address;
 	}
 	return 0;
 }
@@ -620,7 +903,7 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		result += String.fromCharCode(getbyte(text_buffer + 2 + i));
 
 	var words_count = parse_buffer + 1;
-	setbyte('f',0, words_count);
+	setbyte(0, words_count);
 	parse_buffer+=2;
 
 	var words = result.split(' ');
@@ -631,11 +914,11 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		setword(lexical, parse_buffer);
 		parse_buffer+=2;
- 		setbyte('g',words[i].length, parse_buffer++);
-		setbyte('h',position, parse_buffer++);
+ 		setbyte(words[i].length, parse_buffer++);
+		setbyte(position, parse_buffer++);
 		
 		position += words[i].length+1;
-		setbyte('i',getbyte(words_count)+1, words_count);
+		setbyte(getbyte(words_count)+1, words_count);
 	}
 
 	return 10;
@@ -644,15 +927,14 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 // Very very very limited implementation:
 //  * Doesn't properly handle terminating characters (always returns 10).
 //  * Doesn't handle word separators.
-//  * Doesn't honour the timer interrupt at all.
-function aread(text_buffer, parse_buffer, time, routine) {
+function aread(source, text_buffer, parse_buffer) {
 	var max_chars = getbyte(text_buffer);
-	var result = input().substring(0,max_chars);
+	var result = source.substring(0,max_chars);
 
-	setbyte('j',result.length, text_buffer + 1);
+	setbyte(result.length, text_buffer + 1);
 	
 	for (var i=0;i<result.length;i++)
-		setbyte('k',result.charCodeAt(i), text_buffer + 2 + i);
+		setbyte(result.charCodeAt(i), text_buffer + 2 + i);
 
 	if (parse_buffer!=0)
 		tokenise(text_buffer, parse_buffer, 0, 0);
@@ -667,17 +949,45 @@ function gnusto_return(value) {
 		locals.shift();
 	}
 	param_counts.shift()
-	pc = func_stack.pop();
+	pc = call_stack.pop();
 	if (eater) eater(value);
 }
 
 function get_prop_addr(object, property) {
-	var result = property_search(object, property);
+	var result = property_search(object, property, -1);
 	if (result[2]) {
 		return result[0];
 	} else {
 		return 0;
 	}
+}
+
+function get_next_prop(object, property) {
+
+	if (object==0) return 0; // Kill that V0EFH before it starts.
+
+	var result = property_search(object, -1, property);
+
+	if (result[2]) {
+		// There's a real property number in there;
+		// return it.
+		return result[3];
+	} else {
+		// There wasn't a valid property following the one
+		// we wanted. Why not?
+
+		if (result[4]) {
+			// Because the one we wanted was the last one.
+			// Tell them to go back to square one.
+			return 0;
+		} else {
+			// Because the one we wanted didn't exist.
+			// They shouldn't have asked for it: barf.
+			throw "get_next_prop of an unreal property";
+		}
+	}
+
+	throw "impossible";
 }
 
 function get_prop_len(address) {
@@ -697,7 +1007,10 @@ function get_prop_len(address) {
 }
 
 function get_prop(object, property) {
-	var temp = property_search(object, property);
+
+	if (object==0) return 0; // Kill that V0EFH before it starts.
+
+	var temp = property_search(object, property, -1);
 
 	if (temp[1]==2) {
 		return getword(temp[0]);
@@ -709,15 +1022,42 @@ function get_prop(object, property) {
 	throw "impossible";
 }
 
-// returns an array.
-// first element is the address.
-// second is the length.
-// third is 1 if this property really belongs to the object,
-//	or 0 if it's a default.
-function property_search(object, property) {
+// This is the function which does all searching of property lists.
+// It takes three parameters:
+//    |object| -- the number of the object you're interested in
+//
+// The next parameters allow us to specify the property in two ways.
+// If you use both, it will "or" them together.
+//    |property| -- the number of the property you're interested in,
+//                     or -1 if you don't mind.
+//    |previous_property| -- the number of the property BEFORE the one
+//                     you're interested in, or 0 if you want the first one,
+//                     or -1 if you don't mind.
+//
+// If you specify a valid property, and the property doesn't exist, this
+// function will return the default value instead (and tell you it's done so).
+//
+// The function returns an array with these elements:
+//    [0] = the property address.
+//    [1] = the property length.
+//    [2] = 1 if this property really belongs to the object, or
+//	    0 if it doesn't (and if it doesn't, and you've specified
+//          a valid |property|, then [0] and [1] will be properly
+//          set to defaults.)
+//    [3] = the number of the property.
+//          Equal to |property| if you specified it.
+//          May be -1, if |property| is -1 and [2]==0.
+//    [4] = a piece of state only useful to get_next_prop():
+//          if the object does not contain the property (i.e. if [2]==0)
+//          then this will be 1 if the final property was equal to
+//          |previous_property|, and 0 otherwise. At all other times it will
+//          be 0.
+function property_search(object, property, previous_property) {
 	var props_address = get_unsigned_word(objs_start + 124 + object*14);
 
 	props_address = props_address + getbyte(props_address)*2 + 1;
+
+	var previous_prop = 0;
 
 	while(1) {
 		var prop = getbyte(props_address++);
@@ -733,18 +1073,25 @@ function property_search(object, property) {
 		}
 		prop = prop & 0x3F;
 
-		if (prop==property) {
-			return [props_address, len, 1];
+		if (prop==property || previous_prop==previous_property) {
+			return [props_address, len, 1, prop, 0];
 		} else if (prop < property) {
-			// it's not there, then.
-			// get it from the defaults
-			return [objs_start + (property-1)*2, 2, 0];
 
-			// (fixme: should check for invalid property
-			// numbers, too)
+			// So it's not there. Can we get it from the defaults?
+
+			if (property>0)
+				// Yes, because it's a real property.
+				return [objs_start + (property-1)*2,
+					2, 0, property, 0];
+			else
+				// No: they didn't specify a particular
+				// property.
+				return [-1, -1, 0, property,
+					previous_prop==property];
 		}
 
 		props_address += len;
+		previous_prop = prop;
 	}
 	throw "impossible";
 }
@@ -755,21 +1102,21 @@ function property_search(object, property) {
 function set_attr(object, bit) {
 	var address = objs_start + 112 + object*14 + (bit>>3);
 	var value = getbyte(address);
-	setbyte('l', value | (128>>(bit%8)), address);
+	setbyte(value | (128>>(bit%8)), address);
 }
 
 function clear_attr(object, bit) {
 	var address = objs_start + 112 + object*14 + (bit>>3);
 	var value = getbyte(address);
-	setbyte('m',value & ~(128>>(bit%8)), address);
+	setbyte(value & ~(128>>(bit%8)), address);
 }
 
 function put_prop(object, property, value) {
-	var address = property_search(object, property);
+	var address = property_search(object, property, -1);
 
 	if (!address[2]) throw "put_prop on an undefined property";
 	if (address[1]==1) {
-		setbyte('n',value & 0xff, address[0]);
+		setbyte(value & 0xff, address[0]);
 	} else if (address[1]==2) {
 		setword(value&0xffff, address[0]);
 	} else {
@@ -796,8 +1143,8 @@ function get_older_sibling(object) {
 
 	while (candidate) {
 		next_along = get_sibling(candidate);
-		if (next_along==mover) {
-			return mover; // Yay! Got it!
+		if (next_along==object) {
+			return candidate; // Yay! Got it!
 		}
 		candidate = next_along;
 	}
@@ -832,9 +1179,16 @@ function insert_obj(mover, new_parent) {
 	}
 }
 
+function remove_obj(mover, new_parent) {
+	insert_obj(mover, 0);
+}
+
 ////////////////////////////////////////////////////////////////
 
 function test_attr(object, bit) {
+
+	if (object==0) return 0; // Kill that V0EFH before it starts.
+
 	var address = objs_start + 112 + object*14;
 
 	if (getbyte(address+(bit>>3)) & (128>>(bit%8)))
@@ -846,6 +1200,15 @@ function test_attr(object, bit) {
 function get_family(from, relationship) {
 	return get_unsigned_word(
 		objs_start + 112 + relationship + from*14);
+//
+//	var reln = (relationship==PARENT_REC?"parent":
+//		(relationship==CHILD_REC?"child":"sibling"));
+//
+//	var res = get_unsigned_word(
+//		objs_start + 112 + relationship + from*14);
+//
+//	print('The',reln,'of',name_of_object(from),'is',name_of_object(res));
+//	return res;
 }
 
 function get_parent(from)  { return get_family(from, PARENT_REC); }
@@ -861,7 +1224,7 @@ function set_parent(from, to)  { return set_family(from, to, PARENT_REC); }
 function set_child(from, to)   { return set_family(from, to, CHILD_REC); }
 function set_sibling(from, to) { return set_family(from, to, SIBLING_REC); }
 
-function obj_in(parent, child) {
+function obj_in(child, parent) {
 	return get_parent(child) == parent;
 }
 
@@ -869,37 +1232,126 @@ function param_count() {
 	return param_counts[0];
 }
 
+function set_output_stream(target, address) {
+	if (target==0) {
+		// then it's a no-op.
+	} else if (target==1) {
+		output_to_console = 1;
+	} else if (target==2) {
+		output_to_transcript = 1;
+	} else if (target==3) {
+
+		if (streamthrees.length>15)
+			throw "too many nested stream-3s";
+
+		streamthrees.unshift([address, address+2]);
+
+	} else if (target==4) {
+		output_to_script = 1;
+	} else if (target==-1) {
+		output_to_console = 0;
+	} else if (target==-2) {
+		output_to_transcript = 0;
+	} else if (target==-3) {
+
+		if (streamthrees.length<1)
+			throw "not enough nested stream-3s";
+
+		var latest = streamthrees.shift();
+		setword((latest[1]-latest[0])-2, latest[0]);
+
+	} else if (target==-4) {
+		output_to_script = 0;
+	} else {
+		throw "weird output stream number: "+target
+	}
+}
+
 ////////////////////////////////////////////////////////////////
 
-function setup() {
-	clear_locals();
+// setup()
+//
+// Initialises global variables.
+//
+// Since this function reads certain values out of the Z-machine's
+// memory, the story must be loaded before this function is called.
 
-	setbyte('e',0,   1); // for now, we don't provide anything
-	setbyte('e',80, 32); // width (notional)
-	setbyte('e',25, 33); // height (notional)
+function setup() {
+	jit = [];
+	compiling = 0;
+	gamestack = [];
+
+	call_stack = [];
+	locals = [];
+	locals_stack = [];
+	param_counts = [];
+	result_eaters = [];
+
+	setbyte(0x1c, 1); // flags 1
+	// (This is partially dependent on the environment...
+	// it should probably ask what's available.)
+	setbyte(80, 32); // width (notional)
+	setbyte(25, 33); // height (notional)
 	himem      = get_unsigned_word(0x4)
 	pc         = get_unsigned_word(0x6)
 	dict_start = get_unsigned_word(0x8)
 	objs_start = get_unsigned_word(0xA)
 	vars_start = get_unsigned_word(0xC)
 	stat_start = get_unsigned_word(0xE)
+
+	rebound = 0;
+
+	output_to_console = 1;
+	output_to_transcript = 0;
+	streamthrees = [];
+	output_to_script = 0;
+	debug_mode = 0;
+
+	clear_locals();
 }
 
 ////////////////////////////////////////////////////////////////
 
-function execute_loop() {
-	var start_pc;
-	while(1) {
+// Main point of entry for gnusto. Be sure to call setup() before calling
+// this the first time.
+//
+// This function returns an effect code when the machine pauses, stating
+// why the machine was paused. More details, and the actual values, are
+// given above.
+// 
+// |answer| is for returning answers to earlier effect codes. If you're
+// not answering an effect code, pass 0 here.
+function go(answer) {
+	var start_pc = 0;
+	var stopping = 0;
+	var turns = 0;
+	var turns_limit = debug_mode? 1: 1000;
+
+	if (rebound) {
+		rebound(answer);
+		rebound = 0;
+	}
+
+	while(!stopping) {
+
+		if (turns++ >= turns_limit)
+			// Wimp out for now.
+			return GNUSTO_EFFECT_WIMP_OUT;
+
 		start_pc = pc;
 		if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
-		jit[start_pc]();
+		stopping = jit[start_pc]();
 	}
+
+	// so, return an effect code.
+	return stopping;
 }
 
+// This should probably be done programmatically...
 var zalphabet = {
   0: 'abcdefghijklmnopqrstuvwxyz',
   1: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  2: '*\n0123456789.,!?_#\'"/\\-:()',
+  2: 'T\n0123456789.,!?_#\'"/\\-:()', // T = magic ten bit flag
  }
 
 function zscii_from(address, max_length, tell_length) {
@@ -933,11 +1385,11 @@ function zscii_from(address, max_length, tell_length) {
 				else if (code==4) { alph = 1; }
 				else if (code==5) { alph = 2; }
 				else if (code>5) {
-					var c = zalphabet[alph][code-6];
-					if (c=='*')
+					if (alph==2 && code==6)
 						tenbit = -1;
 					else
-						temp = temp + c;
+						temp = temp +
+							zalphabet[alph][code-6];
 					alph = 0;
 				}
 			} else if (tenbit==-1) {
@@ -960,7 +1412,60 @@ function zscii_from(address, max_length, tell_length) {
 // against dictionary words. It's not (yet) possible to implement
 // encode_text using it.
 function into_zscii(str) {
-	// ...
+	var result = '';
+	var buffer = [];
+	var set_stop_bit = 0;
+
+	function emit(value) {
+
+		buffer.push(value);
+
+		if (buffer.length==3) {
+			var temp = (buffer[0]<<10 | buffer[1]<<5 | buffer[2]);
+
+			// Weird, but it seems to be the rule:
+			if (result.length==4) temp += 0x8000;
+
+			result = result +
+				String.fromCharCode(temp >> 8) +
+				String.fromCharCode(temp &  0xFF);
+			buffer = [];
+		}
+	}
+
+	// Need to handle other alphabets. At present we only
+	// handle alphabetic characters (A0).
+	// Also need to handle ten-bit characters.
+
+	var cursor = 0;
+
+	while (cursor<str.length && result.length<6) {
+		var ch = str.charCodeAt(cursor++);
+
+		if (ch>=65 && ch<=90) { // A to Z
+			emit(ch-59);
+		} else if (ch>=97 && ch<=122) { // a to z
+			emit(ch-91);
+		} else {
+			var z2 = zalphabet[2].indexOf(ch);
+
+			if (z2!=-1) {
+				emit(5);
+				emit(z2+6);
+			} else {
+				emit(5);
+				emit(6);
+				emit(ch >> 5);
+				emit(ch &  0x1F);
+			}
+		}
+	}
+
+	cursor = 0;
+
+	while (result.length<6) emit(5);
+
+	return result.substring(0,6);
 }
 
 function name_of_object(object) {
@@ -973,3 +1478,21 @@ function name_of_object(object) {
 	}
 }
 
+function output(text) {
+	if (streamthrees.length) {
+		// Stream threes disable any other stream while they're on.
+
+		var current = streamthrees[0];
+		var address = streamthrees[0][1];
+
+		alert(text,'(to stream 3)',current);
+
+		for (var i=0; i<text.length; i++)
+			setbyte(text.charCodeAt(i), address++)
+
+		streamthrees[0][1] = address;
+	} else {
+		if (output_to_console) gnustoglue_output(text);
+		if (output_to_transcript) gnustoglue_output('[ts:'+text+']');
+	}
+}
