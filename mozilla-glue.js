@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.94 2003/07/14 00:47:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.95 2003/07/20 01:35:13 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -62,8 +62,6 @@ function glue__sound_effect(number, effect, volume, callback) {
 
 // Outputs to the screen, and the transcription file if necessary.
 function glue_print(text) {
-
-		burin('output', text);
 
 		win_chalk(current_window, text);
 
@@ -129,7 +127,7 @@ function command_exec(args) {
 
 				glue__reason_for_stopping = engine_run(glue__answer_for_next_run);
 
-				burin('effect', glue__reason_for_stopping.toString(16));
+				// burin('effect', glue__reason_for_stopping.toString(16));
 
 				glue_print(engine_console_text());
 
@@ -162,8 +160,6 @@ function command_exec(args) {
 				case GNUSTO_EFFECT_INPUT:
 						win_relax();
 						var eep = engine_effect_parameters();
-						for (var i in engine__effect_parameters)
-								burin('geep '+i,engine__effect_parameters[i]);
 						glue__input_buffer_max_chars = eep.maxchars;
 						win_set_input([win_recaps(eep.recaps), '']);
 						break;
@@ -478,8 +474,6 @@ function gotInput(e) {
 				if (e.keyCode==13) {
 
 						var result = current[0]+current[1];
-
-						burin('input', result);
 
 						result = result.replace('\u00A0', ' ', 'g');
 
