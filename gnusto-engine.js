@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.35 2003/03/26 06:11:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.36 2003/03/26 06:24:50 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -461,7 +461,7 @@ var handlers = {
 		21: function(a) { return storer(a[0]+'-'+a[1]); }, // sub
 		22: function(a) { return storer(a[0]+'*'+a[1]); }, // mul
 		23: function(a) { return storer(
-																		'rounded_divide('+a[0]+','+a[1]+')'); }, // div
+																		'trunc_divide('+a[0]+','+a[1]+')'); }, // div
 		24: function(a) { return storer(a[0]+'%'+a[1]); }, // mod
 
 		25: function(a) { // call_2s
@@ -998,14 +998,24 @@ function dissemble() {
 ////////////////////////////////////////////////////////////////
 // Library functions
 
-function rounded_divide(over, under) {
+
+function trunc_divide(over, under) {
+	
+                var result;
 
 		if (under==0) {
 				gnusto_error(701); // division by zero
 				return 0;
 		}
 
-		return Math.round(over / under);
+		result = over / under;
+
+                if (result > 0) {
+		  return Math.floor(result);
+		} else {
+		  return Math.ceil(result);
+		}			
+		  
 }
 
 function zscii_char_to_ascii(zscii_code) {
