@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.55 2003/11/25 20:27:19 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.56 2003/11/25 22:27:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/25 20:27:19 $';
+const CVS_VERSION = '$Date: 2003/11/25 22:27:06 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1578,8 +1578,14 @@ GnustoEngine.prototype = {
 
 			if (this.m_version>=5) {
 					this.m_alpha_start = this.getUnsignedWord(0x34);
+					this.m_object_tree_start = this.m_objs_start + 112;
+					this.m_property_list_addr_start = this.m_object_tree_start + 12;
+					this.m_object_size = 14;
 			} else {
 					this.m_alpha_start = 0;
+					this.m_object_tree_start = this.m_objs_start + 53;
+					this.m_property_list_addr_start = this.m_object_tree_start + 7;
+					this.m_object_size = 9;
 			}
 
 			this.m_hext_start  = this.getUnsignedWord(0x36);		
@@ -2424,26 +2430,36 @@ GnustoEngine.prototype = {
 	//          |previous_property|, and 0 otherwise. At all other times it will
 	//          be 0.
 	_property_search: function ge_property_search(object, property, previous_property) {
-			var props_address = this.getUnsignedWord(this.m_objs_start + 124 + object*14);
 
+			// Find the address of the property table.
+			var props_address = this.getUnsignedWord(this.m_property_list_addr_start +
+																							 object*this.m_object_size);
+
+			// Skip the property table's header.
 			props_address = props_address + this.getByte(props_address)*2 + 1;
 			
+			// Now loop over each property and consider it.
+
 			var previous_prop = 0;
 
 			while(1) {
 					var len = 1;
-
 					var prop = this.getByte(props_address++);
 
-					if (prop & 0x80) {
-							// Long format.
-							len = this.getByte(props_address++) & 0x3F;
-							if (len==0) len = 64;
+					if (this.m_version < 4) {
+							len = (prop>>5)+1;
+							prop = prop & 0x1F;
 					} else {
-							// Short format.
-							if (prop & 0x40) len = 2;
+							if (prop & 0x80) {
+									// Long format.
+									len = this.getByte(props_address++) & 0x3F;
+									if (len==0) len = 64;
+							} else {
+									// Short format.
+									if (prop & 0x40) len = 2;
+							}
+							prop = prop & 0x3F;
 					}
-					prop = prop & 0x3F;
 
 					if (prop==property || previous_prop==previous_property) {
 							return [props_address, len, 1, prop, 0];
@@ -2473,8 +2489,8 @@ GnustoEngine.prototype = {
 
 	_set_attr: function ge_set_attr(object, bit) {
 			if (object==0) return; // Kill that V0EFH before it starts.
-			
-			var address = this.m_objs_start + 112 + object*14 + (bit>>3);
+
+			var address = this.m_object_tree_start + object*this.m_object_size + (bit>>3);
 			var value = this.getByte(address);
 			this.setByte(value | (128>>(bit%8)), address);
 	},
@@ -2482,7 +2498,7 @@ GnustoEngine.prototype = {
 	_clear_attr: function ge_clear_attr(object, bit) {
 			if (object==0) return; // Kill that V0EFH before it starts.
 
-			var address = this.m_objs_start + 112 + object*14 + (bit>>3);
+			var address = this.m_object_tree_start + object*this.m_object_size + (bit>>3);
 			var value = this.getByte(address);
 			this.setByte(value & ~(128>>(bit%8)), address);
 	},
@@ -2490,7 +2506,7 @@ GnustoEngine.prototype = {
 	_test_attr: function ge_test_attr(object, bit) {
 			if (object==0) return 0; // Kill that V0EFH before it starts.
 
-			if ((this.getByte(this.m_objs_start + 112 + object*14 +(bit>>3)) &
+			if ((this.getByte(this.m_object_tree_start + object*this.m_object_size +(bit>>3)) &
 					 (128>>(bit%8)))) {
 					return 1;
 			} else {
@@ -3636,6 +3652,20 @@ GnustoEngine.prototype = {
 	// having small files for saving slightly faster, and isn't
 	// really worth it. We may hardwire it on permanently.
 	m_compress_save_files: 1,
+
+	// Offset of the (notional) 0th entry in the object tree from the
+	// start of the object block, in bytes. (This is the size of the
+	// property defaults table less m_object_size.)
+	m_object_tree_start: 0,
+
+	// Address of the property list address within the (notional) 0th
+	// entry in the object block. This is m_object_tree_start plus
+	// the offset within the record for that field (which varies by
+	// architecture).
+	m_property_list_addr_start: 0,
+
+	// Size of an object in the objects table, in bytes.
+	m_object_size: 14,
 };
 
 ////////////////////////////////////////////////////////////////
