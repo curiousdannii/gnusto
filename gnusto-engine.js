@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.61 2003/05/15 20:19:55 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.62 2003/05/15 20:44:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -142,8 +142,8 @@ var rebound;
 // Whether we're writing output to the ordinary screen (stream 1).
 var output_to_console;
 
-// Whether we're writing output to a game transcript (stream 2).
-var output_to_transcript;
+// Stream 2 is whether we're writing output to a game transcript,
+// but the state for that is stored in a bit in "Flags 2" in the header.
 
 // A list of streams writing out to main memory (collectively, stream 3).
 // The stream at the start of the list is the current one.
@@ -934,7 +934,7 @@ function is_valid_breakpoint(addr) {
 }
 
 function silver_print(text) {
-		transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
+		var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
 		transcription_file.write(text, text.length);
 		transcription_file.close();
 }
@@ -1628,7 +1628,7 @@ function set_output_stream(target, address) {
 		} else if (target==1) {
 				output_to_console = 1;
 		} else if (target==2) {
-				set_transcribing(1);
+				setbyte(getbyte(0x11) | 0x1);
 		} else if (target==3) {
 
 				if (streamthrees.length>15)
@@ -1641,7 +1641,7 @@ function set_output_stream(target, address) {
 		} else if (target==-1) {
 				output_to_console = 0;
 		} else if (target==-2) {
-				set_transcribing(0);
+				setbyte(getbyte(0x11) & ~0x1);
 		} else if (target==-3) {
 
 				if (streamthrees.length<1)
@@ -1654,22 +1654,6 @@ function set_output_stream(target, address) {
 				output_to_script = 0;
 		} else
 				gnusto_error(204, target); // weird output stream number
-}
-
-// Returns whether the Z-machine has transcription turned on.
-function is_transcribing() {
-		return output_to_transcript;
-}
-
-// Turns transcription on or off. Can be called by the environment.
-function set_transcribing(whether) {
-		if (whether)
-				output_to_transcript = 1;
-		else
-				output_to_transcript = 0;
-
-		// And notify the environment about it.
-		gnustoglue_notify_transcription(output_to_transcript);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1797,7 +1781,6 @@ function setup() {
 		rebound = 0;
 
 		output_to_console = 1;
-		set_transcribing(0);
 		streamthrees = [];
 		output_to_script = 0;
 
@@ -2176,7 +2159,7 @@ function zOut(text) {
 								engine__console_buffer = engine__console_buffer + text;
 						}
 
-						if (output_to_transcript) {
+						if (bits & 1) {
 								engine__transcript_buffer = engine__transcript_buffer + text;
 						}
 				}
