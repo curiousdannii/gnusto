@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.48 2003/06/16 04:23:53 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.49 2003/06/16 05:33:59 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -168,7 +168,7 @@ function ensureHappiness() {
 </hbox>
 
 <!-- Top window; all fixed width. -->
-<html:div top="0" left="0" width="640" height="480" id="bocardobox">
+<html:div flex="0" top="0" left="0" width="640" height="480" id="bocardobox">
 <vbox id="bocardo" class="bocardoid">
 </vbox>
 </html:div>
