@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.1 2003/04/27 20:58:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.2 2003/04/27 21:49:33 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -33,6 +33,13 @@ function barbara_start_game() {
 
 ////////////////////////////////////////////////////////////////
 
+function barbara_clear() {
+		barbarix_clear(document.getElementById('barbara'));
+		barbara__holder = 0;
+}
+
+////////////////////////////////////////////////////////////////
+
 function barbara_chalk(text) {
 
 		if (barbara__holder==0) {
@@ -45,8 +52,18 @@ function barbara_chalk(text) {
 						appendChild(barbara__holder);
 		}
 
-		barbara__holder.
-				appendChild(document.createTextNode(text));
+		var lines = text.replace('  ','\u00A0 ','g').split('\n');
+
+		for (var i in lines) {
+				if (i!=0) {
+						barbara__holder.
+								appendChild(document.createElementNS(barbara__HTML,
+																										 'html:br'));
+				}
+				
+				barbara__holder.
+						appendChild(document.createTextNode(lines[i]));
+		}
 
 		return '';
 }
