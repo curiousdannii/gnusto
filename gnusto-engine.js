@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.26 2003/03/20 06:29:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.27 2003/03/21 02:13:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1202,7 +1202,7 @@ function get_prop(object, property) {
 		} else {
 				// get_prop used on a property of the wrong length
 				gnusto_error(706, object, property);
-				return 0;
+				return getword(temp[0]);
 		}
 
 		gnusto_error(174); // impossible

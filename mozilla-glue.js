@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.20 2003/03/15 13:59:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.21 2003/03/21 02:13:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -63,6 +63,14 @@ var mangled = 0;
 // Offset of null byte fixups in the .mz5.
 // See http://gnusto.mozdev.org/nullbytes.html
 var fixups = 0;
+
+// Dictionary of Gnusto errors which should be ignored.
+// The keys are the error numbers; the values are ignored.
+// You *can* make the system ignore fatal errors this way, but
+// the results (both for Gnusto and the story) are undefined.
+var ignore_errors = {
+		706: 1, // Work around a bug in Library 15/2 (see bug 3314)
+   };
 
 function loadMangledZcode(zcode) {
 
@@ -486,6 +494,10 @@ function quitGame() {
 }
 
 function gnusto_error(n) {
+
+		if (ignore_errors[n])
+				return;
+
 		var m = 'Gnusto error #'+n;
 
 		if (n>=500)
