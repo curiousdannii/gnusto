@@ -1,9 +1,17 @@
 <HTML>
-<HEAD><TITLE>&justatest;</TITLE>
-<LINK REL="stylesheet" TYPE="text/css" HREF="chrome://gnusto/skin">
+<HEAD><TITLE>Gnusto</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="chrome://gnusto/skin/gnusto.css">
 </HEAD>
-<BODY>
-<SCRIPT TYPE="application/x-javascript" SRC="chrome://gnusto/content/test.js">
-<h1 onclick="greet()">Hello. "&justatest;"!</h1>
+<BODY onload="play();">
+
+<!-- Glue for Mozilla. -->
+<SCRIPT TYPE="application/x-javascript" SRC="chrome://gnusto/content/mozilla-glue.js">
+
+<!-- The main Gnusto library. -->
+<SCRIPT TYPE="application/x-javascript" SRC="chrome://gnusto/content/gnusto-lib.js">
+
+<div id="tty"></div>
+<div id="end"></div>
+
 </BODY>
 </HTML>

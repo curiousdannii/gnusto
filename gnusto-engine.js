@@ -13,6 +13,13 @@ var compiling = 0;
 var gamestack = [];
 var sp=0;
 
+var himem      = 0;
+var pc         = 0;
+var dict_start = 0;
+var objs_start = 0;
+var vars_start = 0;
+var stat_start = 0;
+
 ////////////////////////////////////////////////////////////////
 
 function word2signed(value) {
@@ -72,8 +79,6 @@ function brancher(condition) {
 
 	return if_statement + '{pc='+
 		(target_address)+';return;}';
-//	return if_statement + '{print("'+if_statement+' TAKEN");pc='+
-//		(target_address)+';return;}else{print("'+if_statement+' NOT TAKEN")}';
 }
 
 function code_for_varcode(varcode) {
@@ -418,7 +423,6 @@ function unsigned2signed(value) {
 
 function get_unsigned_word(addr) {
 	var result = getbyte(addr)*256+getbyte(addr+1);
-	alert('GUW from '+addr.toString(16)+':'+getbyte(addr).toString(16)+";"+getbyte(addr+1).toString(16)+";"+result.toString(16));
 	return result;
 }
 
@@ -427,18 +431,7 @@ function setword(value, addr) {
 	setbyte('d',(value) & 0xFF, addr+1);
 }
 
-setbyte('e',0,   1); // for now, we don't provide anything
-setbyte('e',80, 32); // width (notional)
-setbyte('e',25, 33); // height (notional)
-var himem      = get_unsigned_word(0x4)
-var pc         = get_unsigned_word(0x6)
-var dict_start = get_unsigned_word(0x8)
-var objs_start = get_unsigned_word(0xA)
-var vars_start = get_unsigned_word(0xC)
-var stat_start = get_unsigned_word(0xE)
-
 function dissemble() {
-	alert('starting execution at '+pc.toString(16));
 	compiling = 1;
 	code = '';
 
@@ -525,7 +518,6 @@ function dissemble() {
 
 		if (handlers[instr]) {
 			var a123 = handlers[instr](args);
-			alert(a123);
 			code = code + a123 +';';
 		} else {
 			throw "No handler for opcode "+instr+" at "+
@@ -881,6 +873,16 @@ function param_count() {
 
 function setup() {
 	clear_locals();
+
+	setbyte('e',0,   1); // for now, we don't provide anything
+	setbyte('e',80, 32); // width (notional)
+	setbyte('e',25, 33); // height (notional)
+	himem      = get_unsigned_word(0x4)
+	pc         = get_unsigned_word(0x6)
+	dict_start = get_unsigned_word(0x8)
+	objs_start = get_unsigned_word(0xA)
+	vars_start = get_unsigned_word(0xC)
+	stat_start = get_unsigned_word(0xE)
 }
 
 ////////////////////////////////////////////////////////////////
