@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.53 2003/04/16 07:11:47 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.54 2003/04/18 22:46:49 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,35 +20,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 ////////////////////////////////////////////////////////////////
-var MOZILLA_GLUE_HAPPY = 0;
-////////////////////////////////////////////////////////////////
-
-// Checks that all the JavaScript files are happy-- that is, that they
-// all loaded without any errors. (Happiness Will Prevail.)
-function ensureHappiness() {
-		function ensureOneFile(check) {
-				try {
-						if (eval(check)==0) {
-								gnusto_error(300,check);
-						}
-				} catch (e) {
-						if (e==-1) {
-								// This is gnusto_error crashing out. Let it through.
-								throw e;
-						} else {
-								gnusto_error(300,check,e.toString());
-						}
-				}
-		}
-
-		ensureOneFile('MOZILLA_GLUE_HAPPY');
-		ensureOneFile('GNUSTO_LIB_HAPPY');
-		ensureOneFile('TOSSIO_HAPPY');
-		ensureOneFile('UPPER_HAPPY');
-		ensureOneFile('VENKMAN_MSG_HAPPY');
-		ensureOneFile('BAF_HAPPY');
-		ensureOneFile('BARBARIX_HAPPY');
-}
 
 var current_text_holder = 0;
 var current_window = 0;
