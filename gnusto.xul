@@ -66,7 +66,7 @@
 
 <html:pre id="upper"></html:pre><iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
-<textbox flex="0" id="input" onkeypress="catcher('gotInput('+event.keyCode+')')"/>
+<textbox flex="0" id="input" onkeypress="return gotInput(event);"/>
 
 <hbox flex="0">
 <description id="status" flex="5" value=""/>
