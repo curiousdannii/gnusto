@@ -586,24 +586,46 @@ var tossio_verbs = {
 		'open': ['load a (mangled) story file',
 						'Loads the named story file.',
 						function(a) {
-								//
-								// Time will be that the menu option calls this verb.
-								//
-								if (a.length==2) {
-										var zc = new Components.Constructor("@mozilla.org/file/local;1",
-																												"nsILocalFile",
-																												"initWithPath")(a[1]);
-										if (loadMangledZcode(zc)) {
-												if (single_step) {
-														tossio_print('Loaded OK (use /run or /step now).');
-												}
-												play();
-										} else {
-												tossio_print('Load failed.');
-										}
-								} else {
-										// FIXME: Should put up open dialogue if paramcount is 1.
+
+								var localfile = 0;
+
+								switch (a.length) {
+
+								case 1: {
+										var ifp = Components.interfaces.nsIFilePicker;
+										var picker = Components.classes["@mozilla.org/filepicker;1"].
+												createInstance(ifp);
+
+										picker.init(window, "Select a story file", ifp.modeOpen);
+										picker.appendFilter("mangled-z5", "*.mz5");
+
+										if (picker.show()==ifp.returnOK)
+												localfile = picker.file;
+										else
+												return;
+
+										break;
+								}
+
+								case 2: {
+										localfile= new Components.Constructor("@mozilla.org/file/local;1",
+																													"nsILocalFile",
+																													"initWithPath")(a[1]);
+										break;
+								}
+
+								default:
 										tossio_print('Wrong number of parameters for open.');
+										return;
+								}
+
+								if (loadMangledZcode(localfile)) {
+										if (single_step) {
+												tossio_print('Loaded OK (use /run or /step now).');
+										}
+										play();
+								} else {
+										tossio_print('Load failed.');
 								}
 						}],
 		'status': ['print status',
