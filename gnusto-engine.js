@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.59 2003/05/04 22:30:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.60 2003/05/15 04:16:42 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -305,7 +305,7 @@ function storer(rvalue) {
 		return store_into(code_for_varcode(getbyte(pc++)), rvalue);
 }
 
-function simple_call(target, arguments) {
+function handler_call(target, arguments) {
 		compiling=0; // Got to stop after this.
 		var functino = "function(r){"+storer("r")+";});";
 		// (get it calculated so's the pc will be right)
@@ -313,7 +313,11 @@ function simple_call(target, arguments) {
 				functino;
 }
 
-function simple_print(dummy, suffix) {
+function handler_zOut(text) {
+		return 'zOut('+text+')';
+}
+
+function handler_print(dummy, suffix) {
 		var zf = zscii_from(pc,65535,1);
 		var message = zf[0];
 
@@ -324,7 +328,7 @@ function simple_print(dummy, suffix) {
 								 replace('"','\\"','g').
 								 replace('\n','\\n','g'); // not elegant
 		pc=zf[1];
-		return 'output("'+message+'")';
+		return handler_zOut('"'+message+'"');
 }
 
 ////////////////////////////////////////////////////////////////
@@ -369,6 +373,18 @@ var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
 // Returned if we hit a breakpoint.
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_BREAKPOINT = 0x510;
+
+// Returned in a particularly esoteric situation, but can
+// be treated like WIMP_OUT for most purposes. However,
+// unlike WIMP_OUT, the console and transcript buffers
+// *must* be checked after receiving this effect code.
+//
+// Detailed description: This effect is returned if
+// the fixed-width or transcript header bits have been
+// altered in such a way that not printing the contents of
+// the console or transcript buffers immediately will cause
+// inaccurate output.
+var GNUSTO_EFFECT_FLAGS_CHANGED                 = 0x520;
 
 // Returned if the story wants to verify its own integrity.
 // Answer 1 if its checksum matches, or 0 if it doesn't.
@@ -534,10 +550,10 @@ var handlers = {
 		24: function Z_mod(a) { return storer(a[0]+'%'+a[1]); },
 
 		25: function Z_call_2s(a) {
-				return simple_call(a[0], a[1]);
+				return handler_call(a[0], a[1]);
 		},
 		26: function Z_call_2n(a) {
-				// can we use simple_call here, too?
+				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
 				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
@@ -579,16 +595,16 @@ var handlers = {
 				return store_into(c, c+'-1');
 		},
 		135: function Z_print_addr(a) {
-				return "output(zscii_from("+pc_translate(a[0])+"))";
+				return handler_zOut("zscii_from("+pc_translate(a[0])+")");
 		},
 		136: function Z_call_1s(a) {
-				return simple_call(a[0], '');
+				return handler_call(a[0], '');
 		},
 		137: function Z_remove_obj(a) {
 				return "remove_obj("+a[0]+','+a[1]+")";
 		},
 		138: function Z_print_obj(a) {
-				return "output(name_of_object("+a[0]+"))";
+				return handler_zOut("name_of_object("+a[0]+")");
 		},
 		139: function Z_ret(a) {
 				compiling=0;
@@ -604,7 +620,7 @@ var handlers = {
 				return "pc="+addr+";return";
 		},
 		141: function Z_print_paddr(a) {
-				return "output(zscii_from("+pc_translate(a[0])+"))";
+				return handler_zOut("zscii_from("+pc_translate(a[0])+")");
 		},
 		142: function Z_load(a) {
 
@@ -617,7 +633,7 @@ var handlers = {
 				return storer(c);
 		},
 		143: function Z_call_1n(a) {
-				// can we use simple_call here, too?
+				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
 				return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
 		},
@@ -630,10 +646,10 @@ var handlers = {
 				compiling=0;
 				return "gnusto_return(0);return";
 		},
-		178: simple_print, // (Z_print)
+		178: handler_print, // (Z_print)
 		179: function Z_print_ret(a) {
 				compiling = 0;
-				return simple_print(0,'\n')+';gnusto_return(1);return';
+				return handler_print(0,'\n')+';gnusto_return(1);return';
 		},
 		180: function Z_nop(a) {
 				return "";
@@ -653,7 +669,7 @@ var handlers = {
 		},
 
 		187: function Z_new_line(a) {
-				return "output('\\n')";
+				return handler_zOut("'\\n'");
 		},
 
 		189: function Z_verify(a) {
@@ -712,10 +728,10 @@ var handlers = {
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
-				return 'output(zscii_char_to_ascii('+a[0]+'))';
+				return handler_zOut('zscii_char_to_ascii('+a[0]+')');
 		},
 		230: function Z_print_num(a) {
-				return "output("+a[0]+")";
+				return handler_zOut(a[0]);
 		},
 		231: function Z_random(a) {
 				return storer("gnusto_random("+a[0]+")");
@@ -864,7 +880,7 @@ var handlers = {
 		},
 
 		1011: function Z_print_unicode(a) {
-				return "output(String.fromCharCode(" +a[0]+"))";
+				return handler_zOut("String.fromCharCode(" +a[0]+")");
 		},
 
 		1012: function Z_check_unicode(a) {
@@ -1082,7 +1098,7 @@ function dissemble() {
 
 		// Name the function after the starting position, to make life
 		// easier for Venkman.
-		return 'function J'+starting_pc+'(){'+code+'}';
+		return 'function J'+starting_pc.toString(16)+'(){'+code+'}';
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1785,7 +1801,7 @@ function setup() {
 		
 		// Reset the default alphabet on reload.  Yes these are already defined in tossio,
 		// but that's because it might use them before they get defined here.
-                zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
+		zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
 		zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()'; // T = magic ten bit flag		
 		
@@ -2081,10 +2097,30 @@ function name_of_object(object) {
 }
 
 ////////////////////////////////////////////////////////////////
+//
+// Values of the bottom two bits in Flags 2 (address 0x10),
+// used by the zOut function.
+// See <http://mozdev.org/bugs/show_bug.cgi?id=3344>.
 
-function output(text) {
+var engine__printing_header_bits = 0;
+
+////////////////////////////////////////////////////////////////
+//
+// Prints the text |text| on whatever input streams are
+// currently enabled.
+//
+// If this returns false, the text has been printed.
+// If it returns true, the text hasn't been printed, but
+// you must return the GNUSTO_EFFECT_FLAGS_CHANGED effect
+// to your caller and set the return address to rerun the
+// current instruction. (There's a function handler_zOut()
+// which does all this for you.)
+
+function zOut(text) {
 		if (streamthrees.length) {
+
 				// Stream threes disable any other stream while they're on.
+				// (And they can't cause flag changes, I suppose.)
 
 				var current = streamthrees[0];
 				var address = streamthrees[0][1];
@@ -2094,6 +2130,16 @@ function output(text) {
 
 								streamthrees[0][1] = address;
 		} else {
+
+				var bits = getbyte(0x10) & 0x03;
+				var changed = bits != engine__printing_header_bits;
+				engine__printing_header_bits = bits;
+
+				// OK, so should we bail?
+				if (changed &&
+						(engine__console_buffer!='' || engine__transcript_buffer!=''))
+						return 1;
+
 				if (output_to_console) {
 						engine__console_buffer = engine__console_buffer + text;
 				}
@@ -2102,6 +2148,8 @@ function output(text) {
 						engine__transcript_buffer = engine__transcript_buffer + text;
 				}
 		}
+
+		return 0;
 }
 
 ////////////////////////////////////////////////////////////////
