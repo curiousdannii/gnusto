@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.85 2004/02/01 01:17:42 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.86 2004/02/03 02:20:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/02/01 01:17:42 $';
+const CVS_VERSION = '$Date: 2004/02/03 02:20:40 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -864,22 +864,33 @@ function handleZ_saveV123(engine, a) {
 
 function handleZ_saveV45678(engine, a) {
     engine.m_compilation_running=0;
+
     var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
-    return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
+
+    var qq= "m_state_to_save=_saveable_state("+
+				(engine.m_version==4? '1': '3') +
+				");m_pc="+engine.m_pc+";" +
+				setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
+
+		dump(qq);
+		dump(' < QQ\n');
+		return qq;
 }
 		
 function handleZ_restoreV123(engine, a) {
-    gnusto_error(101, "v3 feature not yet implemented (restore)");
+    engine.m_compilation_running=0;
+    var setter = "m_rebound=function() { " +
+      engine._brancher('m_answers[0]') + "};";
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
 }
 
 function handleZ_restoreV45678(engine, a) {
-    //VERBOSE burin('restore','');
     engine.m_compilation_running=0;
-    var setter = "m_rebound=function(n) { " +
+    var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
     return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
-  }
+}
 		
 function handleZ_log_shift(engine, a) {
     //VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
@@ -1446,13 +1457,32 @@ GnustoEngine.prototype = {
 			// Restore the memory.
 			this.m_memory = mem.concat(this.m_memory.slice(mem.length));
 
-			// The PC we're given is actually pointing at the varcode
-			// into which the success code must be stored. It should be 2.
-			// (This is specified by section 5.8 of the Quetzal document,
-			// version 1.4.)
-			this._varcode_set(2, this.m_memory[pc]);
-			this.m_pc = pc+1;
+			if (this.m_version <= 4) {
+					// This is pretty ugly, but then the design isn't too beautiful either.
+					// The Quetzal code loads up with the PC pointing at the end of the @save
+					// which saved it. The end is the half-an-instruction which gives a branch
+					// address. (Ick.) But _brancher will compile that half-an-instruction into
+					// JS of the form
+					//     if (<condition>){m_pc=<whatever>;return;}
+					// So what we do is call |_brancher()| to compile this, and then
+					// immediately evaluate the result to make the jump. The condition is
+					// '1'-- we always want it to make the jump. And we have to wrap the
+					// whole thing in a temporary function so that the "return" doesn't
+					// mess things up. (The alternative would be to special-case
+					// |_brancher()|, but this case is so very, very rare and perverted
+					// that that seems inelegant.)
 
+					this.m_pc = pc;
+					this.eval("var t=new Function('with(this){'+_brancher('1')+'}');t.call(this);");
+
+			} else {
+					// The PC we're given is actually pointing at the varcode
+					// into which the success code must be stored. It should be 2.
+					// (This is specified by section 5.8 of the Quetzal document,
+					// version 1.4.)
+					this._varcode_set(2, this.m_memory[pc]);
+					this.m_pc = pc+1;
+			}
 	},
 
   get version() {
