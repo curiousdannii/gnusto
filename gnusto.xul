@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.32 2003/04/27 20:03:15 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.33 2003/04/27 20:58:54 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -57,6 +57,7 @@ function ensureHappiness() {
       'BAF',
       'BARBARIX',
       'BAROCO',
+      'BARBARA',
       'DARII',
       'DATISI',
    ];
@@ -105,6 +106,7 @@ function ensureHappiness() {
 <!-- Screen handlers. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/upper.js"/>
 <script type="application/x-javascript" src="chrome://gnusto/content/baroco.js"/>
+<script type="application/x-javascript" src="chrome://gnusto/content/barbara.js"/>
 
 <menubar>
 
@@ -151,21 +153,9 @@ function ensureHappiness() {
 
 <!-- Lower window; ordinary HTML. -->
 
-<vbox id="barbara" flex="1">
+<vbox flex="1">
 
-<html:div>
-Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.<html:br/><html:br/>
-
-<html:b>Lorem Ipsum</html:b><html:br/>
-An Interactive Dolor Sit Amet<html:br/><html:br/>
-
-consectetaur adipisicing elit,<html:br/>
-sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.<html:br/><html:br/>
-
-Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
+<html:div id="barbara">
 </html:div>
 </vbox>
 

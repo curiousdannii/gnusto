@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.33 2003/04/27 20:03:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.34 2003/04/27 20:58:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -229,10 +229,6 @@ function bocardo_set_top_window_size(lines) {
 // Clears a window. |win| must be a valid window ID.
 function bocardo_clear(win) {
 
-		/* for now */
-
-		return;
-
 		/****************************************************************/
 
 		while (bocardo__screen_window.childNodes.length!=0) {
@@ -242,12 +238,13 @@ function bocardo_clear(win) {
 		bocardo__current_x[win] = 0;
 		bocardo__current_y[win] = 0;
 
+		/* not sure about this bit
 		if (win==1) {
 				// Clearing a window resets its "more" counter.
 				bocardo__screen_scroll_count = 0;
 				var body = bocardo__screen_doc.getElementsByTagName('body')[0];
 				body.setAttribute('class', 'b' + bocardo__current_background);
-		}
+				}*/
 }
 
 ////////////////////////////////////////////////////////////////

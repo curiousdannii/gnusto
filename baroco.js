@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.1 2003/04/27 20:03:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.2 2003/04/27 20:58:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -22,6 +22,12 @@
 
 ////////////////////////////////////////////////////////////////
 
+// Perhaps we might want to let people use Bocardo throughout--
+// I'm not sure, really.
+var baroco__enable_barbara = true;
+
+////////////////////////////////////////////////////////////////
+
 // Called on startup.
 function win_init() {
 		// Does nothing at present.
@@ -31,6 +37,7 @@ function win_init() {
 
 function win_start_game() {
 
+		barbara_start_game();
 		bocardo_start_game();
 
 }
@@ -55,7 +62,11 @@ function win_reset_scroll_count() {
 
 function win_chalk(win, text) {
 
-		return bocardo_chalk(win, text);
+		if (win==0 && baroco__enable_barbara) {
+				return barbara_chalk(text);
+		} else {
+				return bocardo_chalk(win, text);
+		}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -76,9 +87,7 @@ function win_set_top_window_size(lines) {
 
 // Clears a window. |win| must be a valid window ID.
 function win_clear(win) {
-
-		// Empty for the moment
-
+		bocardo_clear(win);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -91,13 +100,14 @@ function win_clear(win) {
 
 function win_print_table(win, lines) {
 
+		// FIXME: not fully implemented
+
 		bocardo_print_table(win, lines);
 }
 
 ////////////////////////////////////////////////////////////////
 
 function win_set_text_style(win, style, foreground, background) {
-
 		bocardo_set_text_style(win, style, foreground, background);
 }
 
