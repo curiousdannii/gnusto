@@ -1,0 +1,22 @@
+/* CSS for Gnusto */
+
+window {
+        font-family: "clean", sans-serif;
+	font-size: 15px;
+	border: 0;
+}
+
+description#canary {
+	font-family: monospace;
+}
+
+body {
+	font-size: 15px;
+        border: 0;
+        margin: 0;
+}
+
+pre {
+        border: 0;
+        margin: 0;
+}
