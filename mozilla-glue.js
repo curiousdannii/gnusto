@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.77 2003/05/16 04:52:25 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.78 2003/05/17 23:13:18 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -646,18 +646,6 @@ function command_transcript() {
 				setbyte(flags | 0x1, 0x11);
 				glue__set_transcription(1);
 		}
-}
-
-function gnustoglue_check_unicode(code) {
-		// Return that we can read and write all characters.
-		// This is almost certainly untrue, but we need to test it
-		// a lot more before we know for certain which we do or don't support.
-		// This will do for now.
-		return 3;
-}
-
-function gnustoglue_print_unicode(code) {
-		glue_print(String.fromCharCode(code));
 }
 
 ////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.62 2003/05/15 20:44:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.63 2003/05/17 23:13:18 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -887,7 +887,11 @@ var handlers = {
 		},
 
 		1012: function Z_check_unicode(a) {
-				return storer('gnustoglue_check_unicode('+a[0]+')');
+				// We have no way of telling from JS whether we can
+				// read or write a character, so let's assume we can
+				// read and write all of them. We can always provide
+				// methods to do so somehow (e.g. with an onscreen keyboard).
+				return storer('3');
 		},
 }
 
