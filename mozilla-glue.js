@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.89 2003/06/22 07:22:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.90 2003/06/22 15:49:45 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -196,15 +196,6 @@ function command_exec(args) {
 						//
 						// One day, we should perhaps have a preference
 						// that the user can set to influence the result.
-						looping = 1;
-						break;
-
-				case GNUSTO_EFFECT_VERIFY:
-						// FIXME: Here we should verify the game.
-						// There are many more important things to fix first,
-						// though. So let's just say "yes" for now.
-						
-						alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
 						looping = 1;
 						break;
 
