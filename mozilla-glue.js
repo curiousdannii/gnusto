@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.52 2003/04/12 14:20:12 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.53 2003/04/16 07:11:47 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -644,8 +644,8 @@ function start_up() {
 		glue__get_font_metrics();
 
 		// Do that every time the size changes, actually.
-		window.addEventListener('resize',
-														glue_store_screen_size,	0);
+//		window.addEventListener('resize',
+//														glue_store_screen_size,	0);
 
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);
