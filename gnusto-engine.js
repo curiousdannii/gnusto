@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.111 2005/01/26 20:37:22 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.112 2005/02/09 05:17:23 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/01/26 20:37:22 $';
+const CVS_VERSION = '$Date: 2005/02/09 05:17:23 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -218,11 +218,22 @@ var GNUSTO_EFFECT_PRINTTABLE     = '"PT"';
 //
 // Not the real burin, just something to dump test information.
 
-function burin(where, what) {
-		dump(where);
-		dump(':\t');
-		dump(what);
-		dump('\n');
+function burin(text) {
+		var f = new Components.
+				Constructor("@mozilla.org/network/file-output-stream;1",
+										"nsIFileOutputStream",
+										"init")
+				(new Components.
+				 Constructor("@mozilla.org/file/local;1",
+										 "nsILocalFile",
+										 "initWithPath")('c:\\b2.txt'),
+				 0x1A,
+				 0644,
+				 0);
+
+                text= text + '\n';
+		f.write(text, text.length);
+		f.close();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1645,8 +1656,8 @@ GnustoEngine.prototype = {
 
 				// Some useful debugging code:
 				if (this.m_copperTrail) {
-						burin('pc', start_pc.toString(16));
-						burin('jit', jscode);
+						burin('pc : ' + start_pc.toString(16));
+						burin('jit : ' + jscode);
 				}
 
       jscode();
@@ -2901,6 +2912,8 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_addr: function ge_get_prop_addr(object, property) {
+		        if (object==0) {return 0;}
+		        		
 			var result = this._property_search(object, property, -1);
 			if (result[2]) {
 					return result[0];
@@ -3113,6 +3126,8 @@ GnustoEngine.prototype = {
 
 	_put_prop: function put_prop(object, property, value) {
 
+                        if (object == 0) return;
+
 			var address = this._property_search(object, property, -1);
 
 			if (!address[2]) {
@@ -3130,6 +3145,9 @@ GnustoEngine.prototype = {
 
 
 	_get_older_sibling: function ge_get_older_sibling(object) {
+		
+		        if (object==0) { return 0;}
+		        		
 			// Start at the eldest child.
 			var candidate = this._get_child(this._get_parent(object));
 
@@ -3182,6 +3200,8 @@ GnustoEngine.prototype = {
 	},
 
 	_get_family: function ge_get_family(from, relationship) {
+		
+                        if (from==0) {return 0;}		
 
 			if (this.m_version < 4) {
 
@@ -3969,7 +3989,7 @@ GnustoEngine.prototype = {
 			//			}
 
 			if (this.m_goldenTrail) {
-					dump("pc : "+address.toString(16)+"\n");
+					burin("pc : "+address.toString(16));
 			}
 
 			this.m_pc = address;
