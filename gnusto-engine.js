@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.39 2003/03/27 05:36:53 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.40 2003/03/27 05:45:32 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1033,7 +1033,18 @@ function zscii_char_to_ascii(zscii_code) {
 				result = 10;
 		else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
 				result = zscii_code;
-		else {
+		else if (zscii_code>=155 && zscii_code<=251) {
+				// Extra characters.
+
+				// var translation_table = get_unsigned_word(); ...
+				// We need to support the header extension table to do this.
+				// (This is a Z-spec 1.0 thing; it's nothing to do with Infocom.)
+
+				return String.fromCharCode(default_unicode_translation_table[zscii_code]);
+
+				// FIXME: It's not clear what to do if they request a character
+				// that's off the end of the table.
+		}	else {
 				gnusto_error(703, zscii_code); // unknown zscii code
 		}
 
