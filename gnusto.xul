@@ -9,8 +9,8 @@
 	persist="width height sizemode"
 	width="640" height="480">
 
-<!-- Debugger. -->
-<script type="application/x-javascript" src="chrome://gnusto/content/tossio.js"/>
+<!-- Debugger: not in this version -->
+<!-- script type="application/x-javascript" src="chrome://gnusto/content/tossio.js" -->
 
 <!-- The main Gnusto library. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
@@ -76,7 +76,7 @@
 
 <menu id="help-menu" label="Help" accesskey="H">
 <menupopup>
-<menuitem label="About Gnusto..." accesskey="A" oncommand="try{aboutBox()}catch(e){deal_with_exception(e)}')"/>
+<menuitem label="About Gnusto..." accesskey="A" oncommand="try{aboutBox()}catch(e){deal_with_exception(e)}"/>
 </menupopup>
 </menu>
 
