@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.94 2003/08/11 01:36:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.95 2003/08/11 02:29:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1266,7 +1266,7 @@ function dissemble() {
 
 				// Golden Trail code. Usually commented out for efficiency.
 				// code = code + 'golden_trail('+pc+');';
-				//code = code + 'burin("gold","'+pc.toString(16)+'");';
+				// code = code + 'burin("gold","'+pc.toString(16)+'");';
 				
 				// So here we go...
 				// what's the opcode?
@@ -2346,7 +2346,7 @@ function zscii_from(address, max_length, tell_length) {
 				var word = zGetUnsignedWord(address);
 				address += 2;
 
-				running = !(word & 0x8000) && address<stopping_place;
+				running = ((word & 0x8000)==0) && address<stopping_place;
 
 				for (var j=2; j>=0; j--) {
 						var code = ((word>>(j*5))&0x1f);
@@ -2416,7 +2416,7 @@ function engine__encode_text(zscii_text, length, from, coded_text) {
 
     for (var i=0; i<result.length; i++) {
 				var c = result[i].charCodeAt(0);
-		    zSetByte(result[i], coded_text++);
+		    zSetByte(c, coded_text++);
 		}
 }
 
@@ -2525,8 +2525,9 @@ function zOut(text) {
 				var current = streamthrees[0];
 				var address = streamthrees[0][1];
 
-				for (var i=0; i<text.length; i++)
+				for (var i=0; i<text.length; i++) {
 						zSetByte(text.charCodeAt(i), address++);
+				}
 
 				streamthrees[0][1] = address;
 		} else {
