@@ -1,6 +1,6 @@
 // darii.js || -*- Mode: Java; tab-width: 2; -*-
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.5 2003/05/15 04:03:49 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.6 2003/05/18 01:56:57 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -24,6 +24,9 @@
 function dispatch(what) {
 
 		try{
+
+				burin('dispatch', what);
+
 				var args = [];
 
 				switch (typeof(what)) {
@@ -56,9 +59,11 @@ function dispatch(what) {
 		}
 }
 
+var despatch = dispatch; // because some people are English :)
+
 function darii_print(message) {
     if (message!=null) {
-	alert(message);
+				alert(message);
     }
 }
 

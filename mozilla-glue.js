@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.78 2003/05/17 23:13:18 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.79 2003/05/18 01:56:57 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -80,6 +80,9 @@ function glue__sound_effect(number, effect, volume, callback) {
 }
 
 function glue_print(text) {
+
+		burin('output', text);
+
 		win_chalk(current_window, text);
 
 		if (glue__transcription_file && current_window==0) {
@@ -109,6 +112,8 @@ function go_wrapper(answer) {
 				looping = 0; // By default, we stop.
 
 				glue__reason_for_stopping = go(answer);
+
+				burin('effect', glue__reason_for_stopping.toString(16));
 
 				glue_print(engine_console_text());
 
@@ -289,9 +294,66 @@ function camenesbounce_catch(e) {
 }
 
 ////////////////////////////////////////////////////////////////
+// Burin functions
+
+function burin(d1,d2) { }
+var glue__burin_filename = 0;
+
+function glue__burin_to_file(area, text) {
+
+    // ..........|1234567890:|
+		var spaces = '          :';
+
+		var message = area.toString() + spaces.substring(area.length);
+
+		text = '['+text.toString().replace(String.fromCharCode(10),
+																			 '~','g')+']';
+
+		var first = 1;
+		while (text!='') {
+
+				if (first) {
+						first = 0;
+				} else {
+						message = message + spaces;
+				}
+
+				message = message + text.substring(0, 68) + '\n';
+				text = text.substring(68);
+		}
+		
+
+		var f = new Components.
+				Constructor("@mozilla.org/network/file-output-stream;1",
+										"nsIFileOutputStream",
+										"init")
+				(new Components.
+				 Constructor("@mozilla.org/file/local;1",
+										 "nsILocalFile",
+										 "initWithPath")(glue__burin_filename),
+				 0x1A,
+				 0644,
+				 0);
+
+		f.write(message, message.length);
+		f.close();
+}
+
+function glue__init_burin() {
+		var target = getMsg('burin.filename');
+
+		if (target.toLowerCase()!='off') {
+				glue__burin_filename = target;
+				burin = glue__burin_to_file; 
+    }
+}
+
+////////////////////////////////////////////////////////////////
 
 function glue_init() {
 		document.onkeypress=gotInput;
+
+		glue__init_burin();
 
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);
@@ -366,6 +428,8 @@ function gotInput(e) {
 				if (e.keyCode==13) {
 
 						var result = current[0]+current[1];
+
+						burin('input', result);
 
 						result = result.replace('\u00A0', ' ');
 
