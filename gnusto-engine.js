@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.70 2003/12/05 03:00:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.71 2003/12/07 21:12:59 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/05 03:00:23 $';
+const CVS_VERSION = '$Date: 2003/12/07 21:12:59 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -1055,9 +1055,51 @@ function pc_translate_v8(p)   { return '(('+p+')&0xFFFF)*8'; }
 //
 ////////////////////////////////////////////////////////////////
 
-function gnusto_error(number, message) {
-		// FIXME: Look into how to do this in a more standard way.
-		// FIXME: Support multiple parameters!
+function gnusto_error(number) {
+
+		message ='Component: engine\n';
+
+		for (var i=1; i<arguments.length; i++) {
+				if (arguments[i] && arguments[i].toString) {
+						message += '\nDetail: '+arguments[i].toString();
+				}
+		}
+
+		var procs = arguments.callee;
+		var procstring = '';
+
+		var loop_count = 0;
+		var loop_max = 100;
+
+		while (procs!=null && loop_count<loop_max) {
+				var name = procs.toString();
+
+				if (name==null) {
+						procstring = ' (anon)'+procstring;
+				} else {
+						var r = name.match(/function (\w*)/);
+
+						if (r==null) {
+								procstring = ' (weird)' + procstring;
+						} else {
+								procstring = ' ' + r[1] + procstring;
+						}
+				}
+
+				procs = procs.caller;
+				loop_count++;
+		}
+
+		if (loop_count==loop_max) {
+				procstring = '...' + procstring;
+		}
+
+		message += '\n\nJS call stack:' + procstring;
+
+		Components.classes['@gnusto.org/errorbox;1'].
+				getService(Components.interfaces.gnustoIErrorBox).
+				alert(number, message);
+
 		dump('-- Temporary burin error: ');
 		dump(number);
 		dump(' ');
@@ -2111,7 +2153,7 @@ GnustoEngine.prototype = {
 					}
 			}
 
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'random'); // impossible
 
 	},
 
@@ -2241,7 +2283,7 @@ GnustoEngine.prototype = {
 									}
 
 									if (low>high) {
-											gnusto_error(170); // impossible. Just in case.
+											gnusto_error(170, 'dictionary'); // impossible. Just in case.
 									}
 							}
 					} else {
@@ -2513,7 +2555,7 @@ GnustoEngine.prototype = {
 							}
 					}
 			}
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'get_prop_len'); // impossible
 	},
 
 	_get_next_prop: function ge_get_next_prop(object, property) {
@@ -2764,7 +2806,7 @@ GnustoEngine.prototype = {
 
 			}
 
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'get_family'); // impossible
 	},
 
 	_get_parent:  function ge_get_parent(from)
@@ -3237,7 +3279,7 @@ GnustoEngine.prototype = {
 					return 'getWord('+(this.m_vars_start+(varcode-16)*2)+')';
 			}
 
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'code_for_varcode'); // impossible
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -3262,7 +3304,7 @@ GnustoEngine.prototype = {
 					return this.getWord(this.m_vars_start+(varcode-16)*2);
 			}
 
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'varcode_get'); // impossible
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -3364,7 +3406,7 @@ GnustoEngine.prototype = {
 					return 'setWord('+rvalue+','+(this.m_vars_start+(lvalue_varcode-16)*2)+')';
 			}
 
-			gnusto_error(170); // impossible
+			gnusto_error(170, 'storer'); // impossible
 	},
 
 	////////////////////////////////////////////////////////////////
