@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.73 2003/12/17 07:12:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.74 2003/12/17 07:29:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/17 07:12:37 $';
+const CVS_VERSION = '$Date: 2003/12/17 07:29:38 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -107,6 +107,8 @@ var default_unicode_translation_table = {
 const PARENT_REC = 0;
 const SIBLING_REC = 1;
 const CHILD_REC = 2;
+
+const CALLED_FROM_INTERRUPT = 0;
 
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from run(). See the explanation below
@@ -724,7 +726,6 @@ function handleZ_read_char(engine, a) {
 						
 				rebound_setter = "m_rebound=function(){"+
 						"var t=1*m_answers[0];" +
-						"dump(t);"+
 						"if(t){"+
 						engine._storer("t") + // nonzero: a key
 						"}else{"+
@@ -2199,12 +2200,28 @@ GnustoEngine.prototype = {
 
 	},
 
+	////////////////////////////////////////////////////////////////
+	//
+	// _func_gosub
+	//
+	// Jumps to a subroutine within the Z-code, saving the current
+	// state so that calling _func_return() will return to it.
+	//
+	//  |to_address|    -- address within the Z-code to jump to
+	//  |actuals|       -- list of actual parameters
+	//  |from_address|  -- source address
+	//  |result_target| -- varcode for where to put the result
+	//
 	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
 
 			this.m_call_stack.push(from_address);
 			this.m_pc = to_address;
 
 			var count = this.getByte(this.m_pc++);
+
+			// Before version 5, Z-code put initial values for formal parameters
+			// into the code itself. If we're running a version earlier than z5,
+			// we have to interpret these.
 
 			if (this.m_version<5) {
 					var templocals = [];
@@ -2235,18 +2252,26 @@ GnustoEngine.prototype = {
 			this.m_gamestack_callbreaks.push(this.m_gamestack.length);
 
 			if (to_address==0) {
-					// Rare special case.
+					// Rare special case: a call to 0 returns only false.
 					this._func_return(0);
 			}
 	},
 
+	////////////////////////////////////////////////////////////////
+	//
+	// _func_interrupt
+	//
 	// Like _func_gosub, except that it's used to break into a
 	// running routine.
+	//
 	_func_interrupt: function ge_interrupt(to_address) {
-			throw '(fi '+to_address.toString(16)+')';
+			this._func_gosub(to_address, [],
+											 CALLED_FROM_INTERRUPT,
+											 -1);
 	},
 
 	////////////////////////////////////////////////////////////////
+			//
 	// Tokenises a string.
 	//
 	// See aread() for caveats.
@@ -2532,6 +2557,10 @@ GnustoEngine.prototype = {
 			}
 	},
 
+	////////////////////////////////////////////////////////////////
+	//
+  // _func_return
+	//
 	// Returns from a z-machine routine.
 	// |value| is the numeric result of the routine.
 	// It can also be null, in which case the store
@@ -2550,6 +2579,9 @@ GnustoEngine.prototype = {
 					this._varcode_set(value, target);
 			}
 
+			if (this.m_pc == CALLED_FROM_INTERRUPT) {
+					throw '(return of '+value+' from interrupt!)';
+			}
 	},
 
 	_throw_stack_frame: function throw_stack_frame(cookie) {
