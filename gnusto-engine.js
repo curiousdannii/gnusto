@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.33 2003/10/27 18:39:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.34 2003/10/28 01:58:19 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/27 18:39:10 $';
+const CVS_VERSION = '$Date: 2003/10/28 01:58:19 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1008,16 +1008,60 @@ GnustoEngine.prototype = {
 			this._initial_setup();
   },
 	
-  loadSavedGame: function ge_loadSavedGame(memLen, mem, stacksLen, stacks, pc) {
+  loadSavedGame: function ge_loadSavedGame(memLen, mem, mem_is_compressed,
+																					 stacksLen, stacks, pc)
+	{
+																										 
+			// FIXME: Still to do here:
+			//  There's a bit which should survive restore.
+			//  There are several bytes which should be reset (e.g. terp ID).
 
 			function decodeStackInt(offset, length) {
 					var result = stacks[offset++];
 
-					for (i=1; i<length; i++) {
+					for (var i=1; i<length; i++) {
 							result = (result<<8)|stacks[offset++];
 					}
 
 					return result;
+			}
+
+			if (mem_is_compressed) {
+
+					// Welcome to the decompression chamber.
+
+					var temp = [];
+					var cursor_compressed = 0;
+					var cursor_original = 0;
+
+					while (cursor_compressed < mem.length) {
+
+							if (cursor_original >= this.m_original_memory.length) {
+									// FIXME: proper error message
+									throw "overshoot in decompression";
+							}
+
+							var candidate = mem[cursor_compressed++];
+
+							if (candidate == 0) {
+									// Sequence of identical bytes.
+
+									var run_length = mem[cursor_compressed++]+1;
+
+									temp = temp.concat(this.m_original_memory.slice(cursor_original,
+																																	cursor_original+run_length));
+									
+									cursor_original += run_length;
+
+							} else {
+									// One different byte, XORed with the original.
+									temp.push(candidate ^
+														this.m_original_memory[cursor_original++]);
+							}
+
+					}
+
+					mem = temp;
 			}
 			
 			// Firstly, zap all the important variables...
@@ -1106,6 +1150,7 @@ GnustoEngine.prototype = {
 			// version 1.4.)
 			this._varcode_set(2, this.m_memory[pc]);
 			this.m_pc = pc+1;
+
 	},
 
   get version() {
@@ -1249,9 +1294,7 @@ GnustoEngine.prototype = {
 										 (state.m_pc    ) & 0xFF,
 										 0];                      // pad
 
-			var use_compressed_memory = 1;
-
-			if (use_compressed_memory) {
+			if (this.m_compress_save_files) {
 
 					var compressed = [];
 					var same_count = 0;
@@ -3368,6 +3411,10 @@ GnustoEngine.prototype = {
 	// Make it so.
 	m_original_memory: [],
 
+	// Whether to save compressed or uncompressed games. This trades
+	// having small files for saving slightly faster, and isn't
+	// really worth it. We may hardwire it on permanently.
+	m_compress_save_files: 1,
 };
 
 ////////////////////////////////////////////////////////////////
