@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.57 2003/04/20 23:35:11 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.58 2003/04/21 00:11:50 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -34,52 +34,6 @@ var zbytes = [];
 var ignore_errors = {
 		706: 1, // Work around a bug in Library 15/2 (see bug 3314)
    };
-
-
-/*
-////////////////////////////////////////////////////////////////
-//
-// FIXME: to be rewritten
-// Parses an IFF file entirely contained in the string |s|.
-// (s is still in the mangled encoding.)
-// The return value is a list. The first element is the form type
-// of the file; subsequent elements represent chunks. Each chunk is
-// represented by a list whose first element is the chunk type,
-// whose second element is the starting offset of the data within
-// the string, and whose third element is the length.
-//
-function iff_parse(s) {
-		function b(offset) {
-				if (s.charCodeAt(s.length/2 + offset)==89)
-						return 0;
-				else
-						return s.charCodeAt(offset);
-		}
-
-		function num(offset) {
-				return b(offset)<<24 | b(offset+1)<<16 | b(offset+2)<<8 | b(offset+3);
-		}
-
-		var result = [s.substring(8, 12)];
-
-		var cursor = 12;
-
-		while (cursor < s.length/2) {
-				var chunk = [s.substring(cursor, cursor+4)];
-				var chunk_length = num(cursor+4);
-
-				chunk.push(cursor+8);
-				chunk.push(chunk_length);
-
-				result.push(chunk);
-
-				cursor += 8 + chunk_length;
-				if (chunk_length % 2) cursor++;
-		}
-
-		return result;
-}
-*/
 
 ////////////////////////////////////////////////////////////////
 

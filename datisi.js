@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.2 2003/04/20 23:34:07 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.3 2003/04/21 00:11:50 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -28,6 +28,50 @@ function command_about(a) {
 	  'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
 	  'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
 }
+
+////////////////////////////////////////////////////////////////
+
+// Parses an IFF file entirely contained in the array |s|.
+// The return value is a list. The first element is the form type
+// of the file; subsequent elements represent chunks. Each chunk is
+// represented by a list whose first element is the chunk type,
+// whose second element is the starting offset of the data within
+// the array, and whose third element is the length.
+
+function iff_parse(s) {
+
+		function num_from(offset) {
+				return s[offset]<<24 | s[offset+1]<<16 | s[offset+2]<<8 | s[offset+3];
+		}
+
+		function string_from(offset) {
+				return String.fromCharCode(s[offset]) +
+						String.fromCharCode(s[offset+1]) +
+						String.fromCharCode(s[offset+2]) +
+						String.fromCharCode(s[offset+3]);
+		}
+
+		var result = [string_from(8)];
+
+		var cursor = 12;
+
+		while (cursor < s.length) {
+				var chunk = [string_from(cursor)];
+				var chunk_length = num_from(cursor+4);
+
+				chunk.push(cursor+8);
+				chunk.push(chunk_length);
+
+				result.push(chunk);
+
+				cursor += 8 + chunk_length;
+				if (chunk_length % 2) cursor++;
+		}
+
+		return result;
+}
+
+////////////////////////////////////////////////////////////////
 
 function command_open(a) {
 
@@ -84,43 +128,41 @@ function command_open(a) {
 						} else
 								return 0;
 
-				} else if (content[0]==70 && content[0]==79 &&
-									 content[0]==82 && content[0]==77) {
+				} else if (content[0]==70 && content[1]==79 &&
+									 content[2]==82 && content[3]==77) {
 						// "F, O, R, M". An IFF file, then...
 
-						alert('IFF support is down while we fix the new z5 support. Back soon.');
-						/*
-							var iff_details = iff_parse(content);
+						var iff_details = iff_parse(content);
 
-							if (iff_details[0]=='IFZS') {
+						if (iff_details[0]=='IFZS') {
+									
+								// Quetzal saved file.
+								// Can't deal with these yet.
 
-							// Quetzal saved file.
-							// Can't deal with these yet.
-
-							alert("Sorry, Gnusto can't yet load saved games.");
-							return 0;
+								alert("Sorry, Gnusto can't yet load saved games.");
+								return 0;
 
 							} else if (iff_details[0]=='IFRS') {
 
-							// Blorb resources file, possibly containing
-							// Z-code.
+									// Blorb resources file, possibly containing
+									// Z-code.
 
-							// OK, so go digging for it.
-							for (var j=1; j<iff_details.length; j++) {
-							if (iff_details[j][0]=='ZCOD') {
-							loadMangledZcode(content.substring(iff_details[j][1],
-							iff_details[j][1]+iff_details[j][2]));
-							return 1;
-							}
-							alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
-							return 0;
+									// OK, so go digging for it.
+									for (var j=1; j<iff_details.length; j++) {
+											if (iff_details[j][0]=='ZCOD') {
+													alert("Should be able to read this... still need to implement scooping the middle out.");
+													return 0;
+											}
+									}
+									alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
+									return 0;
 							} else {
 
-							// Some other IFF file type which we don't know.
+									// Some other IFF file type which we don't know.
 							
-							gnusto_error(309,'IFF',iff_details[0]);
-							return 0;
-							}*/
+									gnusto_error(309,'IFF '+iff_details[0]);
+									return 0;
+							}
 				} else {
 						// Don't know. Complain.
 						gnusto_error(309);
@@ -142,6 +184,7 @@ function command_open(a) {
 				picker.init(window, "Select a story file", ifp.modeOpen);
 				picker.appendFilter("Z-code version 5", "*.z5");
 				picker.appendFilter("Blorb", "*.blb");
+				picker.appendFilter("Saved game", "*.sav");
 				
 				if (picker.show()==ifp.returnOK)
 						localfile = picker.file;
