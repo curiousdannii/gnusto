@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.12 2003/09/16 04:30:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.13 2003/09/16 05:20:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/16 04:30:03 $';
+const CVS_VERSION = '$Date: 2003/09/16 05:20:14 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -401,7 +401,7 @@ function handleZ_get_parent(engine, a) {
   }
 function handleZ_get_prop_len(engine, a) {
     //VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
-    return engine._storer("_get_prop_len(engine,"+a[0]+')');
+    return engine._storer("_get_prop_len("+a[0]+')');
   }
 function handleZ_inc(engine, a) {
     //VERBOSE burin('inc',c + '+1');
@@ -580,11 +580,11 @@ function handleZ_read(engine, a) {
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
 
     return "var a0=eval("+ a[0] + ");" +
-				"m_pc=" + pc + ";" +
+				"m_pc=" + engine.m_pc + ";" +
 				setter +
 				"m_effects=["+GNUSTO_EFFECT_INPUT+","+
-				"this.getByte(a0+1),"+
-				"this.getByte(a0)];return 1";
+				"getByte(a0+1),"+
+				"getByte(a0)];return 1";
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
@@ -615,7 +615,7 @@ function handleZ_split_window(engine, a) {
 function handleZ_set_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_window','win=' + a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+";return 1;";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+"];return 1";
   }
 function handleZ_call_vs2(engine, a) {
     //VERBOSE burin('call_vs2',"see call_vn");
@@ -1061,7 +1061,7 @@ GnustoEngine.prototype = {
 	},
 
   effect: function ge_effect(which) {
-    throw "not implemented";
+			return this.m_effects[which];
   },
 
   answer: function ge_answer(which, what) {
@@ -1119,10 +1119,6 @@ GnustoEngine.prototype = {
     
       stopping = jscode();
     }
-
-		dump('STOPPED. Effects would be ');
-		dump(this.m_effects);
-		dump('.\n');
 
     // so, return an effect code.
     return stopping;
@@ -1585,11 +1581,11 @@ GnustoEngine.prototype = {
 
 			var result;
 
-			if (zscii_code==13 || zscii_code==10)
-			result = 10;
-			else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
-			result = zscii_code;
-			else if (zscii_code>=155 && zscii_code<=251) {
+			if (zscii_code==13 || zscii_code==10) {
+					result = 10;
+			} else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0) {
+					result = zscii_code;
+			} else if (zscii_code>=155 && zscii_code<=251) {
 					// Extra characters.
 
 					if (unicode_start == 0) 
@@ -2251,7 +2247,7 @@ GnustoEngine.prototype = {
 					var s='';
 
 					for (var x=0; x<width; x++) {
-							s=s+zscii_char_to_ascii(this.getByte(address++));
+							s=s+this._zscii_char_to_ascii(this.getByte(address++));
 					}
 
 					lines.push(s);
@@ -2324,7 +2320,7 @@ GnustoEngine.prototype = {
 							} else if (tenbit==-1) {
 									tenbit = code;
 							} else {
-									temp = temp + this.zscii_char_to_ascii((tenbit<<5) + code);
+									temp = temp + this._zscii_char_to_ascii((tenbit<<5) + code);
 									tenbit = -2;
 							}
 					}
@@ -2361,7 +2357,7 @@ GnustoEngine.prototype = {
 		
 					if (b==0) break;
 
-					source = source + this.zscii_char_to_ascii(b);
+					source = source + this._zscii_char_to_ascii(b);
 					zscii_text++;
 					length--;
 			}
@@ -2450,8 +2446,8 @@ GnustoEngine.prototype = {
 			if (object==0)
 			return "<void>";
 			else {
-					var aa = objs_start + 124 + object*14;
-					return this.zscii_from(this.getUnsignedWord(aa)+1);
+					var aa = this.m_objs_start + 124 + object*14;
+					return this._zscii_from(this.getUnsignedWord(aa)+1);
 			}
 	},
 
