@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.101 2003/08/05 02:06:36 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.102 2003/08/08 23:30:47 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -504,6 +504,7 @@ function gotInput(e) {
 						win_destroy_input();
 
 						glue_print(result+'\n');
+						//VERBOSE burin('COMMAND:',result);
 						glue_set_answer(result);
 						dispatch('exec');
 
@@ -616,7 +617,7 @@ function quitGame() {
 }
 
 function gnusto_error(n) {
-
+		//VERBOSE burin('ERROR', n);
 		if (ignore_errors[n])
 				return;
 

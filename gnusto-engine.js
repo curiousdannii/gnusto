@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.90 2003/08/08 07:28:43 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.91 2003/08/08 23:30:47 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -228,6 +228,7 @@ function pc_translate(packed_target) {
 }
 
 function call_vn(args, offset) {
+		//VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
 		compiling = 0;
 		var address = pc;
 		if (offset) { address += offset; }
@@ -485,6 +486,7 @@ function handler_zOut(text, is_return) {
 // (this function is written in terms of that function).
 // See the comments for that function for details.
 function handler_print(dummy, suffix, is_return) {
+		
 		var zf = zscii_from(pc,65535,1);
 		var message = zf[0];
 
@@ -495,6 +497,7 @@ function handler_print(dummy, suffix, is_return) {
 								 replace('"','\\"','g').
 								 replace('\n','\\n','g'); // not elegant
 		pc=zf[1];
+		//VERBOSE burin('print',message);
 		return handler_zOut('"'+message+'"', is_return);
 }
 
@@ -529,11 +532,13 @@ function handler_print(dummy, suffix, is_return) {
 //
 var handlers = {
 
-		1: function Z_je(a) {
+		1: function Z_je(a) { 		
 
-				if (a.length<2) {
+				if (a.length<2) { 
+						//VERBOSE burin('je','noop');
 						return ''; // it's a no-op
-				} else if (a.length==2) {
+				} else if (a.length==2) { 
+						//VERBOSE burin('je',a[0] + '==' + a[1]);
 						return brancher(a[0]+'=='+a[1]);
 				} else {
 						var condition = '';
@@ -541,83 +546,116 @@ var handlers = {
 								if (i!=1) condition = condition + '||';
 								condition = condition + 't=='+a[i];
 						}
+						//VERBOSE burin('je','t=' + a[0] + ';' + condition);
 						return 't='+a[0]+';'+brancher(condition);
 				}
 		},
-		2: function Z_jl(a) { return brancher(a[0]+'<'+a[1]); },
-		3: function Z_jg(a) { return brancher(a[0]+'>'+a[1]); },
+		2: function Z_jl(a) {
+				//VERBOSE burin('jl',a[0] + '<' + a[1]); 
+				return brancher(a[0]+'<'+a[1]); },
+		3: function Z_jg(a) { 
+				//VERBOSE burin('jg',a[0] + '>'+a[1]);
+				return brancher(a[0]+'>'+a[1]); },
 
 		4: function Z_dec_chk(a) {
 				var value = code_for_varcode(a[0]);
+				//VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
 				return 't=('+value+')-1;'+
 				store_into(value,'t')+';'+
 				brancher('t<'+a[1]);
 		},
 		5: function Z_inc_chk(a) {
 				var value = code_for_varcode(a[0]);
+				//VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
 				return 't=('+value+')+1;'+
 				store_into(value,'t')+';'+
 				brancher('t>'+a[1]);
 		},
 		6: function Z_jin(a) {
+				//VERBOSE burin('jin',a[0] + ',' + a[1]);
 				return brancher("obj_in("+a[0]+','+a[1]+')');
 		},
 		7: function Z_test(a) {
+				//VERBOSE burin('test','t='+a[1]+';br(' + a[0] + '&t)==t)');
 				return 't='+a[1]+';'+brancher('('+a[0]+'&t)==t');
 		},
 		8: function Z_or(a) {
+				//VERBOSE burin('or','('+a[0] + '|' + a[1]+')&0xFFFF');
 				return storer('('+a[0]+'|'+a[1]+')&0xffff');
 		},
 		9: function Z_and(a) {
+				//VERBOSE burin('and',a[0] + '&' + a[1] + '&0xFFFF');
 				return storer(a[0]+'&'+a[1]+'&0xffff');
 		},
 		10: function Z_test_attr(a) {
+				//VERBOSE burin('test_attr',a[0] + ',' + a[1]);
 				return brancher('test_attr('+a[0]+','+a[1]+')');
 		},
 		11: function Z_set_attr(a) {
+				//VERBOSE burin('set_attr',a[0] + ',' + a[1]);
 				return 'set_attr('+a[0]+','+a[1]+')';
 		},
 		12: function Z_clear_attr(a) {
+				//VERBOSE burin('clear_attr',a[0] + ',' + a[1]);
 				return 'clear_attr('+a[0]+','+a[1]+')';
 		},
 		13: function Z_store(a) {
+				//VERBOSE burin('store_into',a[0] + ',' + a[1]);
 				return store_into(code_for_varcode(a[0]), a[1]);
 		},
 		14: function Z_insert_obj(a) {
+				//VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
 				return "insert_obj("+a[0]+','+a[1]+")";
 		},
 		15: function Z_loadw(a) {
+				//VERBOSE burin('loadw',"zGetWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
 				return storer("zGetWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
 		},
 		16: function Z_loadb(a) {
+				//VERBOSE burin('loadb',"zGetByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
 				return storer("zGetByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
 		},
 		17: function Z_get_prop(a) {
+				//VERBOSE burin('get_prop',a[0]+','+a[1]);
 				return storer("get_prop("+a[0]+','+a[1]+')');
 		},
 		18: function Z_get_prop_addr(a) {
+				//VERBOSE burin('get_prop_addr',a[0]+','+a[1]);
 				return storer("get_prop_addr("+a[0]+','+a[1]+')');
 		},
 		19: function Z_get_next_prop(a) {
+				//VERBOSE burin('get_next_prop',a[0]+','+a[1]);
 				return storer("get_next_prop("+a[0]+','+a[1]+')');
 		},
-		20: function Z_add(a) { return storer(a[0]+'+'+a[1]); },
-		21: function Z_sub(a) { return storer(a[0]+'-'+a[1]); },
-		22: function Z_mul(a) { return storer(a[0]+'*'+a[1]); },
+		20: function Z_add(a) { 
+				//VERBOSE burin('add',a[0]+'+'+a[1]);
+				return storer(a[0]+'+'+a[1]); },
+		21: function Z_sub(a) { 
+				//VERBOSE burin('sub',a[0]+'-'+a[1]);
+				return storer(a[0]+'-'+a[1]); },
+		22: function Z_mul(a) { 
+				//VERBOSE burin('mul',a[0]+'*'+a[1]);
+				return storer(a[0]+'*'+a[1]); },
 		23: function Z_div(a) {
+				//VERBOSE burin('div',a[0]+'/'+a[1]);
 				return storer('trunc_divide('+a[0]+','+a[1]+')');
 		},
-		24: function Z_mod(a) { return storer(a[0]+'%'+a[1]); },
+		24: function Z_mod(a) { 
+				//VERBOSE burin('mod',a[0]+'%'+a[1]);
+				return storer(a[0]+'%'+a[1]); },
 
 		25: function Z_call_2s(a) {
+				//VERBOSE burin('call2s',a[0]+'-'+a[1]);
 				return handler_call(a[0], a[1]);
 		},
 		26: function Z_call_2n(a) {
+				//VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
 				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
 				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
 		27: function Z_set_colour(a) {
+				//VERBOSE burin('set_colour',a[0] + ',' + a[1]);
 				return "pc="+pc+";engine__effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
 		},
 		28: function Z_throw(a) {
@@ -625,48 +663,60 @@ var handlers = {
 				// opcode, and I don't have any of Infocom's original games around.
 				// If you know whether it works or doesn't, please say at
 				// <http://mozdev.org/bugs/show_bug.cgi?id=3467>. Thanks.
-		 
+		 		//VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
 				compiling = 0;
 				return "throw_stack_frame("+a[0]+");return";
 		},
 		128: function Z_js(a) {
+				//VERBOSE burin('js',a[0]+'==0');
 				return brancher(a[0]+'==0');
 		},
 		129: function Z_get_sibling(a) {
+				//VERBOSE burin('get_sibling',"t=get_sibling("+a[0]+");");
 				return "t=get_sibling("+a[0]+");"+storer("t")+";"+brancher("t");
 		},
 		130: function Z_get_child(a) {
+				//VERBOSE burin('get_child',"t=get_child("+a[0]+");");
 				return "t=get_child("+a[0]+");"+
 				storer("t")+";"+
 				brancher("t");
 		},
 		131: function Z_get_parent(a) {
+				//VERBOSE burin('get_parent',"get_parent("+a[0]+");");
 				return storer("get_parent("+a[0]+")");
 		},
 		132: function Z_get_prop_len(a) {
+				//VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
 				return storer("get_prop_len("+a[0]+')');
 		},
 		133: function Z_inc(a) {
 				var c=code_for_varcode(a[0]);
+				//VERBOSE burin('inc',c + '+1');
 				return store_into(c, c+'+1');
 		},
 		134: function Z_dec(a) {
 				var c=code_for_varcode(a[0]);
+				//VERBOSE burin('dec',c + '-1');
 				return store_into(c, c+'-1');
 		},
 		135: function Z_print_addr(a) {
+				//VERBOSE burin('print_addr','zscii_from('+a[0]+')');
 				return handler_zOut('zscii_from('+a[0]+')',0);
 		},
 		136: function Z_call_1s(a) {
+				//VERBOSE burin('call_1s','handler_call('+a[0]+')');
 				return handler_call(a[0], '');
 		},
 		137: function Z_remove_obj(a) {
+				//VERBOSE burin('remove_obj',"remove_obj("+a[0]+','+a[1]+")");
 				return "remove_obj("+a[0]+','+a[1]+")";
 		},
 		138: function Z_print_obj(a) {
+				//VERBOSE burin('print_obj','name_of_object('+a[0]+',0)');
 				return handler_zOut("name_of_object("+a[0]+")",0);
 		},
 		139: function Z_ret(a) {
+				//VERBOSE burin('ret',"gnusto_return("+a[0]+');return');
 				compiling=0;
 				return "gnusto_return("+a[0]+');return';
 		},
@@ -677,9 +727,11 @@ var handlers = {
 				}
 
 				var addr=(a[0] + pc) - 2;
+				//VERBOSE burin('jump',"pc="+addr+";return");
 				return "pc="+addr+";return";
 		},
 		141: function Z_print_paddr(a) {
+				//VERBOSE burin('print_paddr',"zscii_from((("+a[0]+")&0xFFFF)*4)");
 				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
 		},
 		142: function Z_load(a) {
@@ -690,28 +742,34 @@ var handlers = {
 				// <http://mozdev.org/bugs/show_bug.cgi?id=3468>.
 
 				var c=code_for_varcode(a[0]);
+				//VERBOSE burin('load',"store " + c);
 				return storer(c);
 		},
 		143: function Z_call_1n(a) {
 				// can we use handler_call here, too?
 				compiling=0; // Got to stop after this.
+				//VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
 				return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
 		},
 
 		176: function Z_rtrue(a) {
+				//VERBOSE burin('rtrue',"gnusto_return(1);return");
 				compiling=0;
 				return "gnusto_return(1);return";
 		},
 		177: function Z_rfalse(a) {
+				//VERBOSE burin('rfalse',"gnusto_return(0);return");
 				compiling=0;
 				return "gnusto_return(0);return";
 		},
 		178: handler_print, // (Z_print)
 		179: function Z_print_ret(a) {
 				compiling = 0;
+				//VERBOSE burin('printret',"see handler_print");
 				return handler_print(0,'\n',1)+';gnusto_return(1);return';
 		},
 		180: function Z_nop(a) {
+				//VERBOSE burin('noop','');
 				return "";
 		},
 		
@@ -721,40 +779,49 @@ var handlers = {
 		
 		//183: restart (currently unimplemented)
 		183: function Z_restart(a) {
+				//VERBOSE burin('restart','');
 				compiling=0;
 				return "return "+GNUSTO_EFFECT_RESTART;	
 		},
 		
 		184: function Z_ret_popped(a) {
+				//VERBOSE burin('pop',"gnusto_return(gamestack.pop());return");
 				compiling=0;
 				return "gnusto_return(gamestack.pop());return";
 		},
 		185: function Z_catch(a) {
 				// The stack frame cookie is specified by Quetzal 1.3b s6.2
 				// to be the number of frames on the stack.
+				//VERBOSE burin('catch',"store call_stack.length");
 				return storer("call_stack.length");
 		},
 		186: function Z_quit(a) {
+				//VERBOSE burin('quit','');
 				compiling=0;
 				return "return "+GNUSTO_EFFECT_QUIT;
 		},
 
 		187: function Z_new_line(a) {
+				//VERBOSE burin('newline','');
 				return handler_zOut("'\\n'",0);
 		},
 
-                //188: show_status (illegal from V4 onward)
+                188: function Z_show_status(a){ //(illegal from V4 onward)
+				//VERBOSE burin('illegalop','188');
+				gnusto_error(199);
+		},
 
 		189: function Z_verify(a) {
 				compiling = 0;
 
 				var setter = 'rebound=function(n){'+brancher('n')+'};';
-
+				//VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
 		},
 
 		190: function Z_illegal_extended(a) {
 				// 190 can't be generated; it's the start of an extended opcode
+				//VERBOSE burin('illegalop','190');
 				gnusto_error(199);
 		},
 
@@ -762,26 +829,31 @@ var handlers = {
 				compiling = 0;
 
 				var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
-
+				//VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
 		},
 
 		224: function Z_call_vs(a) {
+				//VERBOSE burin('call_vs','see call_vn');
 				return storer(call_vn(a,1));
 		},
 
 		225: function Z_store_w(a) {
+				//VERBOSE burin('storew',"zSetWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")");
 				return "zSetWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
 		},
 
 		226: function Z_storeb(a) {
+				//VERBOSE burin('storeb',"zSetByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")");
 				return "zSetByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
 		},
 
 		227: function Z_putprop(a) {
+				//VERBOSE burin('putprop',"put_prop("+a[0]+','+a[1]+','+a[2]+')');
 				return "put_prop("+a[0]+','+a[1]+','+a[2]+')';
 		},
 		228: function Z_read(a) {
+				
 				// read, aread, sread, whatever it's called today.
 				// That's something that we can't deal with within gnusto:
 				// ask the environment to magic something up for us.
@@ -790,13 +862,18 @@ var handlers = {
 						// ...then we should do something with a[2] and a[3],
 						// which are timed input parameters. For now, though,
 						// we'll just ignore them.
+					//VERBOSE burin('read',"should have been timed-- not yet supported");
 				}
 
 				compiling = 0;
-
+				
 				var setter = "rebound=function(n){" +
 						storer("aread(n, a0," + a[1] + ")") +
 						"};";
+
+				//VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
+						setter + "engine__effect_parameters={"+ "'recaps':"   + "zGetByte(a0+1),"+
+						"'maxchars':" + "zGetByte(a0),"+ "};" + "return GNUSTO_EFFECT_INPUT");
 
 				return "var a0=eval("+ a[0] + ");" +
 				"pc=" + pc + ";" +
@@ -808,66 +885,82 @@ var handlers = {
 				"return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
+				//VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
 				return handler_zOut('zscii_char_to_ascii('+a[0]+')',0);
 		},
 		230: function Z_print_num(a) {
+				//VERBOSE burin('print_num','handler_zout('+a[0]+')');
 				return handler_zOut(a[0],0);
 		},
 		231: function Z_random(a) {
+				//VERBOSE burin('random',"gnusto_random("+a[0]+")");
 				return storer("gnusto_random("+a[0]+")");
 		},
 		232: function Z_push(a) {
+				//VERBOSE burin('push',a[0]);
 				return store_into('gamestack.pop()', a[0]);
 		},
 		233: function Z_pull(a) {
 				var c=code_for_varcode(a[0]);
+				//VERBOSE burin('pull',c +'=gamestack.pop()');
 				return store_into(c, 'gamestack.pop()');
 		},
 		234: function Z_split_window(a) {
 				compiling=0;
+				//VERBOSE burin('split_window','lines=' + a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
 		},
 		235: function Z_set_window(a) {
 				compiling=0;
+				//VERBOSE burin('set_window','win=' + a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
 		},
 		236: function Z_call_vs2(a) {
+				//VERBOSE burin('call_vs2',"see call_vn");
 				return storer(call_vn(a,1));
 		},
 		237: function Z_erase_window(a) {
 				compiling=0;
+				//VERBOSE burin('erase_window','win=' + a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
 		},
 		238: function Z_erase_line(a) {
 				compiling=0;
+				//VERBOSE burin('erase_line',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
 		},
 		239: function Z_set_cursor(a) {
 				compiling=0;
+				//VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
 
                 240: function Z_get_cursor(a) {
                                 compiling=0;
+				//VERBOSE burin('get_cursor',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
                 },
 
 		241: function Z_set_text_style(a) {
 				compiling=0;
+				//VERBOSE burin('set_text_style',a[0]);
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
 		},
 		
 		242: function Z_buffer_mode(a) {
 				compiling=0;
+				//VERBOSE burin('buffer_mode',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
 		},
 
 		243: function Z_output_stream(a) {
+				//VERBOSE burin('output_stream',a[0]+', ' + a[1]);
 				return 'set_output_stream('+a[0]+','+a[1]+')';
 		},
 
 		244: function Z_input_stream(a) {
 				compiling=0;
+				//VERBOSE burin('input_stream',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
 		},
 
@@ -876,19 +969,21 @@ var handlers = {
 				// deal with callbacks at present.
 
 				compiling=0;
+				//VERBOSE burin('sound_effect','better logging later');
 				while (a.length < 5) { a.push(0); }
 				return "pc="+pc+';engine__effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
 		},
 
 		246: function Z_read_char(a) {
 				// Maybe factor out "read" and this?
-
+				//VERBOSE burin('read_char','');
 				// a[0] is always 1; probably not worth checking for this
 
 				if (a[3]) {
 						// ...then we should do something with a[2] and a[3],
 						// which are timed input parameters. For now, though,
 						// we'll just ignore them.
+					//VERBOSE burin('read_char','should have been timed-- not yet supported');
 				}
 
 				compiling = 0;
@@ -900,7 +995,8 @@ var handlers = {
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
 		},
 
-		247: function Z_scan_table(a) { burin('SCAN_TABLE','');
+		247: function Z_scan_table(a) { 
+				//VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
 		                if (a.length == 4) {
                                    return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
                                        storer("t") + ";" +  brancher('t');
@@ -911,6 +1007,7 @@ var handlers = {
 		},
 
 		248: function Z_not(a) {
+				//VERBOSE burin('not','~'+a[1]+'&0xffff');
 				return storer('~'+a[1]+'&0xffff');
 		},
 
@@ -919,14 +1016,17 @@ var handlers = {
 		250: call_vn, // call_vn2,
 
 		251: function Z_tokenise(a) {
+				//VERBOSE burin('tokenise',"engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
 				return "engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
 
 		252: function Z_encode_text(a) {
+				//VERBOSE burin('tokenise',"engine__encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
 				return "engine__encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
 
 		253: function Z_copy_table(a) {
+				//VERBOSE burin('copy_table',"copy_table("+a[0]+','+a[1]+','+a[2]+")");
 				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
 		},
 
@@ -935,15 +1035,17 @@ var handlers = {
 				// Jam in defaults:
 				if (a.length < 4) { a.push(1); } // default height
 				if (a.length < 5) { a.push(0); } // default skip
-
+				//VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
 				return "pc="+pc+";engine__effect_parameters=engine__print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
 		},
 
 		255: function Z_check_arg_count(a) {
+				//VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
 				return brancher(a[0]+'<=param_count()');
 		},
 	
 		1000: function Z_save(a) {
+				//VERBOSE burin('save','');
 				compiling=0;
 				var setter = "rebound=function(n) { " +
 				storer('n') + "};";
@@ -951,6 +1053,7 @@ var handlers = {
 		},
 
 		1001: function Z_restore(a) {
+				//VERBOSE burin('restore','');
 				compiling=0;
 				var setter = "rebound=function(n) { " +
 				storer('n') + "};";
@@ -958,16 +1061,19 @@ var handlers = {
 		},
 
 		1002: function Z_log_shift(a) {
+				//VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
 				// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
                                 return storer("log_shift("+a[0]+','+a[1]+')');
 		},
 
 		1003: function Z_art_shift(a) {
+				//VERBOSE burin('log_shift',"art_shift("+a[0]+','+a[1]+')');
 				// arithmetic-bit-shift.  Right shifts are sign-extended
                                 return storer("art_shift("+a[0]+','+a[1]+')');
 		},
 
 		1004: function Z_set_font(a) {
+				//VERBOSE burin('set_font','('+a[0]+'<2?1:0) <<We only provide font 1.>>');
 				// We only provide font 1.
 				return storer('('+a[0]+'<2?1:0)');
 		},
@@ -981,19 +1087,23 @@ var handlers = {
 		//1008: set_margins (V6 opcode)
 
 		1009: function Z_save_undo(a) {
+				//VERBOSE burin('save_undo','unsupported');
 				return storer('-1'); // not yet supplied
 		},
 
 		1010: function Z_restore_undo(a) {
+				//VERBOSE burin('restore_undo','unsupported');
 				gnusto_error(700); // spurious restore_undo
 				return storer('0');
 		},
 
 		1011: function Z_print_unicode(a) {
+				//VERBOSE burin('print_unicode',"String.fromCharCode(" +a[0]+")");
 				return handler_zOut("String.fromCharCode(" +a[0]+")",0);
 		},
 
 		1012: function Z_check_unicode(a) {
+				//VERBOSE burin('check_unicode','we always say yes');
 				// We have no way of telling from JS whether we can
 				// read or write a character, so let's assume we can
 				// read and write all of them. We can always provide
@@ -1149,6 +1259,7 @@ function dissemble() {
 				// Check for a breakpoint.
 				if (pc in breakpoints) {
 						code = code + 'if(is_valid_breakpoint('+pc+'))return 0x510;';
+						//VERBOSE burin(code,'');
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
@@ -1232,6 +1343,7 @@ function dissemble() {
 
 				if (handlers[instr]) {
 						code = code + handlers[instr](args)+';';
+						//VERBOSE burin(code,'');
 				} else if (instr>=1128 && instr<=1255 &&
 									 "special_instruction_EXT"+(instr-1000) in this) {
 
@@ -1240,6 +1352,7 @@ function dissemble() {
 						code = code +
 								this["special_instruction_EXT"+(instr-1000)](args)+
 								';';
+						//VERBOSE burin(code,'');
 
 				} else {
 						gnusto_error(200, instr, pc.toString(16)); // no handler
@@ -1252,7 +1365,10 @@ function dissemble() {
 		// to have |code| not read or write to the PC at all. So we need to
 		// set it automatically at the end of each fragment.
 
-		if (single_step||debug_mode) code = code + 'pc='+pc;
+		if (single_step||debug_mode) {
+			code = code + 'pc='+pc; 
+			//VERBOSE burin(code,'');
+		}
 
 		// Name the function after the starting position, to make life
 		// easier for Venkman.
@@ -2196,7 +2312,7 @@ var default_unicode_translation_table = {
 function zscii_from(address, max_length, tell_length) {
 
 		if (address in jit) {
-
+		                //VERBOSE burin('zscii_from ' + address,'already in JIT');
 				// Already seen this one.
 
 				if (tell_length)
@@ -2262,6 +2378,7 @@ function zscii_from(address, max_length, tell_length) {
 
 		jit[start_address] = [temp, address];
 
+				//VERBOSE burin('zscii_from ' + address,temp);
 		if (tell_length) {
 				return [temp, address];
 		} else {
