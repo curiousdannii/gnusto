@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.82 2004/01/18 03:48:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.83 2004/01/19 03:31:56 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/01/18 03:48:24 $';
+const CVS_VERSION = '$Date: 2004/01/19 03:31:56 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -2467,8 +2467,6 @@ GnustoEngine.prototype = {
 					var entries_start = engine.m_dict_start+engine.m_separator_count+4;
 
 					// Whether the dictionary is sorted.
-					// We don't use this at present (it would be a
-					// useful optimisation, though).
 					var is_sorted = 1;
 
 					if (entries_count < 0) {
@@ -2560,7 +2558,7 @@ GnustoEngine.prototype = {
 					dictionary = this.m_dict_start;
 			}
 
-			if (this.m_version < 4) {
+			if (this.m_version <= 4) {
 
 					max_chars ++; // Value stored in pre-z5 is one too low.
 
@@ -2583,7 +2581,7 @@ GnustoEngine.prototype = {
 			var wordindex = 0;
 			var wordpos_increment;
 
-			if (this.m_version < 4) {
+			if (this.m_version <= 4) {
 					wordpos_increment = 1;
 			} else {
 					wordpos_increment = 2;
