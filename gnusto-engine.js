@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.67 2003/05/26 18:41:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.68 2003/05/26 18:43:16 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1231,6 +1231,7 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 // Maybe we should allow aread() to pass in the correct value stored
 // in text_buffer, since it knows it already. It means we don't have
 // to figure it out ourselves.
+//
 function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		// Some of the more esoteric options aren't yet supported.
