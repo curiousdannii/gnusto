@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.22 2003/07/25 09:00:48 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.23 2003/07/25 21:08:39 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -186,12 +186,18 @@ function barbara_chalk(text, monospace) {
 
 function barbara_relax() {
 
-		var slippage = barbara__get_page_height() - barbara__most_seen;
+		var page_height = barbara__get_page_height();
 
-		if (barbara__get_page_height() < barbara__get_viewport_height()) {
-				// Then we haven't started scrolling yet, so do nothing.
+		if (page_height < barbara__get_viewport_height()) {
+				// Then we haven't started scrolling yet.
+				// barbara__most_seen is now the page height, of course.
+
+				barbara__most_seen = page_height;
+
 		} else {
 				// The lower screen scrolls by some amount.
+
+				var slippage = page_height - barbara__most_seen;
 
 				if (slippage > barbara__get_viewport_height()) {
 						// More than a screenful. Scroll to the top...
@@ -199,7 +205,7 @@ function barbara_relax() {
 						barbara__set_more(1);
 				} else {
 						// Jump straight to the bottom. No problem.
-						barbara__set_viewport_top(barbara__get_page_height());
+						barbara__set_viewport_top(page_height);
 						barbara__set_more(0);
 				}
 
@@ -279,14 +285,10 @@ function barbara__get_viewport_top() {
 
 function barbara__set_viewport_top(y) {
 
-		// burin('svt','now='+barbara__get_viewport_top());
-		// burin('svt','req='+y);
-
 		barbara__viewport().scrollTo(0, y*barbara__twips_per_pixel());
 
 		var new_top = barbara__get_viewport_top();
 		barbara__most_seen = new_top + barbara__get_viewport_height();
-		// burin('svt','got='+new_top);
 
 		document.getElementById('bocardobox').setAttribute('top', new_top);
 }
