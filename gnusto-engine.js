@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.30 2003/03/26 01:26:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.31 2003/03/26 04:49:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -679,6 +679,15 @@ var handlers = {
 		},
 
 		// not implemented:   VAR:244 14 3 input_stream number input_stream '"},
+
+		245: function(a) { // sound_effect
+				// We're rather glossing over whether and how we
+				// deal with callbacks at present.
+
+				while (a.length < 5) { a.push(0); }
+				return 'gnustoglue_soundeffect('+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+','+')';
+		},
+
 		// not implemented:   VAR:245 15 5/3 sound_effect number effect volume routine sound_effect '"},
 
 		246: function(a) { // read_char

@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.24 2003/03/26 00:55:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.25 2003/03/26 04:49:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -195,6 +195,12 @@ function gnustoglue_output(what) {
 				set_upper_window();
     } else
 				throw "unearthly window "+current_window+' in gnustoglue_output';
+}
+
+function gnustoglue_soundeffect(number, effect, volume, callback) {
+		// all sound-effects are just beeps to us at present.
+		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
+		sound.beep();
 }
 
 // Would be nice to do these in the skin, so, for example,
