@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.78 2003/12/29 02:47:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.79 2004/01/03 03:46:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/29 02:47:14 $';
+const CVS_VERSION = '$Date: 2004/01/03 03:46:24 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -635,7 +635,8 @@ function handleZ_read(engine, a) {
 				"_func_interrupt(m_rebound_args[0],onISRReturn_for_read);"+ // -ve: timeout
 				"}else{"+
 				rebound_for_no_timeout + ";" +
-				"}};";
+				"}"+
+				"};";
 
 		var rebound_args_setter =
 				"m_rebound_args=["+
@@ -781,7 +782,8 @@ function handleZ_read_char(engine, a) {
 						"_func_interrupt(m_rebound_args[0],onISRReturn_for_read_char);"+ // -ve: timeout
 						"}else{"+
 						engine._storer("t") + // otherwise, a result to store.
-						"}};";
+						"}"+
+						"};";
 
 		} else {
 
@@ -943,11 +945,6 @@ function handleZ_check_unicode(engine, a) {
 // For example, |r| must cause a return if it knows that a jump occurred.
 // If a handler wishes to send an effect to the environment, it should
 // set |m_effects| in the engine to a non-empty list and return.
-//
-// Formerly, |r| was required to set the PC if it was going to stop the
-// engine and the PC wasn't going to be set any other way (e.g. via
-// _func_return()). This is now done automatically by _touch(), so
-// you shouldn't do it any more.
 
 const handlers_v578 = {
     1: handleZ_je,
@@ -1218,6 +1215,7 @@ function gnusto_error(number) {
 // block in JITspace.
 //
 function onISRReturn_for_read_char(interrupt_info, result) {
+
 		if (result) {
 
 				// If an ISR returns true, we return as from the original
@@ -1231,6 +1229,8 @@ function onISRReturn_for_read_char(interrupt_info, result) {
 				// If an ISR returns false, we cause the same effect again.
 
 				interrupt_info.engine.m_effects = interrupt_info.effects;
+				interrupt_info.engine.m_rebound = interrupt_info.rebound;
+				interrupt_info.engine.m_rebound_args = interrupt_info.rebound_args;
 
 		}
 }
@@ -1259,6 +1259,8 @@ function onISRReturn_for_read(interrupt_info, result) {
 				// If the effect has printed anything... what?
 
 				engine.m_effects = interrupt_info.effects;
+				engine.m_rebound = interrupt_info.rebound;
+				engine.m_rebound_args = interrupt_info.rebound_args;
 
 		}
 }
@@ -1469,13 +1471,6 @@ GnustoEngine.prototype = {
 
   // Main point of entry for gnusto. Be sure to call start_game()
   // before calling this the first time.
-  //
-  // This function returns an effect code when the machine pauses, stating
-  // why the machine was paused. More details, and the actual values, are
-  // given above.
-  // 
-  // |answer| is for returning answers to earlier effect codes. If you're
-  // not answering an effect code, pass 0 here.
   run: function ge_run() {
 
     // burin('run', answer);
@@ -1485,11 +1480,9 @@ GnustoEngine.prototype = {
     var turns_limit = this.m_single_step? 1: 10000;
 
     if (this.m_rebound) {
-				var temp = this.m_rebound;
+				this.m_rebound();
 				this.m_rebound = 0;
-				// We operate on a copy because the rebound might quite reasonably
-				// want to affect this.m_rebound.
-				temp();
+				this.m_rebound_args = [];
 		}
 
 		this.m_effects = [];
@@ -2370,6 +2363,7 @@ GnustoEngine.prototype = {
 					// Rare special case: a call to 0 returns only false.
 					this._func_return(0);
 			}
+
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -2393,6 +2387,7 @@ GnustoEngine.prototype = {
 			this.m_interrupt_information.push({
 					'on_return': on_return,
 							'rebound': this.m_rebound,
+							'rebound_args': this.m_rebound_args,
 							'engine': this,
 							'pc': this.m_pc,
 							'effects': this.m_effects,
