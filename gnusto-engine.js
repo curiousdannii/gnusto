@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.76 2003/12/17 22:07:50 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.77 2003/12/18 04:39:56 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/17 22:07:50 $';
+const CVS_VERSION = '$Date: 2003/12/18 04:39:56 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -1168,12 +1168,19 @@ function gnusto_error(number) {
 //
 function onISRReturn_for_read_char(interrupt_info, result) {
 		if (result) {
+
 				// If an ISR returns true, we return as from the original
 				// effect, storing zero for the keypress.
-				interrupt_info.rebound(0);
+
+				interrupt_info.engine.m_answers[0] = 0;
+				interrupt_info.rebound();
+
 		} else {
-				// If an ISR returns true, we cause the same effect again.
+
+				// If an ISR returns false, we cause the same effect again.
+
 				interrupt_info.engine.m_effects = interrupt_info.effects;
+
 		}
 }
 
@@ -2041,7 +2048,6 @@ GnustoEngine.prototype = {
 
 					} else {
 							gnusto_error(200,
-													 //instr, //marnanel removed temporarily
 													 this.m_pc.toString(16)); // no handler
 					}
 
@@ -2631,6 +2637,7 @@ GnustoEngine.prototype = {
 					var interrupt_info = this.m_interrupt_information.pop();
 
 					this.m_pc = interrupt_info.pc;
+					dump('--- calling ---\n');
 					interrupt_info.on_return(interrupt_info, value);
 			}
 	},
