@@ -583,3 +583,43 @@ function viewDissembly() {
 				menu.setAttribute('label', 'Show dissembly');
 		}
 }
+
+////////////////////////////////////////////////////////////////
+
+function tossio_print(message) {
+		gnustoglue_output(message);
+}
+
+var tossio_verbs = {
+		'help': ['provide brief help on functions',
+						'Provides a brief rundown of what a function does. Use "help" on its own to get information on all functions. "help step" will give you more detailed help on the "step" command, and so on.',
+						function(a) {
+								if (a.length==1) {
+										for (var command in tossio_verbs) {
+												tossio_print(command+': '+tossio_verbs[command][0]+'\n');
+										}
+								}
+						}],
+		'open': ['load a (mangled) story file',
+						'Loads the named story file.',
+						function(a) {
+								if (a.length==2) {
+										var zc = new Components.Constructor("@mozilla.org/file/local;1",
+																												"nsILocalFile",
+																												"initWithPath")(a[1]);
+										if (loadMangledZcode(zc)) play();
+								} else {
+										tossio_print('Wrong number of parameters for open.');
+								}
+						}],
+};
+
+function tossio_debug_instruction(command) {
+		if (tossio_verbs[command[0]])
+				tossio_verbs[command[0]][2](command);
+		else
+				tossio_print('Unknown command: /'+command[0]+'. Try "/help".');
+
+		tossio_print('\n');
+}
+

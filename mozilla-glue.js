@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.15 2003/03/08 00:05:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.16 2003/03/09 00:33:49 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -50,6 +50,7 @@ function loadMangledZcode(zcode) {
 																				 "nsIScriptableInputStream")();
 
     fixups = zcode.fileSize / 2;
+		alert(zcode.fileSize);
 
     fc.init(zcode, 1, 0);
     sis.init(fc.open());
@@ -321,7 +322,9 @@ function set_upper_window() {
 											document.createTextNode(u_preformatted()));
 }
 
-function play() {
+function start_up() {
+		document.getElementById('input').focus();
+
     lowerWindow = frames[0].document;
     tty = lowerWindow.getElementById('tty');
 
@@ -329,8 +332,10 @@ function play() {
     set_upper_window();
 
     gnustoglue_set_text_style(0, 1, 1);
+}
 
-		document.getElementById('input').focus();
+function play() {
+		start_up();
 
     setup();
     go_wrapper(0);
@@ -351,8 +356,15 @@ function gotInput(event) {
 		var inputBox = document.getElementById("input");
 		var value = inputBox.value;
 
-		if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
+		if (value.length>2 && value[0]=='/' && event.keyCode==13) {
+				// Tossio debug stuff. (There should be a way to
+				// turn this off, too.)
+
 				inputBox.value = '';
+				tossio_debug_instruction(value.substring(1).split(/ +/));
+		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
+				inputBox.value = '';
+
 				gnustoglue_output(value+'\n');
 				go_wrapper(value);
 		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
