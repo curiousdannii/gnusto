@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.98 2003/08/25 16:53:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.99 2003/08/26 19:02:51 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1020,7 +1020,7 @@ var handlers = {
 		
 		251: function Z_tokenise(a) {
 				//VERBOSE burin('tokenise',"engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-				return "engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
+				return "engine__tokenise(("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
 		},
 		
 		252: function Z_encode_text(a) {
@@ -1191,10 +1191,11 @@ function is_valid_breakpoint(addr) {
 	transcription_file.write(text, text.length);
 	transcription_file.close();
 	}
-
-	function golden_trail(addr) {
-	var text = 'pc : '+addr.toString(16);
-	burin('gold',text);
+*/
+/*function golden_trail(addr) {
+	var text = '\npc : '+addr.toString(16);
+	print(text);*/
+	/*burin('gold',text);
 
 	// Extra debugging information which may sometimes be useful
 	var v = 0;
@@ -1210,9 +1211,8 @@ function is_valid_breakpoint(addr) {
 	}
 
 	text = text + '\n';
-	golden_print(text);
-	}
-*/
+	golden_print(text);*/
+/*}*/
 
 // dissemble() returns a string of JavaScript code representing the
 // instruction at the program counter (and possibly the next few
@@ -1266,8 +1266,8 @@ function dissemble() {
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
-				// code = code + 'golden_trail('+pc+');';
-				// code = code + 'burin("gold","'+pc.toString(16)+'");';
+				//code = code + 'golden_trail('+pc+');';
+				//code = code + 'burin("gold","'+pc.toString(16)+'");';
 				
 				// So here we go...
 				// what's the opcode?
@@ -1522,6 +1522,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 				for (var i=0; i<entries_count; i++) {
 						//really ugly kludge until into_zscii is fixed properly
+						// FIXME: it is now. remove this?
 						var address = entries_start+i*entry_length;
 					 	if (zscii_from(address)==oldword) {
 								return address;}
@@ -1580,7 +1581,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		
 		//display the broken-up text for visual validation 
 		//for (var i=0; i < words.length; i++){
-		//  alert (i + ': ' + words[i] + ' ' + words[i].length);
+		//		print (i + ': ' + words[i] + ' ' + words[i].length);
 		//}
 
 		var position = 2;
@@ -1609,6 +1610,10 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 //  * Doesn't properly handle terminating characters (always returns 10).
 //  * Doesn't handle word separators.
 function aread(source, text_buffer, parse_buffer) {
+
+		text_buffer &= 0xFFFF;
+		parse_buffer &= 0xFFFF;
+
 		var max_chars = zGetByte(text_buffer);
 		var result = source.substring(0,max_chars);
 
@@ -2608,7 +2613,7 @@ function zGetByte(address) {
 }
 
 function zSetByte(value, address) {
-    engine__memory[address] = value;
+    engine__memory[address & 0xFFFF] = value;
 }
 
 function zGetWord(addr) {
