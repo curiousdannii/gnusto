@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.14 2003/05/21 04:46:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.15 2003/05/26 00:52:13 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -115,7 +115,7 @@ var barbara__previous_monospace = 0;
 
 function barbara_chalk(text, monospace) {
 
-		if (barbara__holder==0 ||
+		if (!barbara__holder ||
 				monospace!=barbara__previous_monospace) {
 
 				// Create a new holder.
@@ -270,6 +270,44 @@ function barbara__get_page_height() {
 function barbara__viewport() {
 		var scrollable = document.getElementById('barbarabox').boxObject;
 		return scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+}
+
+
+// Removes |count| characters from the end of the text and
+// returns them.
+function barbara_recaps(count) {
+
+		if (count==0) return '';
+
+		// The loop of this function rarely runs, and so
+		// is optimised for readability rather than speed.
+
+		var result = '';
+		var barb = document.getElementById('barbara');
+
+		while (result.length < count && barb.childNodes.length!=0) {
+				var barbLast = barb.lastChild;
+
+				if (barbLast.childNodes.length==0) {
+						barb.removeChild(barbLast);
+				} else {
+						var barbLastText = barbLast.lastChild;
+
+						if (barbLastText.data.length==0) {
+								barbLast.removeChild(barbLastText);
+						} else {
+								result = barbLastText.data[barbLastText.data.length-1] + result;
+								barbLastText.data = barbLastText.data.substring(0, barbLastText.data.length-1);
+						}
+				}
+		}
+
+		// Destroy the holder; it's likely we've corrupted
+		// its value. It's only a cache, so it'll
+		// get regenerated next time we print anything.
+		barbara__holder = null;
+
+		return result;
 }
 
 ////////////////////////////////////////////////////////////////
