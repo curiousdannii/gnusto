@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.28 2003/03/24 23:47:05 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.29 2003/03/26 00:46:52 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -346,6 +346,15 @@ var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_BREAKPOINT = 0x510;
 
+// Returned if the story wants to verify its own integrity.
+// Answer 1 if its checksum matches, or 0 if it doesn't.
+var GNUSTO_EFFECT_VERIFY     = 0x600;
+
+// Returned if the story wants to check whether it's been pirated.
+// Answer 1 if it is, or 0 if it isn't.
+// You probably just want to return 0.
+var GNUSTO_EFFECT_PIRACY     = 0x610;
+
 ////////////////////////////////////////////////////////////////
 //
 // |handlers|
@@ -560,15 +569,23 @@ var handlers = {
 				return "output('\\n')";
 		},
 
-		// not implemented:        *  0OP:189 D   3   verify ?(label)
-		// "verify" would probably best be implemented as an effect opcode:
-		// the environment would pass back a boolean.
+		189: function(a) { // verify
+				compiling = 0;
+
+				var setter = 'rebound=function(n){'+brancher('n')+'};';
+
+				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
+		},
 
 		// 190 can't be generated; it's the start of an extended opcode
 		190: function(a) { gnusto_error(199); },
 
 		191: function(a) { // piracy
-				return brancher("1");
+				compiling = 0;
+
+				var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
+
+				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
 		},
 
 		224: function(a) { // call_vs
