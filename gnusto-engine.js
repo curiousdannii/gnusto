@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.47 2003/04/11 10:42:26 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.48 2003/04/11 13:15:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1080,7 +1080,9 @@ function dissemble() {
 		// Commented out pending review of what "debug mode" really means.
 		// if (debug_mode) code = code + 'pc='+pc;
 
-		return 'function(){'+code+'}';
+		// Name the function after the starting position, to make life
+		// easier for Venkman.
+		return 'function J'+starting_pc+'(){'+code+'}';
 }
 
 ////////////////////////////////////////////////////////////////
