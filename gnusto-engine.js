@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.93 2003/08/10 19:55:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.94 2003/08/11 01:36:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2415,7 +2415,7 @@ function engine__encode_text(zscii_text, length, from, coded_text) {
     var result = into_zscii(source);
 
     for (var i=0; i<result.length; i++) {
-    		alert('Setting 0x'+coded_text.toString(16)+' := 0x'+result[i].toString(16));
+				var c = result[i].charCodeAt(0);
 		    zSetByte(result[i], coded_text++);
 		}
 }
