@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.88 2003/08/04 03:04:21 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.89 2003/08/04 05:33:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2110,8 +2110,8 @@ function engine_run(answer) {
 				start_pc = pc;
 				if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
 				// Some useful debugging code:
-				burin('eng pc', start_pc);
-				burin('eng jit', jit[start_pc]);
+				//burin('eng pc', start_pc);
+				//burin('eng jit', jit[start_pc]);
 				stopping = jit[start_pc]();
 		}
 
