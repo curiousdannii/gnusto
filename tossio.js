@@ -591,6 +591,7 @@ function tossio_print(message) {
 }
 
 var show_js = 0;
+var dissembly_done = 0;
 
 var tossio_verbs = {
 		'help': ['provide brief help on functions',
@@ -613,7 +614,7 @@ var tossio_verbs = {
 																												"nsILocalFile",
 																												"initWithPath")(a[1]);
 										if (loadMangledZcode(zc)) {
-												if (debug_mode) {
+												if (single_step) {
 														tossio_print('Loaded OK (use /run or /step now).');
 												}
 												play();
@@ -651,6 +652,7 @@ var tossio_verbs = {
 							'...',
 							function(a) {
 									single_step = 1;
+									debug_mode = 1;
 									tossio_print('Debug mode on.');
 							}],
 		'showjs': ['show JS in status information',
@@ -661,11 +663,14 @@ var tossio_verbs = {
 		'dis': ['calculate dissembly information',
 					 '...',
 					 function(a) {
-							 asm = {};
-							 points = {};
-							 tossio_print('Scanning for dissembly information... ');
-							 tossio_scan(get_unsigned_word(0x06), 0);
-							 tossio_print('done.');
+							 if (!dissembly_done) {
+									 asm = {};
+									 points = {};
+									 tossio_print('Scanning for dissembly information... ');
+									 tossio_scan(get_unsigned_word(0x06), 0);
+									 tossio_print('done.');
+									 dissembly_done = 1;
+							 }
 					 }],
 		'step': ['step one place through',
 						'...',
@@ -698,6 +703,42 @@ var tossio_verbs = {
 											 }
 									 }
 							 }],
+		'set': ['set a breakpoint',
+					 '...',
+					 function (a) {
+
+							 // Make sure we have dissembly information.
+							 tossio_debug_instruction(['dis']);
+							 
+							 // Right, now: what kind of instruction is this?
+
+							 var addr = a[1]*1;
+
+							 if (points[addr]==5) { // Start of a routine
+									 tossio_print('[breaking on first instruction of that routine]\n');
+									 addr++; // in v5; adjust for others
+							 }
+
+							 if (points[addr]==1 || points[addr]==2) {
+									 breakpoints[addr] = 1;
+									 jit = {}; // trash it, so the version that regrows will have the breakpoint
+									 tossio_print('Breakpoint added OK.\n');
+							 } else {
+									 tossio_print('That\'s not a valid instruction (as far as I can see).\n');
+							 }
+					 }],
+		'clear': ['clear a breakpoint',
+						 '...',
+						 function (a) {
+							 var addr = a[1]*1;
+
+							 if (breakpoints[addr]) {
+									 delete breakpoints[addr];
+									 tossio_print('OK, deleted.');
+							 } else {
+									 tossio_print('No breakpoint there!');
+							 }
+						 }],
 		'about': ['show the about box',
 						 '...',
 						 function (a) {
@@ -717,3 +758,6 @@ function tossio_debug_instruction(command) {
 		tossio_print('\n');
 }
 
+function tossio_notify_breakpoint_hit() {
+		tossio_print('\n ** Hit breakpoint. **\n');
+}

@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.18 2003/03/09 22:56:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.19 2003/03/14 06:11:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -272,6 +272,11 @@ var reasonForStopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
 function go_wrapper(answer) {
 
     var looping;
+
+		// If we stopped on a breakpoint last time, fix it up.
+		if (reasonForStopping == GNUSTO_EFFECT_BREAKPOINT && breakpoints[pc]) {
+				breakpoints[pc]=2; // So it won't trigger immediately we run.
+		}
 	
     do {
 				looping = 0; // By default, we stop.
@@ -279,7 +284,7 @@ function go_wrapper(answer) {
 				reasonForStopping = go(answer);
 		
 				if (reasonForStopping == GNUSTO_EFFECT_WIMP_OUT) {
-						if (!debug_mode) {
+						if (!single_step) {
 								// Well, just go round again.
 								answer = 0;
 								looping = 1;
@@ -305,6 +310,10 @@ function go_wrapper(answer) {
 						// the main window when the game asks for it, but
 						// for now...
 						window.close();
+				} else if (reasonForStopping == GNUSTO_EFFECT_BREAKPOINT) {
+						// Ooh, a breakpoint! Lovely!
+						looping = 0;
+						tossio_notify_breakpoint_hit();
 				} else
 						// give up: it's nothing we know
 						throw "gnusto-lib used an effect code we don't understand: 0x"+
@@ -342,7 +351,7 @@ function play() {
 		start_up();
     setup();
 
-		if (!debug_mode) {
+		if (!single_step) {
 				go_wrapper(0);
 		}
 }

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.23 2003/03/14 02:53:11 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.24 2003/03/14 06:11:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -143,7 +143,9 @@ var streamthrees;
 // since we can't deal with it ourselves.
 var output_to_script;
 
+// FIXME: Clarify the distinction here
 // If this is 1, go() will "wimp out" after every opcode.
+var single_step = 0;
 var debug_mode = 0;
 
 // Hash of breakpoints. If dissemble() reaches one of these, it will stop
@@ -151,11 +153,9 @@ var debug_mode = 0;
 // PC set to the address of that instruction.
 //
 // The keys of the hash are opcode numbers. The values are not yet stably
-// defined; at present, all values should be 1 except that:
-//    * A breakpoint's value may be 2. If it is, it won't trigger,
-//      but it will be reset to 1.
-//    * A breakpoint will automatically be set to 2 when it triggers.
-var breakpoints = {0x23A09: 1};
+// defined; at present, all values should be 1, except that if a breakpoint's
+// value is 2, it won't trigger, but it will be reset to 1.
+var breakpoints = {};
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -761,7 +761,6 @@ function is_valid_breakpoint(addr) {
 						return 0; // it doesn't trigger again this time.
 				} else if (breakpoints[addr]==1) {
 						// a genuine breakpoint!
-						breakpoints[addr]=2; // disable for next time
 						pc = addr;
 						return 1;
 				}
@@ -1481,7 +1480,7 @@ function go(answer) {
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
-		var turns_limit = debug_mode? 1: 10000;
+		var turns_limit = single_step? 1: 10000;
 
 		if (rebound) {
 				rebound(answer);
