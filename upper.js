@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.42 2003/07/14 00:50:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.43 2003/07/21 20:14:12 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -51,20 +51,17 @@ function bocardo_init() {
 // Called before a game starts.
 function bocardo_start_game() {
 
-		bocardo__screen_width = 80;
-		bocardo__screen_height = 25;
-
     bocardo__screen_doc = document;
 
-		bocardo__screen_window = bocardo__screen_doc.getElementById('bocardo');
-		barbarix_clear(bocardo__screen_window);
+    bocardo__screen_window = bocardo__screen_doc.getElementById('bocardo');
+    barbarix_clear(bocardo__screen_window);
 
-		bocardo__current_x = [];
-		bocardo__current_y = [];
+    bocardo__current_x = [];
+    bocardo__current_y = [];
     bocardo__current_x[0] = bocardo__current_y[0] = 0;
     bocardo__current_x[1] = bocardo__current_y[1] = 0;
 
-		bocardo_set_top_window_size(0);
+    bocardo_set_top_window_size(0);
 }
 
 ////////////////////////////////////////////////////////////////
