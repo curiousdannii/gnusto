@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.27 2003/03/21 02:13:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.28 2003/03/24 23:47:05 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -642,7 +642,7 @@ var handlers = {
 		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
 
 		241: function(a) { // set_text_style
-				return 'gnustoglue_set_text_style('+a[0]+',1,1)';
+				return 'gnustoglue_set_text_style('+a[0]+',0,0)';
 		},
 		
 		242: function(a) { // buffer_mode
