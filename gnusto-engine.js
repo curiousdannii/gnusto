@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.50 2003/11/24 16:19:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.51 2003/11/24 18:47:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/24 16:19:43 $';
+const CVS_VERSION = '$Date: 2003/11/24 18:47:03 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1513,13 +1513,19 @@ GnustoEngine.prototype = {
 			this.m_vars_start  = this.getUnsignedWord(0xC);
 			this.m_stat_start  = this.getUnsignedWord(0xE);
 			this.m_abbr_start  = this.getUnsignedWord(0x18);
-			this.m_alpha_start = this.getUnsignedWord(0x34);
+
+			if (this.m_version>=5) {
+					this.m_alpha_start = this.getUnsignedWord(0x34);
+			} else {
+					this.m_alpha_start = 0;
+			}
+
 			this.m_hext_start  = this.getUnsignedWord(0x36);		
 	
  			this.m_original_memory = this.m_memory;
 
 			// Use the correct addressing mode for this Z-machine version...
-
+			
 			if (this.m_version<=3) {
 					// Versions 1 and 2 (prehistoric)
 					this.m_pc_translate_for_routine = pc_translate_v123;
@@ -1545,44 +1551,48 @@ GnustoEngine.prototype = {
 
 		// And pick up the relevant instruction set.
 
-    if (this.m_version==5 || this.m_version==7 || this.m_version==8) {
-				this.m_handlers = handlers_v578;
-    } else if (this.m_version<9) {
-				gnusto_error(101, 'version not implemented');
-    } else {
-				gnusto_error(170, 'impossible: unknown z-version got this far');
-    }
+			if (this.m_version==5 || this.m_version==7 || this.m_version==8) {
+					this.m_handlers = handlers_v578;
+			} else if (this.m_version<9) {
+					gnusto_error(101, 'version not implemented');
+			} else {
+					gnusto_error(170, 'impossible: unknown z-version got this far');
+			}
 
-    this.m_separator_count = this.getByte(this.m_dict_start);
-    for (var i=0; i<this.m_separator_count; i++) {		  
-      this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
-    }	
+			this.m_separator_count = this.getByte(this.m_dict_start);
+			for (var i=0; i<this.m_separator_count; i++) {		  
+					this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
+			}	
 	
-    // If there is a header extension...
-    if (this.m_hext_start > 0) {
-      // get start of custom unicode table, if any
-      this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
-      if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-					this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
-					this.m_unicode_start += 1;
-      }
-    }		
+			// If there is a header extension...
+			if (this.m_hext_start > 0) {
+					// get start of custom unicode table, if any
+					this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
+					if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
+							this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
+							this.m_unicode_start += 1;
+					}
+			}		
     
-    this.m_rebound = 0;
-    this.m_rebound_args = [];
+			this.m_rebound = 0;
+			this.m_rebound_args = [];
     
-    this.m_output_to_console = 1;
-    this.m_streamthrees = [];
-    this.m_output_to_script = 0;
+			this.m_output_to_console = 1;
+			this.m_streamthrees = [];
+			this.m_output_to_script = 0;
     
-    this.m_console_buffer = '';
-    this.m_transcript_buffer = '';
+			this.m_console_buffer = '';
+			this.m_transcript_buffer = '';
     
-    // Reset the default alphabet on reload.  Yes these are already defined in tossio,
-    // but that's because it might use them before they get defined here.
-    this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
-    this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    this.m_zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()'; // T = magic ten bit flag		
+			// Reset the default alphabet.
+			this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
+			this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			// T = magic ten bit flag
+			if (this.m_version==1) {
+					this.m_zalphabet[2] = 'T0123456789.,!?_#\'"/\\<-:()';
+			} else {
+					this.m_zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()';
+			}
     
     var newchar;
     var newcharcode;		
