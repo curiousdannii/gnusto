@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.39 2003/05/12 01:28:20 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.40 2003/06/05 02:37:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,6 +20,10 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
+////////////////////////////////////////////////////////////////
+//
+//                     PRIVATE VARIABLES
+//
 ////////////////////////////////////////////////////////////////
 
 var bocardo__screen_doc = 0;
@@ -44,13 +48,19 @@ function bocardo_init() {
 
 ////////////////////////////////////////////////////////////////
 
+// Called before a game starts.
 function bocardo_start_game() {
+
+		bocardo__screen_width = 80;
+		bocardo__screen_height = 25;
 
     bocardo__screen_doc = document;
 
 		bocardo__screen_window = bocardo__screen_doc.getElementById('bocardo');
 		barbarix_clear(bocardo__screen_window);
 
+		bocardo__current_x = [];
+		bocardo__current_y = [];
     bocardo__current_x[0] = bocardo__current_y[0] = 0;
     bocardo__current_x[1] = bocardo__current_y[1] = 0;
 
