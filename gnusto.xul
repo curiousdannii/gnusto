@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.21 2003/04/15 23:05:38 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.22 2003/04/18 22:45:57 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -30,6 +30,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 	persist="width height sizemode"
 	width="640" height="480"
 	onload="ensureHappiness();start_up();">
+
+<script type="application/x-javascript"><![CDATA[
+
+// Function to check that all the parts of the program loaded.
+// Each source file defines FOO_HAPPY = 1 at the end; if there
+// was a compilation error, it won't be defined. (Not beautiful;
+// the environment should do this for us, really.)
+function ensureHappiness() {
+
+   // In case we don't have gnusto_error yet:
+   function complain(details) {
+      if ("gnusto_error" in window) {
+         gnusto_error(300, details);
+      } else {
+         alert('Gnusto error 300: '+details);
+      }
+   }
+
+   var parts = [
+      'MOZILLA_GLUE',
+      'GNUSTO_LIB',
+      'TOSSIO',
+      'UPPER',
+      'VENKMAN_MSG',
+      'BAF',
+      'BARBARIX',
+   ];
+
+
+   for (var i in parts) {
+      var check = parts[i] + "_HAPPY";
+
+      try {
+         alert(check);
+         if (!(check in window) || eval(check)!=1)
+            complain(check);
+      } catch (e) {
+	 complain(check+' / '+e.toString());
+      }
+   }
+}
+
+]]></script>
 
 <!-- String bundles, for property handling. -->
 <script type="application/x-javascript" src="chrome://global/content/strres.js"/>
