@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.64 2003/04/27 20:03:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.65 2003/04/27 21:51:33 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -42,43 +42,10 @@ function setbyte(value, address) { zbytes[address] = value; }
 
 ////////////////////////////////////////////////////////////////
 
-function gnustoglue_soundeffect(number, effect, volume, callback) {
+function glue__sound_effect(number, effect, volume, callback) {
 		// all sound-effects are just beeps to us at present.
 		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
 		sound.beep();
-}
-
-function gnustoglue_split_window(lines) {
-		win_set_top_window_size(lines);
-}
-
-function gnustoglue_erase_window(w) {
-
-		switch (w) {
-
-		case 1: // clear upper window
-				win_clear(1);
-				break;
-
-		case 0: // clear lower window
-				win_clear(0);
-				break;
-
-		case -2: // clear both
-				win_clear(0);
-				win_clear(1);
-				break;
-
-		case -1: // clear both and unsplit
-				gnustoglue_split_window(0);
-				win_clear(0);
-				win_clear(1);
-				break;
-
-		default: // weird
-				gnusto_error(303, w);
-		}
-
 }
 
 var glue__chalk_overflow = 0;
@@ -196,12 +163,12 @@ function go_wrapper(answer, no_first_call) {
 
         case GNUSTO_EFFECT_SOUND:
 						p = engine_effect_parameters();
-						gnustoglue_soundeffect(p[0], p[1], p[2], p[3], p[4]);
+						glue__sound_effect(p[0], p[1], p[2], p[3], p[4]);
 						looping = 1;
 						break;
 
         case GNUSTO_EFFECT_SPLITWINDOW:
-						gnustoglue_split_window(engine_effect_parameters());
+						win_set_top_window_size(engine_effect_parameters());
 						looping = 1;
 						break;
 
@@ -219,7 +186,7 @@ function go_wrapper(answer, no_first_call) {
 						break;
 
         case GNUSTO_EFFECT_ERASEWINDOW:
-						gnustoglue_erase_window(engine_effect_parameters());
+						win_clear(engine_effect_parameters());
 						looping = 1;
 						break;
 
