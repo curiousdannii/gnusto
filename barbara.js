@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.8 2003/05/04 22:30:45 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.9 2003/05/05 02:31:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -156,8 +156,19 @@ function barbara_chalk(text) {
 				barbara__holder.
 						appendChild(document.createTextNode(lines[i]));
 		}
+}
 
-		return '';
+////////////////////////////////////////////////////////////////
+
+function barbara_more() {
+
+}
+
+////////////////////////////////////////////////////////////////
+
+function barbara_waiting_for_more() {
+		// Stub function for stability:
+		return false;
 }
 
 ////////////////////////////////////////////////////////////////

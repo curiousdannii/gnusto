@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.71 2003/05/04 22:30:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.72 2003/05/05 02:31:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -33,6 +33,11 @@ var zbytes = [];
 var ignore_errors = {
 		706: 1, // Work around a bug in Library 15/2 (see bug 3314)
    };
+
+// The reason that go_wrapper stopped last time. This is
+// global because other parts of the program might want to know--
+// for example, to disable input boxes.
+var glue__reason_for_stopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
 
 ////////////////////////////////////////////////////////////////
 
@@ -73,53 +78,29 @@ function glue__sound_effect(number, effect, volume, callback) {
 		glue__beep();
 }
 
-var glue__chalk_overflow = 0;
-var glue__effect_before_more_prompt = 0;
-
 // Convenience wrapper for win_chalk().
 function glue_print(text) {
 		return win_chalk(current_window, text);
 }
 
-// The reason that go_wrapper stopped last time. This is
-// global because other parts of the program might want to know--
-// for example, to disable input boxes.
-var reasonForStopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
-
-function go_wrapper(answer, no_first_call) {
+function go_wrapper(answer) {
 
     var looping;
 		var p; // variable to hold parameters temporarily below
 
 		// If we stopped on a breakpoint last time, fix it up.
-		if (reasonForStopping == GNUSTO_EFFECT_BREAKPOINT && breakpoints[pc]) {
+		if (glue__reason_for_stopping == GNUSTO_EFFECT_BREAKPOINT && breakpoints[pc]) {
 				breakpoints[pc]=2; // So it won't trigger immediately we run.
 		}
 	
     do {
 				looping = 0; // By default, we stop.
 
-				if (no_first_call) {
+				glue__reason_for_stopping = go(answer);
 
-						// bah, I'm so going to remove NFC when I get this fixed
+				glue_print(engine_console_text());
 
-						glue__chalk_overflow = glue_print(glue__chalk_overflow);
-						no_first_call = 0;
-				} else {
-						reasonForStopping = go(answer);
-
-						glue__chalk_overflow = glue_print(engine_console_text());
-				}
-
-				/* Removed for the moment -- tjat2
-				if (glue__chalk_overflow != '') {
-						// Not how we'll always do it, but OK for now.
-						document.getElementById("input").value =
-								' [ Press space for more ]';
-						return;
-				}*/
-
-				switch (reasonForStopping) {
+				switch (glue__reason_for_stopping) {
 
 				case GNUSTO_EFFECT_WIMP_OUT:
 						if (!single_step) {
@@ -232,6 +213,7 @@ function go_wrapper(answer, no_first_call) {
 
         case GNUSTO_EFFECT_SETCURSOR:
 
+						// FIXME: this looks prehistoric
 						if (current_window==1) {
 
 								// @set_cursor has no effect on the lower window.
@@ -262,7 +244,7 @@ function go_wrapper(answer, no_first_call) {
 
 				default:
 						// give up: it's nothing we know
-						gnusto_error(304, "0x"+reasonForStopping.toString(16));
+						gnusto_error(304, "0x"+glue__reason_for_stopping.toString(16));
 				}
     } while (looping);
 
@@ -338,7 +320,17 @@ function play() {
 
 function gotInput(e) {
 
-		if (reasonForStopping==GNUSTO_EFFECT_INPUT) {
+		if (win_waiting_for_more()) {
+
+				if (e.keyCode==0) {
+						// Any ordinary character is OK for us to scroll.
+						win_more();
+				}
+
+				return false;
+		}
+
+		if (glue__reason_for_stopping==GNUSTO_EFFECT_INPUT) {
 
 				var current = win_get_input();
 
@@ -398,7 +390,7 @@ function gotInput(e) {
 
 				return false;
 
-		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
+		} else if (glue__reason_for_stopping==GNUSTO_EFFECT_INPUT_CHAR) {
 
 				if (e.keyCode==0) {
 						var code = e.charCode;

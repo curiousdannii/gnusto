@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.9 2003/05/04 23:39:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.10 2003/05/05 02:31:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -22,8 +22,12 @@
 
 ////////////////////////////////////////////////////////////////
 
-// Perhaps we might want to let people use Bocardo throughout--
-// I'm not sure, really.
+// Note: This will, perhaps, one day support both:
+//  1) the use of Bocardo for the upper screen and Barbara for the lower
+//  2) the use of Bocardo for both
+// The variable |baroco__enable_barbara| switches between these.
+// At present, only 1) is supported, though.
+
 var baroco__enable_barbara = true;
 
 ////////////////////////////////////////////////////////////////
@@ -263,9 +267,9 @@ function win_set_text_style(style, foreground, background) {
 		// Handle styles:
 
 		if (style & 0x1) // Reverse video.
-				css = 'b' + fg_code + ' f'+bg_code;
+				css = 'b' + fg_code + ' f' + bg_code;
 		else
-				css = 'f' + fg_code + ' b'+bg_code;
+				css = 'f' + fg_code + ' b' + bg_code;
 
 		if (style & 0x2) css = css + ' sb'; // bold
 		if (style & 0x4) css = css + ' si'; // italic
@@ -277,6 +281,18 @@ function win_set_text_style(style, foreground, background) {
 
 		barbara_set_text_style(css);
 		bocardo_set_text_style(css);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_more() {
+		barbara_more();
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_waiting_for_more() {
+		return barbara_waiting_for_more();
 }
 
 ////////////////////////////////////////////////////////////////
