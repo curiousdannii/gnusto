@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.3 2003/09/15 02:19:16 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.4 2003/09/15 02:56:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 02:19:16 $';
+const CVS_VERSION = '$Date: 2003/09/15 02:56:43 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -38,6 +38,38 @@ const CHILD_REC = 10;
 //
 //       STUFF FROM GNUSTO-LIB WHICH STILL NEEDS MERGING IN
 //
+////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////
+////// Golden trail handlers
+////
+////  function golden_print(text) {
+////  var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
+////  transcription_file.write(text, text.length);
+////  transcription_file.close();
+////  }
+////function golden_trail(addr) {
+////  var text = '\npc : '+addr.toString(16);
+////  print(text);*/
+////burin('gold',text);
+////
+////// Extra debugging information which may sometimes be useful
+////var v = 0;
+////
+////for (var jj=0; jj<16; jj++) {
+////v = locals[jj] & 65535;
+////text = text + ' '+jj.toString(16)+'='+v.toString(16);
+////}
+////
+////if (gamestack.length!=0) {
+////v = gamestack[gamestack.length-1] & 65535;
+////text = text + ' s='+v.toString(16);
+////}
+////
+////text = text + '\n';
+////golden_print(text);
+////}
+
 ////////////////////////////////////////////////////////////////
 
 var default_unicode_translation_table = {
@@ -1782,40 +1814,6 @@ GnustoEngine.prototype = {
 			return 0; // Well, duh.
 	},
 
-/*
-  function golden_print(text) {
-  var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
-  transcription_file.write(text, text.length);
-  transcription_file.close();
-  }
-*/
-/*function golden_trail(addr) {
-  var text = '\npc : '+addr.toString(16);
-  print(text);*/
-/*burin('gold',text);
-
-// Extra debugging information which may sometimes be useful
-var v = 0;
-
-for (var jj=0; jj<16; jj++) {
-v = locals[jj] & 65535;
-text = text + ' '+jj.toString(16)+'='+v.toString(16);
-}
-
-if (gamestack.length!=0) {
-v = gamestack[gamestack.length-1] & 65535;
-text = text + ' s='+v.toString(16);
-}
-
-text = text + '\n';
-golden_print(text);*/
-/*}*/
-
-////////////////////////////////////////////////////////////////
-// Library functions
-
-//@@@
-
 	_trunc_divide: function ge_trunc_divide(over, under) {
 	
 			var result;
@@ -1890,8 +1888,8 @@ golden_print(text);*/
 						use_seed = 1;
 						return 0;
 				}
-		},
-	}
+		}
+	},
 
 	_func_prologue: function ge_func_prologue(actuals) {
 			var count = this.getByte(this.m_pc++);
