@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.19 2003/03/09 22:52:03 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.20 2003/03/12 22:55:05 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -961,11 +961,16 @@ function look_up(word) {
 		return 0;
 }
 
+// Tokenises a string.
+//
 // See aread() for caveats.
 // Maybe we should allow aread() to pass in the correct value stored
 // in text_buffer, since it knows it already. It means we don't have
 // to figure it out ourselves.
 function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
+
+		// Some of the more esoteric options aren't yet supported.
+
 		if (dictionary) gnusto_error(101, 'no user dictionaries yet', dictionary);
 		if (overwrite) gnusto_error(101, 'no overwrite yet');
 
@@ -995,6 +1000,9 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				setbyte(getbyte(words_count)+1, words_count);
 		}
 
+		// Return the ASCII value for the Enter key. tokenise() is supposed
+		// to return the value of the key which terminated the string, but
+		// at present we only support termination using Enter.
 		return 10;
 }
 
@@ -1013,6 +1021,11 @@ function aread(source, text_buffer, parse_buffer) {
 		if (parse_buffer!=0)
 				tokenise(text_buffer, parse_buffer, 0, 0);
 
+		// Return the ASCII value for the Enter key. aread() is supposed
+		// to return the value of the key which terminated the string, but
+		// at present we only support termination using Enter.
+		// (Later, we probably want to return the result of the call to
+		// tokenise() above.)
 		return 10;
 }
 
