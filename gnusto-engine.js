@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.78 2003/06/14 06:29:53 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.79 2003/06/19 22:59:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1285,6 +1285,11 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 //
 function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
+		if (isNaN(dictionary)) dictionary = 0;
+		if (isNaN(overwrite)) overwrite = 0;
+
+		burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
+
 		function look_up(word, dict_addr) {
 
 				var separator_count = zGetByte(dict_addr);
@@ -1344,6 +1349,8 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		for (var i in words) {
 
 				var lexical = look_up(words[i], dictionary);
+
+				burin('token', words[i]+' '+lexical);
 
 				if (!(overwrite && lexical==0)) {
 						zSetWord(lexical, cursor);
@@ -1920,6 +1927,7 @@ function engine_start_game(memory) {
 // |answer| is for returning answers to earlier effect codes. If you're
 // not answering an effect code, pass 0 here.
 function engine_run(answer) {
+		burin('run', answer);
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
