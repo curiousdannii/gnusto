@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.29 2003/03/26 00:46:52 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.30 2003/03/26 01:26:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -529,8 +529,16 @@ var handlers = {
 		141: function(a) { // print_paddr
 				return "output(zscii_from("+pc_translate(a[0])+"))";
 		},
-		// code_for_varcode() problem!
-		// not implemented:  *     1OP:142 E       load (variable) -> (result)               load '"},
+		142: function(a) { // load
+
+				// Warning: This has never been tested, since Inform does
+				// not generate this opcode. If you're able to test it,
+				// please report the results at
+				// <http://mozdev.org/bugs/show_bug.cgi?id=3468>.
+
+				var c=code_for_varcode(a[0]);
+				return storer(c);
+		},
 		143: function(a) { // call_1n
 				// can we use simple_call here, too?
 				compiling=0; // Got to stop after this.
