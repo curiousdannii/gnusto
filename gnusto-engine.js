@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.77 2003/06/13 22:00:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.78 2003/06/14 06:29:53 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -832,7 +832,6 @@ var handlers = {
 		},
 
 		243: function Z_output_stream(a) {
-				compiling=0;
 				return 'set_output_stream('+a[0]+','+a[1]+')';
 		},
 
