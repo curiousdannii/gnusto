@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.61 2003/11/28 18:18:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.62 2003/11/28 22:40:10 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/28 18:18:02 $';
+const CVS_VERSION = '$Date: 2003/11/28 22:40:10 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -468,7 +468,7 @@ function handleZ_catch(engine, a) {
 }
 
 function handleZ_pop(engine, a) {
-    gnusto_error(101, "v3 feature not yet implemented");
+    return "m_gamestack.pop()";
 }
 
 function handleZ_quit(engine, a) {
@@ -483,7 +483,7 @@ function handleZ_new_line(engine, a) {
 }
 		
 function handleZ_show_status(engine, a){ //(illegal from V4 onward)
-    gnusto_error(101, "v3 feature not yet implemented");
+    gnusto_error(101, "v3 feature not yet implemented (show_status)");
 }
 
 function handleZ_verify(engine, a) {
@@ -757,7 +757,7 @@ function handleZ_check_arg_count(engine, a) {
   }
 
 function handleZ_saveV1234(engine, a) {
-    gnusto_error(101, "v3 feature not yet implemented");
+    gnusto_error(101, "v3 feature not yet implemented (save)");
 }
 
 function handleZ_saveV5678(engine, a) {
@@ -769,7 +769,7 @@ function handleZ_saveV5678(engine, a) {
 }
 		
 function handleZ_restoreV1234(engine, a) {
-    gnusto_error(101, "v3 feature not yet implemented");
+    gnusto_error(101, "v3 feature not yet implemented (restore)");
 }
 
 function handleZ_restoreV5678(engine, a) {
