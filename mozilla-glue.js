@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.35 2003/04/03 16:47:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.36 2003/04/04 04:45:01 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -48,8 +48,6 @@ function ensureHappiness() {
 		ensureOneFile('VENKMAN_MSG_HAPPY');
 }
 
-var upperWindow = 0;
-var lowerWindow = 0;
 var current_text_holder = 0;
 var current_window = 0;
 
@@ -167,10 +165,10 @@ function gnustoglue_output(what) {
 
 function output_flush() {
 		for (var i=0; i<2; i++) {
-				chalk(i, 0, 0, 0, window_buffers[i]);
+				win_chalk(i, 0, 0, 0, window_buffers[i]);
 				window_buffers[i] = '';
 		}
- 		window.frames[1].scrollTo(0, lowerWindow.height);
+ 		/* FIXME: probably delete: window.frames[1].scrollTo(0, lowerWindow.height); */
 }
 
 function gnustoglue_soundeffect(number, effect, volume, callback) {
@@ -251,8 +249,7 @@ function gnustoglue_set_text_style(style, foreground, background) {
 }
 
 function gnustoglue_split_window(lines) {
-    /* FIXME: u_setup(80, lines);
-			 set_upper_window(); */
+		win_set_top_window_size(lines);
 }
 
 function gnustoglue_set_buffer_mode(whether) {
@@ -303,8 +300,11 @@ function gnustoglue_erase_window(w) {
 }
 
 function gnustoglue_set_cursor(y, x) {
-		output_flush();
-		gotoxy(current_window, x-1, y-1);
+		if (current_window==1) {
+				// @set_cursor has no effect on the lower window.
+				output_flush();
+				win_gotoxy(current_window, x-1, y-1);
+		}
 }
 
 // The reason that go_wrapper stopped last time. This is
@@ -338,7 +338,6 @@ function go_wrapper(answer) {
 						// we know how to do this.
 						// Just bail out of here.
 				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT_CHAR) {
-						TEMPdumpscreens();
 						// similar
 				} else if (reasonForStopping == GNUSTO_EFFECT_SAVE) {
 						// nope
@@ -387,28 +386,10 @@ function go_wrapper(answer) {
 		}
 }
 
-/*
-function set_upper_window() {
-		 FIXME
-    var upper = document.getElementById("upper");
-
-    while (upper.hasChildNodes())
-				upper.removeChild(upper.lastChild);
-
-    upper.appendChild(
-											document.createTextNode(u_preformatted()));
-}
-*/
-
 function start_up() {
 		document.getElementById('input').focus();
 
-		window_setup();
-		upperWindow = frames[0].document;
-    lowerWindow = frames[1].document;
-
-		/*    u_setup(80,0);
-					set_upper_window();*/
+		win_setup();
 
     gnustoglue_set_text_style(0, 1, 1);
 }

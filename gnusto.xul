@@ -95,10 +95,10 @@
 <vbox flex="1">
 
 <vbox flex="1">
-<iframe flex="0" id="upper" type="content-primary" src="lower.html"/>
-<iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
+<iframe flex="9" id="screen" type="content-primary" src="lower.html"/>
 
-<textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
+<textbox flex="0" id="input" onkeypress="return gotInput(event);"/>
+<!-- try{return gotInput(event);}catch(e){deal_with_exception(e)}" -->
 </vbox>
 
 <splitter status="open" id="dissembly-split" hidden="true" collapse="before"><grippy/></splitter>

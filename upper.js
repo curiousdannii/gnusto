@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.12 2003/04/03 16:47:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.13 2003/04/04 04:45:01 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -25,54 +25,39 @@
 var UPPER_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
 
-var window_documents = [];
-var windows = [];
-var window_current_x = [];
-var window_current_y = [];
+var win__screen_doc = 0;
+var win__screen_window = 0;
+var win__current_x = [];
+var win__current_y = [];
+var win__top_window_height = 0;
 
-function window_setup() {
-    window_documents[0] = frames[1].document;
-    window_documents[1] = frames[0].document;
+// FIXME: We need some way of figuring out the font size,
+// especially relative to the screen width and height.
+// For now, we'll assume the screen is 80x25.
 
-    windows[0] = window_documents[0].getElementById('text');
-    windows[1] = window_documents[1].getElementById('text');
+var win__screen_width = 80;
+var win__screen_height = 25;
 
-    window_current_x[0] = window_current_y[0] = 0;
-    window_current_x[1] = window_current_y[1] = 0;
+////////////////////////////////////////////////////////////////
+
+function win_setup() {
+    win__screen_doc = frames[0].document;
+
+    win__screen_window = win__screen_doc.getElementById('text');
+
+    win__current_x[0] = win__current_y[0] = 0;
+    win__current_x[1] = win__current_y[1] = 0;
+
+		win_set_top_window_size(0);
 }
 
 ////////////////////////////////////////////////////////////////
 
-function Tds(obj, ind) {
-		var s = '';
-		for (var i=0; i<ind; i++) { s = s + ' : '; }
+function win_chalk(win, fg, bg, style, text) {
 
-		gnustoglue_transcribe(s+obj.length+'\n');
-		for (var j=0; j<obj.length; j++) {
-				gnustoglue_transcribe(s+obj[j]+'\n');
-				if (obj[j].data) { gnustoglue_transcribe(s+'::'+obj[j].data+'--'+obj[j].data.length+'\n'); }
-				if (obj[j].childNodes) { Tds(obj[j].childNodes, ind+1); }
-		}
-}
-
-function TEMPdumpscreens() {
-		gnustoglue_transcribe('-- TEMPdumpscreens --\n');
-
-		Tds(windows[0].childNodes, 0);
-		Tds(windows[1].childNodes, 0);
-}
-
-////////////////////////////////////////////////////////////////
-
-function chalk(win, fg, bg, style, text) {
-
-    // This function is written in terms of subchalk(). All *we*
+    // This function is written in terms of win__subchalk(). All *we*
     // have to do is split up |text| so that it never goes
     // over the edge of the screen, and break at newlines.
-
-    // FIXME: We need some way of figuring out the font size,
-    // especially relative to the screen width and height.
-    // For now, we'll assume the screen is 80 characters wide.
 
     text = text.toString().split('\n');
 
@@ -82,11 +67,11 @@ function chalk(win, fg, bg, style, text) {
 
 				do {
 
-						if (message.length > (80 - window_current_x[win])) {
+						if (message.length > (win__screen_width - win__current_x[win])) {
 								
 								// The message is longer than the rest of this line.
 
-								var amount = 80 - window_current_x[win];
+								var amount = win__screen_width - win__current_x[win];
 								
 								// Fairly pathetic wordwrap. FIXME: replace later
 								// with a better dynamic programming algorithm.
@@ -98,34 +83,69 @@ function chalk(win, fg, bg, style, text) {
 								if (amount==0) {
 										// ah, whatever, just put it back and forget the
 										// wordwrap.
-										amount = 80 - window_current_x[win];
+										amount = win__screen_width - win__current_x[win];
 								}
 
-								subchalk(win, fg, bg, style, message.substring(0, amount));
+								win__subchalk(win, fg, bg, style, message.substring(0, amount));
 								
-								window_current_x[win] = 0;
-								window_current_y[win]++;
+								win__current_x[win] = 0;
+								win__current_y[win]++;
 								message = message.substring(amount+1);
 						} else {
 								
 								// The message is shorter.
 
-								subchalk(win, fg, bg, style, message);
-								window_current_x[win] += message.length;
+								win__subchalk(win, fg, bg, style, message);
+								win__current_x[win] += message.length;
 								message = '';
 						}
 				} while (message!='');
 
 				if (line<text.length-1) {
-						window_current_x[win] = 0;
-						window_current_y[win]++;
+						win__current_x[win] = 0;
+
+						// Now move to the next line. What that means depends on
+						// which window we're on.
+
+						win__current_y[win]++;
+
+						if (win==0) {
+								// We hit the bottom of the lower window.
+								// Try for a scroll.
+								
+								while (win__current_y[0]>=win__screen_height) {
+										win__screen_window.removeChild(win__screen_window.childNodes[win__top_window_height]);
+										win__current_y[win]--; // Get back onto the screen
+								}
+
+						} else if (win==1 && win__current_y[1]==win__top_window_height) {
+								// We hit the bottom of the top window.
+								// The z-spec leaves the behaviour undefined, but suggests
+								// that we leave the cursor where it is. Frotz's behaviour
+								// is more easy to mimic: it simply wraps back to the top.
+
+								win_current_y[1] = 0;
+						}
 				}
     }
 }
 
 ////////////////////////////////////////////////////////////////
 
-function subchalk(win, fg, bg, style, text) {
+function win_set_top_window_size(lines) {
+		win__top_window_height = lines;
+}
+
+////////////////////////////////////////////////////////////////
+//
+//                      Private functions
+//
+////////////////////////////////////////////////////////////////
+
+function win__subchalk(win, fg, bg, style, text) {
+
+		var x = win__current_x[win];
+		var y = win__current_y[win];
 
     // Firstly, decide on the CSS styles we're going to
     // use in this section.
@@ -133,25 +153,22 @@ function subchalk(win, fg, bg, style, text) {
     // Don't bother for now, but FIXME: do later.
     var css_styles = '';
 
-    // Secondly... FIXME: Here we will need a translation for the lower window.
-    // A request to write on line N is mapped to a request to write
-    // on the topmost visible line plus N, if there's more lines
-    // than fit on the screen.
-
     // Thirdly, let's get a handle on the line we want
     // to modify.
 
-    var lines = windows[win].childNodes;
+    var lines = win__screen_window.childNodes;
 
     // Fourthly, if the line doesn't yet exist we must create it.
-    while (lines.length <= window_current_y[win]) {
-				windows[win].appendChild(window_documents[win].createElement('div'));
+    // FIXME: possibly this will become redundant when we handle
+    // dynamic screen resizing.
+    while (lines.length <= y) {
+				win__screen_window.appendChild(win__screen_doc.createElement('div'));
     }
 
     // Fifthly, we delete any bits of that line we're going to overwrite,
 		// and work out where to insert the new span. The line consists of a
 		// number of spans plus a carriage return (which we should ignore).
-    var current_line = lines[window_current_y[win]];
+    var current_line = lines[y];
 
 		var spans = current_line.childNodes;
 
@@ -160,7 +177,7 @@ function subchalk(win, fg, bg, style, text) {
 
 		// Go past all the spans before us.
 
-		while (cursor<spans.length && charactersSeen+spans[cursor].childNodes[0].data.length <= window_current_x[win]) {
+		while (cursor<spans.length && charactersSeen+spans[cursor].childNodes[0].data.length <= x) {
 				charactersSeen += spans[cursor].childNodes[0].data.length;
 				cursor++;
 		} 
@@ -175,13 +192,13 @@ function subchalk(win, fg, bg, style, text) {
 
 		if (cursor==spans.length) {
 
-				if (charactersSeen < window_current_x[win]) {
+				if (charactersSeen < x) {
 						// There aren't enough characters to go round. We
 						// must add extra spaces to the start of the text.
 						// FIXME: this is wrong; we should add them to
 						// the end of the last span.
 
-						for (var i=0; i<(window_current_x[win]-charactersSeen); i++) {
+						for (var i=0; i<(x-charactersSeen); i++) {
 								text = ' '+text;
 						}
 				}
@@ -189,12 +206,12 @@ function subchalk(win, fg, bg, style, text) {
 				// Just append the text.
 
 		} else {
-				if (charactersSeen < window_current_x[win]) {
+				if (charactersSeen < x) {
 
 						// We've seen fewer characters than we were expecting, so the
 						// last span is over-long: we must trim it.
 
-						var amountToKeep = window_current_x[win] - charactersSeen;
+						var amountToKeep = x - charactersSeen;
 
 						if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
 								// The whole of the new text fits within this node. Let's keep this
@@ -245,8 +262,8 @@ function subchalk(win, fg, bg, style, text) {
 		}
 
 		// ..and append our text.
-		var newSpan = window_documents[win].createElement('span');
-		newSpan.appendChild(window_documents[win].createTextNode(text));
+		var newSpan = win__screen_doc.createElement('span');
+		newSpan.appendChild(win__screen_doc.createTextNode(text));
 
 		if (appendPoint == -1) {
 				current_line.appendChild(newSpan);
@@ -259,17 +276,23 @@ function subchalk(win, fg, bg, style, text) {
 
 // Clears a window. |win| must be a valid window ID.
 function clear_window(win) {
-		// Inefficient, but it works for now:
-		while (windows[win].childNodes.length!=0) {
-				windows[win].removeChild(windows[win].childNodes[0]);
+		// Inefficient, but it works for now.
+
+		// FIXME: it no longer works.
+
+		while (win__screen_window.childNodes.length!=0) {
+				win__screen_window.removeChild(win__screen_window.childNodes[0]);
 		}
+
+		win__current_x[win] = 0;
+		win__current_y[win] = 0;
 }
 
 ////////////////////////////////////////////////////////////////
 
-function gotoxy(win, x, y) {
-		window_current_x[win] = x;
-		window_current_y[win] = y;
+function win_gotoxy(win, x, y) {
+		win__current_x[win] = x;
+		win__current_y[win] = y;
 }
 
 ////////////////////////////////////////////////////////////////
