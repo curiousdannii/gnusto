@@ -3,16 +3,16 @@
 // troll.js
 //
 // troll.z5 by Dylan O'Donnell <psmith@spod-central.org>, as a
-// byte array. Doing it this way means we don't have to depend
-// on JS libraries for now.
+// byte array. (Jslib has trouble loading binary files at present,
+// and this is a safe workaround for now.)
 //
 // Distributed under the same terms as the original: "Freeware.
 // Do with it what you will, bar hacking it about and not saying
 // that you've done so."
 //
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/troll.js,v 1.2 2003/02/04 21:40:32 marnanel Exp $
+//
 ////////////////////////////////////////////////////////////////
-
-//print('Loading the game.');
 
 zbytes=[
 5,0,0,3,41,68,41,69,29,134,1,10,11,39,22,24,0,16,57,56,48,53,
