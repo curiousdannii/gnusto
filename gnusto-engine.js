@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.71 2003/05/26 18:55:28 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.72 2003/05/30 13:32:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -25,7 +25,7 @@
 /////////////////////// Global variables ///////////////////////
 ////////////////////////////////////////////////////////////////
 
-// These are all initialised in the function setup().
+// These are all initialised in the function engine_start_game().
 
 // |jit| is a cache for the results of dissemble(): it maps
 // memory locations to JS function objects. Theoretically,
@@ -132,10 +132,10 @@ var param_counts;
 // addresses enables us to print a call stack.
 var result_eaters;
 
-// The function object to run first next time go() gets called,
+// The function object to run first next time engine_run() gets called,
 // before any other execution gets under way. Its argument will be the
-// |answer| formal parameter of go(). It can also be 0, which
-// is a no-op. go() will clear it to 0 after running it, whatever
+// |answer| formal parameter of engine_run(). It can also be 0, which
+// is a no-op. engine_run() will clear it to 0 after running it, whatever
 // happens.
 var rebound;
 
@@ -159,7 +159,7 @@ var streamthrees;
 var output_to_script;
 
 // FIXME: Clarify the distinction here
-// If this is 1, go() will "wimp out" after every opcode.
+// If this is 1, engine_run() will "wimp out" after every opcode.
 var single_step = 0;
 var debug_mode = 0;
 var parser_debugging = 0;
@@ -309,7 +309,7 @@ function storer(rvalue) {
 }
 
 ////////////////////////////////////////////////////////////////
-// Effect codes, returned from go(). See the explanation below
+// Effect codes, returned from engine_run(). See the explanation below
 // for |handlers|.
 
 // Returned when we're expecting a line of keyboard input.
@@ -1766,14 +1766,14 @@ function engine__print_table(address, width, height, skip) {
 
 ////////////////////////////////////////////////////////////////
 
-// setup()
+// engine_start_game()
 //
 // Initialises global variables.
 //
 // Since this function reads certain values out of the Z-machine's
 // memory, the story must be loaded before this function is called.
 
-function setup() {
+function engine_start_game() {
 		jit = [];
 		compiling = 0;
 		gamestack = [];
@@ -1854,8 +1854,8 @@ function setup() {
 
 ////////////////////////////////////////////////////////////////
 
-// Main point of entry for gnusto. Be sure to call setup() before calling
-// this the first time.
+// Main point of entry for gnusto. Be sure to call engine_start_game()
+// before calling this the first time.
 //
 // This function returns an effect code when the machine pauses, stating
 // why the machine was paused. More details, and the actual values, are
@@ -1863,7 +1863,7 @@ function setup() {
 // 
 // |answer| is for returning answers to earlier effect codes. If you're
 // not answering an effect code, pass 0 here.
-function go(answer) {
+function engine_run(answer) {
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
@@ -2119,7 +2119,7 @@ var engine__printing_header_bits = 0;
 
 ////////////////////////////////////////////////////////////////
 //
-// Leftover text which should be printed next go(), since
+// Leftover text which should be printed next engine_run(), since
 // we couldn't print it this time because the flags had
 // changed.
 

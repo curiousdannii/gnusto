@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.83 2003/05/27 05:03:33 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.84 2003/05/30 13:32:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -118,7 +118,7 @@ function go_wrapper(answer) {
     do {
 				looping = 0; // By default, we stop.
 
-				glue__reason_for_stopping = go(answer);
+				glue__reason_for_stopping = engine_run(answer);
 
 				burin('effect', glue__reason_for_stopping.toString(16));
 
@@ -411,15 +411,13 @@ function start_up() {
 
 }
 
-function win_generally_start_game() {
+function play() {
+
 		win_start_game();
 		barbara_start_game();
 		bocardo_start_game();
-}
 
-function play() {
-		win_start_game();
-    setup();
+    engine_start_game();
 
 		if (!single_step) {
 				go_wrapper(0);
