@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.55 2003/04/20 12:23:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.56 2003/04/20 20:17:18 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -689,6 +689,11 @@ function gotInput(event) {
 						case  40 : go_wrapper(130); break;
 
 								// Function keys
+								// Note: WinFrotz requires the user to
+								// press Ctrl-F<n>, so that F<n> can
+								// be used for their usual Windows functions
+								// (in particular, so that F1 can still
+								// invoke help).
 						case 112 : go_wrapper(133); break;
 						case 113 : go_wrapper(134); break;
 						case 114 : go_wrapper(135); break;
