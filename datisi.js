@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.16 2003/06/22 07:24:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.17 2003/07/09 22:53:32 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -173,44 +173,44 @@ function load_from_file(file) {
 
 ////////////////////////////////////////////////////////////////
 
+function datisi__set_up_header(content) {
+
+		// We're required to modify some bits
+		// according to what we're able to supply.
+		content[0x01]  = 0x1D; // Flags 1
+		content[0x11] &= 0x47;
+
+		// It's not at all clear what architecture
+		// we should claim to be. We could decide to
+		// be the closest to the real machine
+		// we're running on (6=PC, 3=Mac, and so on),
+		// but the story won't be able to tell the
+		// difference because of the thick layers of
+		// interpreters between us and the metal.
+		// At least, we hope it won't.
+
+		content[0x1E] = 1;   // uh, let's be a vax.
+		content[0x1F] = 103; // little "g" for gnusto
+		
+		// Put in some default screen values here until we can
+		// set them properly later.
+		// For now, units are characters. Later they'll be pixels.
+
+		content[0x20] = 25; // screen height, characters
+		content[0x21] = 80; // screen width, characters
+		content[0x22] = 25; // screen width, units
+		content[0x23] = 0;
+		content[0x24] = 80; // screen height, units
+		content[0x25] = 0;
+		content[0x26] = 1; // font width, units
+		content[0x27] = 1; // font height, units
+
+		return content;
+}
+
+////////////////////////////////////////////////////////////////
+
 function dealWith(content) {
-
-		function loadAsZCode(content) {
-						
-				// We're required to modify some bits
-				// according to what we're able to supply.
-				content[0x01]  = 0x1D; // Flags 1
-				content[0x11] &= 0x47;
-
-				// It's not at all clear what architecture
-				// we should claim to be. We could decide to
-				// be the closest to the real machine
-				// we're running on (6=PC, 3=Mac, and so on),
-				// but the story won't be able to tell the
-				// difference because of the thick layers of
-				// interpreters between us and the metal.
-				// At least, we hope it won't.
-
-				content[0x1E] = 1;   // uh, let's be a vax.
-				content[0x1F] = 103; // little "g" for gnusto
-
-				// Put in some default screen values here until we can
-				// set them properly later.
-				// For now, units are characters. Later they'll be pixels.
-
-				content[0x20] = 25; // screen height, characters
-				content[0x21] = 80; // screen width, characters
-				content[0x22] = 25; // screen width, units
-				content[0x23] = 0;
-				content[0x24] = 80; // screen height, units
-				content[0x25] = 0;
-				content[0x26] = 1; // font width, units
-				content[0x27] = 1; // font height, units
-
-				glue_play(content);
-				
-				return 1;
-		}
 
 		// Okay. Our task now is to find what kind of file we've been handed,
 		// and to deal with it accordingly.
@@ -218,7 +218,9 @@ function dealWith(content) {
 		if (content[0]==5) {
 				
 				// Looks like a .z5 file, so let's go ahead.
-				return loadAsZCode(content);
+				glue_play(datisi__set_up_header(content));
+
+				return 1;
 
 		} else if (content[0]==70 && content[1]==79 &&
 							 content[2]==82 && content[3]==77) {
@@ -319,6 +321,74 @@ function command_open(a) {
 				sys_notify_of_load(filename);
 				sys_show_story_title(filename);
 		}
+}
+
+////////////////////////////////////////////////////////////////
+
+var selftest_count_total;
+var selftest_count_pass;
+
+function command_openselftest(a) {
+		var selftest =
+				Components.classes['@mozilla.org/file/directory_service;1'].
+				getService(Components.interfaces.nsIProperties).
+				get("AChrom", Components.interfaces.nsIFile);
+
+		selftest.append('gnusto');
+		selftest.append('content');
+		selftest.append('otsung.z5');
+
+		if (!selftest.exists()) {
+				alert('error: no self test (FIXME: make this a proper error');
+		}
+
+		var content = datisi__set_up_header(load_from_file(selftest));
+
+		selftest_count_total = 0;
+		selftest_count_pass = 0;
+		window.special_instruction_EXT177 = selftest_generator;
+		content[0x32]  = 103; // Set the magic self-test value.
+
+		glue_play(content);
+}
+
+function selftest_generator(a) {
+	  return storer('selftest_handler('+a[0]+','+a[1]+')');
+}
+
+function selftest_handler(subfunc, stuff) {
+
+		switch(subfunc) {
+		case 1:
+				// ... alert(zscii_from(stuff*4, 65535)+' begins');	
+				selftest_count_total++;
+				return 0;
+
+		case 2:
+				if (stuff) {
+						selftest_count_pass++;
+				}
+				return 0;
+
+		case 3:
+				{
+						var r = eval(zscii_from(stuff*4));
+						if (r)
+								return r;
+						else
+								return 0;
+				}
+
+		default:
+				// FIXME: proper error number
+				alert('weird subfunc in self test - '+subfunc);
+				return 999;
+		}
+}
+
+function selftest_wrap_up(a) {
+		delete window.special_instruction_EXT177;
+		alert('Passed ' + selftest_count_pass + '/' + selftest_count_total);
 }
 
 ////////////////////////////////////////////////////////////////
