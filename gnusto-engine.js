@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.63 2003/05/17 23:13:18 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.64 2003/05/25 21:35:52 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -728,7 +728,15 @@ var handlers = {
 						storer("aread(n," + a[0]+","+a[1] + ")") +
 						"};";
 
-				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT;
+				var eep =
+				"engine__effect_parameters=={"+
+				"'recaps':"   + "getbyte(" + a[0] +   "),"+
+				"'maxchars':" + "getbyte(" + a[0] + "+1),"+
+				"}";
+
+				return "pc=" + pc + ";" + setter +
+				eep +
+				";return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
 				return handler_zOut('zscii_char_to_ascii('+a[0]+')');
