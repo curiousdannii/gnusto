@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.11 2003/09/15 23:48:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.12 2003/09/16 04:30:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 23:48:31 $';
+const CVS_VERSION = '$Date: 2003/09/16 04:30:03 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -117,35 +117,33 @@ var default_unicode_translation_table = {
 // for |handlers|.
 
 // Returned when we're expecting a line of keyboard input.
-// TODO: The lowest nibble may be 1 if the Z-machine has asked
-// for timed input.
 //
 // Answer with the string the user has entered.
-var GNUSTO_EFFECT_INPUT      = 0x100;
+var GNUSTO_EFFECT_INPUT      = '"RS"';
 
 // Returned when we're expecting a single keypress (or mouse click).
 // TODO: The lowest nibble may be 1 if the Z-machine has asked
 // for timed input.
 //
 // Answer with the ZSCII code for the key pressed (see the Z-spec).
-var GNUSTO_EFFECT_INPUT_CHAR = 0x110;
+var GNUSTO_EFFECT_INPUT_CHAR = '"RC"';
 
 // Returned when the Z-machine requests we save the game.
 // Answer as in the Z-spec: 0 if we can't save, 1 if we can, or
 // 2 if we've just restored.
-var GNUSTO_EFFECT_SAVE       = 0x200;
+var GNUSTO_EFFECT_SAVE       = '"DS"';
 
 // Returned when the Z-machine requests we load a game.
 // Answer 0 if we can't load. (If we can, we won't be around to answer.)
-var GNUSTO_EFFECT_RESTORE    = 0x300;
+var GNUSTO_EFFECT_RESTORE    = '"DR"';
 
 // Returned when the Z-machine requests we quit.
 // Not to be answered, obviously.
-var GNUSTO_EFFECT_QUIT       = 0x400;
+var GNUSTO_EFFECT_QUIT       = '"QU"';
 
 // Returned when the Z-machine requests that we restart a game.
-// Assumedly, we won't be around to answer
-var GNUSTO_EFFECT_RESTART    = 0x410;
+// Assumedly, we won't be around to answer it.
+var GNUSTO_EFFECT_RESTART    = '"NU"';
 
 // Returned if we've run for more than a certain number of iterations.
 // This means that the environment gets a chance to do some housekeeping
@@ -153,25 +151,25 @@ var GNUSTO_EFFECT_RESTART    = 0x410;
 // within the Z-code.
 //
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
+var GNUSTO_EFFECT_WIMP_OUT   = '"WO"';
 
 // Returned if we hit a breakpoint.
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_BREAKPOINT = 0x510;
+var GNUSTO_EFFECT_BREAKPOINT = '"BP"';
 
 // Returned if either of the two header bits which
 // affect printing have changed since last time
 // (or if either of them is set on first printing).
-var GNUSTO_EFFECT_FLAGS_CHANGED                 = 0x520;
+var GNUSTO_EFFECT_FLAGS_CHANGED = '"XC"'; // obsolescent
 
 // Returned if the story wants to verify its own integrity.
 // Answer 1 if its checksum matches, or 0 if it doesn't.
-var GNUSTO_EFFECT_VERIFY     = 0x600;
+var GNUSTO_EFFECT_VERIFY     = '"CV"';
 
 // Returned if the story wants to check whether it's been pirated.
 // Answer 1 if it is, or 0 if it isn't.
 // You probably just want to return 0.
-var GNUSTO_EFFECT_PIRACY     = 0x610;
+var GNUSTO_EFFECT_PIRACY     = '"CP"';
 
 // Returned if the story wants to set the text style.
 // effect_parameters() will return a list:
@@ -180,7 +178,7 @@ var GNUSTO_EFFECT_PIRACY     = 0x610;
 //  [1] = the foreground colour to use, as in the Z-spec
 //  [2] = the background colour to use, as in the Z-spec
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_STYLE          = 0x700;
+var GNUSTO_EFFECT_STYLE          = '"SS"';
 
 // Returned if the story wants to cause a sound effect.
 // effect_parameters() will return a list, whose
@@ -188,12 +186,12 @@ var GNUSTO_EFFECT_STYLE          = 0x700;
 // (Just go "bleep" for now.)
 //
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_SOUND          = 0x800;
+var GNUSTO_EFFECT_SOUND          = '"FX"';
 
-var GNUSTO_EFFECT_SPLITWINDOW    = 0x900;
-var GNUSTO_EFFECT_SETWINDOW      = 0x910;
-var GNUSTO_EFFECT_ERASEWINDOW    = 0x920;
-var GNUSTO_EFFECT_ERASELINE      = 0x930;
+var GNUSTO_EFFECT_SPLITWINDOW    = '"TW"';
+var GNUSTO_EFFECT_SETWINDOW      = '"SW"';
+var GNUSTO_EFFECT_ERASEWINDOW    = '"YW"';
+var GNUSTO_EFFECT_ERASELINE      = '"YL"';
 
 // Returned if the story wants to set the position of
 // the cursor in the upper window. The upper window should
@@ -203,11 +201,11 @@ var GNUSTO_EFFECT_ERASELINE      = 0x930;
 //  [0] = the new Y coordinate
 //  [1] = the new X coordinate
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_SETCURSOR      = 0x940;
+var GNUSTO_EFFECT_SETCURSOR      = '"SC"';
 
-var GNUSTO_EFFECT_SETBUFFERMODE  = 0x950;
-var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
-var GNUSTO_EFFECT_GETCURSOR = 0x970;
+var GNUSTO_EFFECT_SETBUFFERMODE  = '"SB"';
+var GNUSTO_EFFECT_SETINPUTSTREAM = '"SI"';
+var GNUSTO_EFFECT_GETCURSOR =      '"GC"';
 
 // Returned if the story wants to print a table, as with
 // @print_table. (This is complicated enough to get its
@@ -217,7 +215,7 @@ var GNUSTO_EFFECT_GETCURSOR = 0x970;
 // effect_parameters() will return a list of lines to print.
 //
 // Any value may be used as an answer; it will be ignored.
-var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
+var GNUSTO_EFFECT_PRINTTABLE     = '"PT"';
 
 ////////////////////////////////////////////////////////////////
 //
