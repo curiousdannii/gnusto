@@ -9,6 +9,9 @@
 	persist="width height sizemode"
 	width="640" height="480">
 
+<!-- Debugger. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/tossio.js"/>
+
 <!-- The main Gnusto library. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
 
@@ -20,7 +23,7 @@
 
 <menubar>
 
-<menu id="server-menu" label="Game" accesskey="G">
+<menu id="game-menu" label="Game" accesskey="G">
 <menupopup>
 <menuitem label="New (restart)" disabled="true" accesskey="N"/>
 <menuitem label="Open (restore)..." disabled="true" accesskey="O"/>
@@ -33,7 +36,7 @@
 </menupopup>
 </menu>
 
-<menu id="item-menu" label="Story" accesskey="S">
+<menu id="story-menu" label="Story" accesskey="S">
 <menupopup>
 <menuitem label="Open..." accesskey="O" oncommand="try{loadStory()}catch(e){deal_with_exception(e)}"/>
 <menuitem label="What's an .mz5, anyway?" accesskey="W"
@@ -41,7 +44,7 @@
 </menupopup>
 </menu>
 
-<menu id="resources-menu" label="Resources" accesskey="R">
+<menu id="resources-menu" label="Explore" accesskey="X">
 <menupopup>
 <menuitem label="Baf's Guide to the IF Archive" oncommand="open('http://www.wurb.com/if/')"  accesskey="B"/>
 <menuitem label="The IF Archive" oncommand="open('http://www.ifarchive.org')" accesskey="A"/>
@@ -51,6 +54,23 @@
 <menuitem label="rec.games.int-fiction" disabled="true" accesskey="G"/>
 <menuitem label="rec.games.int-fiction FAQ" disabled="true" accesskey="Q"/>
 <menuitem label="rec.arts.int-fiction" disabled="true" accesskey="S"/>
+</menupopup>
+</menu>
+
+<menu id="author-menu" label="Author" accesskey="A">
+<menupopup>
+<menuitem label="Run" accesskey="R" disabled="true"/>
+<menuitem label="Step over" accesskey="O" disabled="true"/>
+<menuitem label="Step into" accesskey="I" disabled="true"/>
+<menuitem label="Run to cursor" accesskey="C" disabled="true"/>
+<menuitem label="Toggle breakpoint" accesskey="B" disabled="true"/>
+<menuseparator/>
+<menuitem label="View dissembly" accesskey="D" disabled="true"/>
+<menuitem label="View source code" accesskey="U" disabled="true"/>
+<menuitem label="View variables" accesskey="V" disabled="true"/>
+<menuitem label="View eval stack" accesskey="E" disabled="true"/>
+<menuitem label="View call stack" accesskey="S" disabled="true"/>
+<menuitem label="View tree" accesskey="T" disabled="true"/>
 </menupopup>
 </menu>
 
