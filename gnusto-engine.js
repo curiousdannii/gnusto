@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.74 2003/12/17 07:29:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.75 2003/12/17 21:44:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/17 07:29:38 $';
+const CVS_VERSION = '$Date: 2003/12/17 21:44:35 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -726,11 +726,11 @@ function handleZ_read_char(engine, a) {
 						
 				rebound_setter = "m_rebound=function(){"+
 						"var t=1*m_answers[0];" +
-						"if(t){"+
-						engine._storer("t") + // nonzero: a key
+						"if(t<0){"+
+						"_func_interrupt(m_rebound_args[0],onISRReturn_for_read_char);"+ // -ve: timeout
 						"}else{"+
-						"_func_interrupt(m_rebound_args[0]);}"+ // zero: timeout
-						"};";
+						engine._storer("t") + // otherwise, a result to store.
+						"}};";
 
 		} else {
 
@@ -892,8 +892,7 @@ function handleZ_check_unicode(engine, a) {
   // the program counter has been modified: PC changes can't take effect until
   // the next lookup of a code block, so we need to force that to happen
   // immediately). In such cases, return zero or an undefined result. Secondly,
-  // we can return a numeric value to cause an effect in the external
-  // environment. See "effect codes" above for the values.
+  // we can return 1 to cause an effect in the external environment.
   //
   // If |r|'s code contains a return statement, it must make sure to set the PC
   // somehow, either directly or, for example, via _func_return().
@@ -1149,6 +1148,33 @@ function gnusto_error(number) {
 		dump(message);
 		dump('\n');
 		throw 'Error '+number+': '+message;
+}
+
+////////////////////////////////////////////////////////////////
+//
+// onISRReturn_...
+//
+// When a rebound function causes an interrupt, it may nominate
+// another function to clear up when the interrupt's done.
+// These are those functions.
+//
+// The PC will be reset before calling these functions; they
+// only have to deal with rebounds, causing further effects and
+// so on.
+//
+// Because these functions will be called as a result of an @return
+// (or @rtrue or whatever) you can be sure they're at the end of a
+// block in JITspace.
+//
+function onISRReturn_for_read_char(interrupt_info, result) {
+		if (result) {
+				// If an ISR returns true, we return as from the original
+				// effect, storing zero for the keypress.
+				interrupt_info.rebound(0);
+		} else {
+				// If an ISR returns true, we cause the same effect again.
+				interrupt_info.engine.m_effects = interrupt_info.effects;
+		}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -2262,16 +2288,34 @@ GnustoEngine.prototype = {
 	// _func_interrupt
 	//
 	// Like _func_gosub, except that it's used to break into a
-	// running routine.
+	// running routine. This may only be called from a rebound function.
 	//
-	_func_interrupt: function ge_interrupt(to_address) {
+	// |to_address| -- address of Z-code interrupt service routine.
+	// |on_return|  -- function to call when the routine is finished.
+	//
+	// |on_return| will be called with two parameters:
+	//   |info|  : an object containing these fields:
+	//              |rebound|: saved value of m_rebound
+	//              |pc|:      saved value of m_pc
+	//   |result|: the value the ISR returned.
+	//
+	_func_interrupt: function ge_interrupt(to_address, on_return) {
+
+			this.m_interrupt_information.push({
+					'on_return': on_return,
+							'rebound': this.m_rebound,
+							'engine': this,
+							'pc': this.m_pc,
+							'effects': this.m_effects,
+							});
+
 			this._func_gosub(to_address, [],
 											 CALLED_FROM_INTERRUPT,
 											 -1);
 	},
 
 	////////////////////////////////////////////////////////////////
-			//
+	//
 	// Tokenises a string.
 	//
 	// See aread() for caveats.
@@ -2561,10 +2605,12 @@ GnustoEngine.prototype = {
 	//
   // _func_return
 	//
-	// Returns from a z-machine routine.
-	// |value| is the numeric result of the routine.
-	// It can also be null, in which case the store
-	// won't happen (useful for returning from @throw).
+	// Returns from a Z-code routine.
+	//
+	// |value| -- the numeric result of the routine.
+	//            It can also be null, in which case the store
+	//            won't happen (useful for returning from @throw).
+	//
 	_func_return: function ge_func_return(value) {
 
 			for (var i=this.m_locals_stack.shift(); i>0; i--) {
@@ -2580,7 +2626,10 @@ GnustoEngine.prototype = {
 			}
 
 			if (this.m_pc == CALLED_FROM_INTERRUPT) {
-					throw '(return of '+value+' from interrupt!)';
+					var interrupt_info = this.m_interrupt_information.pop();
+
+					this.m_pc = interrupt_info.pc;
+					interrupt_info.on_return(interrupt_info, value);
 			}
 	},
 
@@ -3989,6 +4038,12 @@ GnustoEngine.prototype = {
 
 	// Size of an object in the objects table, in bytes.
 	m_object_size: 14,
+
+	// A stack of information about the routines that were suspended
+	// for the current interrupt service routines to do their jobs.
+	// Usually ISRs don't interrupt other ISRs, so this stack will have
+	// either one or no elements.
+	m_interrupt_information: [],
 
 };
 
