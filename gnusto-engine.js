@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.58 2003/11/27 16:39:25 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.59 2003/11/28 07:39:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/27 16:39:25 $';
+const CVS_VERSION = '$Date: 2003/11/28 07:39:06 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2138,11 +2138,12 @@ GnustoEngine.prototype = {
 	//
 	_tokenise: function ge_tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
+			var tokenised_word_count = 0;
 			var cursor = parse_buffer + 2;                	
+			var words_count_addr = parse_buffer + 1;
+
 			if (isNaN(dictionary)) dictionary = 0;
 			if (isNaN(overwrite)) overwrite = 0;
-
-			// burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
 
 			function look_up(engine, word, dict_addr) {
 
@@ -2167,37 +2168,43 @@ GnustoEngine.prototype = {
 
 					var oldword = word;				
 					word = engine._into_zscii(word);
-			
+
 					for (var i=0; i<entries_count; i++) {
-							//really ugly kludge until into_zscii is fixed properly
-							// FIXME: Is it?
 							var address = entries_start+i*entry_length;
-							if (engine._zscii_from(address)==oldword) {
+							var j=0;
+							while (j<word.length &&
+										 engine.getByte(address+j)==word.charCodeAt(j)) {
+									j++;
+							}
+
+							if (j==word.length) { 
 									return address;
 							}
-							
-							var j=0;
-							while (j<word.length &&		
-										 engine.getByte(address+j)==word.charCodeAt(j))
-									j++;
-
-							if (j==word.length)return address;
 					}
 				
 					return 0;
 			}
 
-			function add_to_parse_table(engine, dictionary, curword, words_count, wordpos) {
-                       
+			function add_to_parse_table(engine, dictionary, curword, wordpos) {
 					var lexical = look_up(engine, curword, dictionary);
 
 					if (!(overwrite && lexical==0)) {
+
+							//dump('(toke3 ');
+							//dump(lexical);
+							//dump(' ');
+							//dump(curword.length);
+							//dump(' ');
+							//dump(wordpos);
+							//dump(' AT ');
+							//dump(cursor.toString(16));
+							//dump(')');
 
 							engine.setWord(lexical, cursor);
 							cursor+=2;
 
 							engine.setByte(curword.length, cursor++);
-							engine.setByte(wordpos+2, cursor++);
+							engine.setByte(wordpos, cursor++);
 	
 					} else {
 
@@ -2208,68 +2215,96 @@ GnustoEngine.prototype = {
 
 					}
 		
-					engine.setByte(engine.getByte(words_count)+1, words_count);		
+					tokenised_word_count++;
 			
 					return 1;
 			}
+			////////////////////////////////////////////////////////////////
+			//
+			// Prepare |source|, a string containing all the characters in
+			// text_buffer. (FIXME: Why don't we just work out of text_buffer?)
+
+			var max_chars = this.getByte(text_buffer);
+			var source = '';
 
 			if (dictionary==0) {
 					// Use the standard game dictionary.
 					dictionary = this.m_dict_start;
 			}
 
-			var max_chars = this.getByte(text_buffer);
+			if (this.m_version < 4) {
 
-			var result = '';
+					max_chars ++; // Value stored in pre-z5 is one too low.
 
-			for (var i=0;i<this.getByte(text_buffer + 1);i++) {
-					result += String.fromCharCode(this.getByte(text_buffer + 2 + i));
+					var copycursor = text_buffer + 1;
+
+					while(1) {
+							var ch = this.getByte(copycursor++);
+							if (ch==0) break;
+							source += String.fromCharCode(ch);
+					}
+
+			} else {
+					for (var i=0;i<this.getByte(text_buffer + 1);i++) {
+							source += String.fromCharCode(this.getByte(text_buffer + 2 + i));
+					}
 			}
 
-			var words_count = parse_buffer + 1;
-			this.setByte(0, words_count);
-		
 			var words = [];
 			var curword = '';
 			var wordindex = 0;
+			var wordpos_increment;
 
-			for (var cpos=0; cpos < result.length; cpos++) {
-					if (result[cpos]  == ' ') {
+			if (this.m_version < 4) {
+					wordpos_increment = 1;
+			} else {
+					wordpos_increment = 2;
+			}
+
+			// FIXME: Do this with regexps, for goodness' sake.
+
+			for (var cpos=0; cpos < source.length; cpos++) {
+					
+					if (source[cpos]  == ' ') {
 							if (curword != '') {
 									words[wordindex] = curword;
-									add_to_parse_table(this, dictionary, words[wordindex], words_count,
-																		 cpos - words[wordindex].length);
+									add_to_parse_table(this, dictionary, words[wordindex],
+																		 (cpos - words[wordindex].length) + wordpos_increment);
 									wordindex++;
 									curword = '';
 							}
 					} else {
-							if (this._is_separator(result[cpos])) {
+							if (this._is_separator(source[cpos])) {
 									if (curword != '') {
 											words[wordindex] = curword;
-											add_to_parse_table(this, dictionary, words[wordindex], words_count,
-																				 cpos - words[wordindex].length);
+											add_to_parse_table(this, dictionary, words[wordindex],
+																				 (cpos - words[wordindex].length) + wordpos_increment);
 											wordindex++;
 									}
-									words[wordindex] = result[cpos];
-									add_to_parse_table(this, dictionary, words[wordindex], words_count, cpos);
+									words[wordindex] = source[cpos];
+									add_to_parse_table(this, dictionary, words[wordindex],
+																		 cpos + wordpos_increment);
 									wordindex++;
 									curword = '';		
 							} else {
-									curword += result[cpos];	
+									curword += source[cpos];	
 							}
 					}
 			}
 		
 			if (curword != '') {			
 					words[wordindex] = curword;
-					add_to_parse_table(this, dictionary, words[wordindex], words_count,
-														 cpos - words[wordindex].length);
+					add_to_parse_table(this, dictionary, words[wordindex],
+														 (cpos - words[wordindex].length) + wordpos_increment);
 			}
 		
-			//display the broken-up text for visual validation 
-			//for (var i=0; i < words.length; i++){
-			//		alert(i + ': ' + words[i] + ' ' + words[i].length);
-			//}
+			//dump('(toke2 ');
+			//dump(tokenised_word_count);
+			//dump(' AT ');
+			//dump(words_count_addr.toString(16));
+			//dump(')');
+
+			this.setByte(tokenised_word_count, words_count_addr);
 
 	},
 
@@ -2921,7 +2956,6 @@ GnustoEngine.prototype = {
 	_into_zscii: function ge_into_zscii(str) {
 			var result = '';
 			var buffer = [];
-			var set_stop_bit = 0;
 			
 			function emit(value) {
 
@@ -2929,9 +2963,6 @@ GnustoEngine.prototype = {
 
 					if (buffer.length==3) {
 							var temp = (buffer[0]<<10 | buffer[1]<<5 | buffer[2]);
-
-							// Weird, but it seems to be the rule:
-							if (result.length==4) temp += 0x8000;
 
 							result = result +
 									String.fromCharCode(temp >> 8) +
@@ -2958,7 +2989,7 @@ GnustoEngine.prototype = {
 					} else if (ch>=97 && ch<=122) { // a to z
 							emit(ch-91);
 					} else {
-							var z2 = this.m_zalphabet[2].indexOf(ch);
+							var z2 = this.m_zalphabet[2].indexOf(String.fromCharCode(ch));
 							
 							if (z2!=-1) {
 									emit(5); // shift to weird stuff
@@ -2977,11 +3008,22 @@ GnustoEngine.prototype = {
 					}
 			}
 
-			cursor = 0;
+			var dictionary_entry_length;
+			if (this.m_version < 4) {
+					dictionary_entry_length = 4;
+			} else {
+					dictionary_entry_length = 6;
+			}
 
-			while (result.length<6) emit(5);
+			while (result.length<dictionary_entry_length) {
+					emit(5);
+			}
 
-			return result.substring(0,6);
+			// Set the stop bit.
+			// (Maybe better done automatically from checking string length.)
+			result = result.substring(0, result.length-2) + String.fromCharCode(result.charCodeAt(result.length-2) | 0x80) + result[result.length-1];
+
+			return result.substring(0, dictionary_entry_length);
 	},
 
 	_name_of_object: function ge_name_of_object(object) {
