@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.84 2003/05/30 13:32:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.85 2003/06/13 21:15:10 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -23,9 +23,6 @@
 
 var current_window = 0;
 
-// Array of contents of a .z5 file, one byte per element.
-var zbytes = [];
-
 // Dictionary of Gnusto errors which should be ignored.
 // The keys are the error numbers; the values are ignored.
 // You *can* make the system ignore fatal errors this way, but
@@ -43,33 +40,6 @@ var glue__reason_for_stopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
 // The maximum number of characters that the input buffer can currently
 // accept.
 var glue__input_buffer_max_chars = 255;
-
-////////////////////////////////////////////////////////////////
-
-function glue_receive_zcode(content) { zbytes = content; }
-function getbyte(address) { return zbytes[address]; }
-function setbyte(value, address) { zbytes[address] = value; }
-
-function getword(addr) {
-		return unsigned2signed(get_unsigned_word(addr));
-}
-
-function unsigned2signed(value) {
-		return ((value & 0x8000)?~0xFFFF:0)|value;
-}
-
-function signed2unsigned(value) {
-		return value & 0xFFFF;
-}
-
-function get_unsigned_word(addr) {
-		return getbyte(addr)*256+getbyte(addr+1);
-}
-
-function setword(value, addr) {
-		setbyte((value>>8) & 0xFF, addr);
-		setbyte((value) & 0xFF, addr+1);
-}
 
 ////////////////////////////////////////////////////////////////
 
@@ -97,7 +67,7 @@ function glue_print(text) {
 						if (!glue__set_transcription(1)) {
 								// bah, couldn't create the file;
 								// clear the bit
-								setbyte(getbyte(0x11) & ~0x1);
+								zSetByte(zGetByte(0x11) & ~0x1);
 						}
 				}
 				glue__transcription_file.write(text, text.length);
@@ -135,12 +105,12 @@ function go_wrapper(answer) {
 						break;
 
 				case GNUSTO_EFFECT_FLAGS_CHANGED:
-						var flags = getbyte(0x11);
+						var flags = zGetByte(0x11);
 
 						if (!glue__set_transcription(flags & 1)) {
 								// they cancelled the dialogue:
 								// clear the bit
-								setbyte(getbyte(0x11) & ~0x1);
+								zSetByte(zGetByte(0x11) & ~0x1);
 						}
 
 						win_force_monospace(flags & 2);
@@ -389,12 +359,12 @@ function glue_store_screen_size(width_in_chars,
 
 		var font_dimensions = bocardo_get_font_metrics();
 
-		setbyte(height_in_chars,                    0x20); // screen h, chars
-		setbyte(width_in_chars,                     0x21); // screen w, chars
-		setword(width_in_chars *font_dimensions[0], 0x22); // screen w, units
-		setword(height_in_chars*font_dimensions[1], 0x24); // screen h, units
-		setbyte(font_dimensions[0],                 0x26); // font w, units
-		setbyte(font_dimensions[1],                 0x27); // font h, units
+		zSetByte(height_in_chars,                    0x20); // screen h, chars
+		zSetByte(width_in_chars,                     0x21); // screen w, chars
+		zSetWord(width_in_chars *font_dimensions[0], 0x22); // screen w, units
+		zSetWord(height_in_chars*font_dimensions[1], 0x24); // screen h, units
+		zSetByte(font_dimensions[0],                 0x26); // font w, units
+		zSetByte(font_dimensions[1],                 0x27); // font h, units
 
 }
 
@@ -411,13 +381,13 @@ function start_up() {
 
 }
 
-function play() {
+function glue_play(memory) {
+
+    engine_start_game(memory);
 
 		win_start_game();
 		barbara_start_game();
 		bocardo_start_game();
-
-    engine_start_game();
 
 		if (!single_step) {
 				go_wrapper(0);
@@ -712,14 +682,14 @@ function command_transcript() {
 
     var menuItem = document.getElementById("transcript");
 
-		var flags = getbyte(0x11);
+		var flags = zGetByte(0x11);
 
 		if (flags & 1) {
 
 				// Transcription's on; turn it off.
 
 				alert('Turning transcription off now.');
-				setbyte(flags & ~0x1, 0x11);
+				zSetByte(flags & ~0x1, 0x11);
 				glue__set_transcription(0);
 
 		} else {
@@ -728,7 +698,7 @@ function command_transcript() {
 						alert('Turning transcription on again.');
 				}
 
-				setbyte(flags | 0x1, 0x11);
+				zSetByte(flags | 0x1, 0x11);
 				glue__set_transcription(1);
 		}
 }

@@ -11,7 +11,7 @@
         ondialogaccept="onDialogAccept();"
         id="errorDialog"
         title="Gnusto Error"
-        width="500" height="350"> 
+        width="500" height="375"> 
     
     <script type="application/x-javascript">
       <![CDATA[
@@ -42,6 +42,13 @@
       </hbox>
       <vbox>
         <textbox id="errorText" readonly="true" multiline="true" width="450" height="250" />
+	<vbox>
+	 <hbox>
+	 <button label="Show JS console" accesskey="J" flex="0"
+		oncommand="window.opener.open('chrome://global/content/console.xul');"/>
+	 <button label="Report bug" flex="0" disabled="true"/>
+	 </hbox>
+	</vbox>
         <checkbox id="transientCheckBox" label="Hide future transient errors"/>
       </vbox>
     </vbox>

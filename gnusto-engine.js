@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.75 2003/06/12 01:36:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.76 2003/06/13 21:15:10 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -26,6 +26,9 @@
 ////////////////////////////////////////////////////////////////
 
 // These are all initialised in the function engine_start_game().
+
+// The actual memory of the Z-machine, one byte per element.
+var engine__memory = [];
 
 // |jit| is a cache for the results of dissemble(): it maps
 // memory locations to JS function objects. Theoretically,
@@ -229,12 +232,12 @@ function call_vn(args, offset) {
 
 function brancher(condition) {
 		var inverted = 1;
-		var temp = getbyte(pc++);
+		var temp = zGetByte(pc++);
 		var target_address = temp & 0x3F;
 
 		if (temp & 0x80) inverted = 0;
 		if (!(temp & 0x40)) {
-				target_address = (target_address << 8) | getbyte(pc++);
+				target_address = (target_address << 8) | zGetByte(pc++);
 				// and it's signed...
 
 				if (target_address & 0x2000) {
@@ -277,7 +280,7 @@ function code_for_varcode(varcode) {
 		else if (varcode < 0x10)
 				return 'locals['+(varcode-1)+']';
 		else
-				return 'getword('+(vars_start+(varcode-16)*2)+')';
+				return 'zGetWord('+(vars_start+(varcode-16)*2)+')';
 
 		gnusto_error(170); // impossible
 }
@@ -305,17 +308,17 @@ function store_into(lvalue, rvalue) {
 
 		if (lvalue=='gamestack.pop()') {
 				return 'gamestack.push('+rvalue+')';
-		} else if (lvalue.substring(0,8)=='getword(') {
-				return 'setword('+rvalue+','+lvalue.substring(8);
-		} else if (lvalue.substring(0,8)=='getbyte(') {
-				return 'setbyte('+rvalue+','+lvalue.substring(8);
+		} else if (lvalue.substring(0,9)=='zGetWord(') {
+				return 'zSetWord('+rvalue+','+lvalue.substring(9);
+		} else if (lvalue.substring(0,9)=='zGetByte(') {
+				return 'zSetByte('+rvalue+','+lvalue.substring(9);
 		} else {
 				return lvalue + '=' + rvalue;
 		}
 }
 
 function storer(rvalue) {
-		return store_into(code_for_varcode(getbyte(pc++)), rvalue);
+		return store_into(code_for_varcode(zGetByte(pc++)), rvalue);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -569,10 +572,10 @@ var handlers = {
 				return "insert_obj("+a[0]+','+a[1]+")";
 		},
 		15: function Z_loadw(a) {
-				return storer("getword((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+				return storer("zGetWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
 		},
 		16: function Z_loadb(a) {
-				return storer("getbyte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+				return storer("zGetByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
 		},
 		17: function Z_get_prop(a) {
 				return storer("get_prop("+a[0]+','+a[1]+')');
@@ -740,11 +743,11 @@ var handlers = {
 		},
 
 		225: function Z_store_w(a) {
-				return "setword("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
+				return "zSetWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
 		},
 
 		226: function Z_storeb(a) {
-				return "setbyte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
+				return "zSetByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
 		},
 
 		227: function Z_putprop(a) {
@@ -767,12 +770,12 @@ var handlers = {
 						storer("aread(n, a0," + a[1] + ")") +
 						"};";
 
-				return "var a0=eval("+ a[0] + ");burin('a0',a0);burin('a0+1',a0+1);burin('gb',getbyte(a0));burin('gb',getbyte(a0+1));" +
+				return "var a0=eval("+ a[0] + ");burin('a0',a0);burin('a0+1',a0+1);burin('gb',zGetByte(a0));burin('gb',zGetByte(a0+1));" +
 				"pc=" + pc + ";" +
 				setter +
 				"engine__effect_parameters={"+
-				"'recaps':"   + "getbyte(a0+1),"+
-				"'maxchars':" + "getbyte(a0),"+
+				"'recaps':"   + "zGetByte(a0+1),"+
+				"'maxchars':" + "zGetByte(a0),"+
 				"};for (var i in engine__effect_parameters) burin(i,engine__effect_parameters[i]);"+
 				"return "+GNUSTO_EFFECT_INPUT;
 		},
@@ -1049,13 +1052,13 @@ function dissemble() {
 								if (current==0xC000) {
 										return;
 								} else if (current==0x0000) {
-										args[argcursor++] = getword(pc);
+										args[argcursor++] = zGetWord(pc);
 										pc+=2;
 								} else if (current==0x4000) {
-										args[argcursor++] = getbyte(pc++);
+										args[argcursor++] = zGetByte(pc++);
 								} else if (current==0x8000) {
 										args[argcursor++] =
-												code_for_varcode(getbyte(pc++));
+												code_for_varcode(zGetByte(pc++));
 								} else {
 										gnusto_error(171); // impossible
 								}
@@ -1076,7 +1079,7 @@ function dissemble() {
 				
 				// So here we go...
 				// what's the opcode?
-				var instr = getbyte(pc++);
+				var instr = zGetByte(pc++);
 
 				if (instr==0) {
 						// If we just get a zero, we've probably
@@ -1086,8 +1089,8 @@ function dissemble() {
 
 				} else if (instr==190) { // Extended opcode.
 						
-						instr = 1000+getbyte(pc++);
-						handle_variable_parameters(getbyte(pc++), 1);
+						instr = 1000+zGetByte(pc++);
+						handle_variable_parameters(zGetByte(pc++), 1);
 						
 				} else if (instr & 0x80) {
 						if (instr & 0x40) { // Variable params
@@ -1099,29 +1102,29 @@ function dissemble() {
 								
 								if (instr==250 || instr==236) {
 										// We get more of them!
-										var types = get_unsigned_word(pc);
+										var types = zGetUnsignedWord(pc);
 										pc += 2;
 										handle_variable_parameters(types, 2);
 								} else
-										handle_variable_parameters(getbyte(pc++), 1);
+										handle_variable_parameters(zGetByte(pc++), 1);
 								
 						} else { // Short. All 1-OPs except for one 0-OP.
 
 								switch(instr & 0x30) {
 								case 0x00:
-								    args[0] = getword(pc);
+								    args[0] = zGetWord(pc);
 										pc+=2;
 										instr = (instr & 0x0F) | 0x80;
 										break;
 										
 								case 0x10:
-										args[0] = getbyte(pc++);
+										args[0] = zGetByte(pc++);
 										instr = (instr & 0x0F) | 0x80;
 										break;
 										
 								case 0x20:
 										args[0] =
-												code_for_varcode(getbyte(pc++));
+												code_for_varcode(zGetByte(pc++));
 										instr = (instr & 0x0F) | 0x80;
 										break;
 
@@ -1136,15 +1139,15 @@ function dissemble() {
 						
 						if (instr & 0x40)
 								args[0] =
-										code_for_varcode(getbyte(pc++));
+										code_for_varcode(zGetByte(pc++));
 						else
-								args[0] = getbyte(pc++);
+								args[0] = zGetByte(pc++);
 						
 						if (instr & 0x20)
 								args[1] =
-										code_for_varcode(getbyte(pc++));
+										code_for_varcode(zGetByte(pc++));
 						else
-								args[1] = getbyte(pc++);
+								args[1] = zGetByte(pc++);
 
 						instr &= 0x1F;
 				}
@@ -1211,7 +1214,7 @@ function zscii_char_to_ascii(zscii_code) {
 				  return String.fromCharCode(default_unicode_translation_table[zscii_code]);
 				  else { // if we're using a custom unicode translation table...
 				  if ((zscii_code-154)<= custom_unicode_charcount) 
-                                    return String.fromCharCode(get_unsigned_word(unicode_start + ((zscii_code-155)*2)));					
+                                    return String.fromCharCode(zGetUnsignedWord(unicode_start + ((zscii_code-155)*2)));					
                                   else 
                                     gnusto_error(703, zscii_code); // unknown zscii code
                                   
@@ -1249,7 +1252,7 @@ function gnusto_random(arg) {
 }
 
 function func_prologue(actuals) {
-		var count = getbyte(pc++);
+		var count = zGetByte(pc++);
 		for (var i=count; i>=0; i--) {
 				if (i<actuals.length) {
 						locals.unshift(actuals[i]);
@@ -1285,9 +1288,9 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		function look_up(word, dict_addr) {
 
-				var separator_count = getbyte(dict_addr);
-				var entry_length = getbyte(dict_addr+separator_count+1);
-				var entries_count = getword(dict_addr+separator_count+2);
+				var separator_count = zGetByte(dict_addr);
+				var entry_length = zGetByte(dict_addr+separator_count+1);
+				var entries_count = zGetWord(dict_addr+separator_count+2);
 				var entries_start = dict_addr+separator_count+4;
 
 				// Whether the dictionary is sorted.
@@ -1312,7 +1315,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 						
 						var j=0;
 						while (j<word.length &&
-									 getbyte(address+j)==word.charCodeAt(j))
+									 zGetByte(address+j)==word.charCodeAt(j))
 								j++;
 
 						if (j==word.length) return address;
@@ -1325,15 +1328,15 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				dictionary = dict_start;
 		}
 
-		var max_chars = getbyte(text_buffer);
+		var max_chars = zGetByte(text_buffer);
 
 		var result = '';
 
-		for (var i=0;i<getbyte(text_buffer + 1);i++)
-				result += String.fromCharCode(getbyte(text_buffer + 2 + i));
+		for (var i=0;i<zGetByte(text_buffer + 1);i++)
+				result += String.fromCharCode(zGetByte(text_buffer + 2 + i));
 
 		var words_count = parse_buffer + 1;
-		setbyte(0, words_count);
+		zSetByte(0, words_count);
 		var cursor = parse_buffer+2;
 
 		var words = result.split(' ');
@@ -1344,15 +1347,15 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				var lexical = look_up(words[i], dictionary);
 
 				if (!(overwrite && lexical==0)) {
-						setword(lexical, cursor);
+						zSetWord(lexical, cursor);
 				}
 
 				cursor+=2;
-				setbyte(words[i].length, cursor++);
-				setbyte(position, cursor++);
+				zSetByte(words[i].length, cursor++);
+				zSetByte(position, cursor++);
 		
 				position += words[i].length+1;
-				setbyte(getbyte(words_count)+1, words_count);
+				zSetByte(zGetByte(words_count)+1, words_count);
 		}
 }
 
@@ -1360,13 +1363,13 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 //  * Doesn't properly handle terminating characters (always returns 10).
 //  * Doesn't handle word separators.
 function aread(source, text_buffer, parse_buffer) {
-		var max_chars = getbyte(text_buffer);
+		var max_chars = zGetByte(text_buffer);
 		var result = source.substring(0,max_chars);
 
-		setbyte(result.length, text_buffer + 1);
+		zSetByte(result.length, text_buffer + 1);
 	
 		for (var i=0;i<result.length;i++)
-				setbyte(result.charCodeAt(i), text_buffer + 2 + i);
+				zSetByte(result.charCodeAt(i), text_buffer + 2 + i);
 
 		if (parse_buffer!=0)
 				engine__tokenise(text_buffer, parse_buffer, 0, 0);
@@ -1424,7 +1427,7 @@ function get_prop_len(address) {
 		// field, or the only byte of a 1-byte field. We can tell the
 		// difference using the top bit.
 
-		var value = getbyte(address-1);
+		var value = zGetByte(address-1);
 
 		if (value & 0x80) {
 				// A two-byte field, so we take the bottom five bits.
@@ -1480,13 +1483,13 @@ function get_prop(object, property) {
 		var temp = property_search(object, property, -1);
 
 		if (temp[1]==2) {
-				return getword(temp[0]);
+				return zGetWord(temp[0]);
 		} else if (temp[1]==1) {
-				return getbyte(temp[0]); // should this be treated as signed?
+				return zGetByte(temp[0]); // should this be treated as signed?
 		} else {
 				// get_prop used on a property of the wrong length
 				gnusto_error(706, object, property);
-				return getword(temp[0]);
+				return zGetWord(temp[0]);
 		}
 
 		gnusto_error(174); // impossible
@@ -1523,20 +1526,20 @@ function get_prop(object, property) {
 //          |previous_property|, and 0 otherwise. At all other times it will
 //          be 0.
 function property_search(object, property, previous_property) {
-		var props_address = get_unsigned_word(objs_start + 124 + object*14);
+		var props_address = zGetUnsignedWord(objs_start + 124 + object*14);
 
-		props_address = props_address + getbyte(props_address)*2 + 1;
+		props_address = props_address + zGetByte(props_address)*2 + 1;
 
 		var previous_prop = 0;
 
 		while(1) {
 				var len = 1;
 
-				var prop = getbyte(props_address++);
+				var prop = zGetByte(props_address++);
 
 				if (prop & 0x80) {
 						// Long format.
-						len = getbyte(props_address++) & 0x3F;
+						len = zGetByte(props_address++) & 0x3F;
 						if (len==0) len = 64;
 				} else {
 						// Short format.
@@ -1574,22 +1577,22 @@ function set_attr(object, bit) {
 		if (object==0) return; // Kill that V0EFH before it starts.
 
 		var address = objs_start + 112 + object*14 + (bit>>3);
-		var value = getbyte(address);
-		setbyte(value | (128>>(bit%8)), address);
+		var value = zGetByte(address);
+		zSetByte(value | (128>>(bit%8)), address);
 }
 
 function clear_attr(object, bit) {
 		if (object==0) return; // Kill that V0EFH before it starts.
 
 		var address = objs_start + 112 + object*14 + (bit>>3);
-		var value = getbyte(address);
-		setbyte(value & ~(128>>(bit%8)), address);
+		var value = zGetByte(address);
+		zSetByte(value & ~(128>>(bit%8)), address);
 }
 
 function test_attr(object, bit) {
 		if (object==0) return 0; // Kill that V0EFH before it starts.
 
-		if ((getbyte(objs_start + 112 + object*14 +(bit>>3)) &
+		if ((zGetByte(objs_start + 112 + object*14 +(bit>>3)) &
 				 (128>>(bit%8)))) {
 				return 1;
 		} else {
@@ -1602,9 +1605,9 @@ function put_prop(object, property, value) {
 
 		if (!address[2]) gnusto_error(704); // undefined property
 		if (address[1]==1) {
-				setbyte(value & 0xff, address[0]);
+				zSetByte(value & 0xff, address[0]);
 		} else if (address[1]==2) {
-				setword(value&0xffff, address[0]);
+				zSetWord(value&0xffff, address[0]);
 		} else
 				gnusto_error(705); // weird length
 }
@@ -1671,7 +1674,7 @@ function remove_obj(mover, new_parent) {
 ////////////////////////////////////////////////////////////////
 
 function get_family(from, relationship) {
-		return get_unsigned_word(
+		return zGetUnsignedWord(
 														 objs_start + 112 + relationship + from*14);
 }
 
@@ -1680,7 +1683,7 @@ function get_child(from)   { return get_family(from, CHILD_REC); }
 function get_sibling(from) { return get_family(from, SIBLING_REC); }
 
 function set_family(from, to, relationship) {
-		setword(to,
+		zSetWord(to,
 						objs_start + 112 + relationship + from*14);
 }
 
@@ -1702,7 +1705,7 @@ function set_output_stream(target, address) {
 		} else if (target==1) {
 				output_to_console = 1;
 		} else if (target==2) {
-				setbyte(getbyte(0x11) | 0x1);
+				zSetByte(zGetByte(0x11) | 0x1);
 		} else if (target==3) {
 
 				if (streamthrees.length>15)
@@ -1715,14 +1718,14 @@ function set_output_stream(target, address) {
 		} else if (target==-1) {
 				output_to_console = 0;
 		} else if (target==-2) {
-				setbyte(getbyte(0x11) & ~0x1);
+				zSetByte(zGetByte(0x11) & ~0x1);
 		} else if (target==-3) {
 
 				if (streamthrees.length<1)
 						gnusto_error(203); // not enough nested stream-3s
 
 				var latest = streamthrees.shift();
-				setword((latest[1]-latest[0])-2, latest[0]);
+				zSetWord((latest[1]-latest[0])-2, latest[0]);
 
 		} else if (target==-4) {
 				output_to_script = 0;
@@ -1739,7 +1742,7 @@ function copy_table(first, second, size) {
 				// Zero out the first |size| bytes of |first|.
 
 				for (var i=0; i<size; i++) {
-						setbyte(0, i+first);
+						zSetByte(0, i+first);
 				}
 		} else {
 
@@ -1760,11 +1763,11 @@ function copy_table(first, second, size) {
 
 				if (copy_forwards) {
 						for (var i=0; i<size; i++) {
-								setbyte(getbyte(first+i), second+i);
+								zSetByte(zGetByte(first+i), second+i);
 						}
 				} else {
 						for (var i=size-1; i>=0; i--) {
-								setbyte(getbyte(first+i), second+i);
+								zSetByte(zGetByte(first+i), second+i);
 						}
 				}
 		}
@@ -1802,7 +1805,7 @@ function engine__print_table(address, width, height, skip) {
 				var s='';
 
 				for (var x=0; x<width; x++) {
-						s=s+zscii_char_to_ascii(getbyte(address++));
+						s=s+zscii_char_to_ascii(zGetByte(address++));
 				}
 
 				lines.push(s);
@@ -1818,11 +1821,11 @@ function engine__print_table(address, width, height, skip) {
 // engine_start_game()
 //
 // Initialises global variables.
-//
-// Since this function reads certain values out of the Z-machine's
-// memory, the story must be loaded before this function is called.
 
-function engine_start_game() {
+function engine_start_game(memory) {
+
+		engine__memory = memory;
+
 		jit = [];
 		compiling = 0;
 		gamestack = [];
@@ -1833,21 +1836,21 @@ function engine_start_game() {
 		param_counts = [];
 		result_eaters = [];
 
-		himem      = get_unsigned_word(0x4);
-		pc         = get_unsigned_word(0x6);
-		dict_start = get_unsigned_word(0x8);
-		objs_start = get_unsigned_word(0xA);
-		vars_start = get_unsigned_word(0xC);
-		stat_start = get_unsigned_word(0xE);
-		abbr_start = get_unsigned_word(0x18);
-		alpha_start = get_unsigned_word(0x34);
-		hext_start = get_unsigned_word(0x36);		
+		himem      = zGetUnsignedWord(0x4);
+		pc         = zGetUnsignedWord(0x6);
+		dict_start = zGetUnsignedWord(0x8);
+		objs_start = zGetUnsignedWord(0xA);
+		vars_start = zGetUnsignedWord(0xC);
+		stat_start = zGetUnsignedWord(0xE);
+		abbr_start = zGetUnsignedWord(0x18);
+		alpha_start = zGetUnsignedWord(0x34);
+		hext_start = zGetUnsignedWord(0x36);		
 	
 		// If there is a header extension...
 		if (hext_start > 0) {
-		  unicode_start = get_unsigned_word(hext_start+6);  // get start of custom unicode table, if any
+		  unicode_start = zGetUnsignedWord(hext_start+6);  // get start of custom unicode table, if any
 		  if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-		    custom_unicode_charcount = getbyte(unicode_start);
+		    custom_unicode_charcount = zGetByte(unicode_start);
 		    unicode_start += 1;
 		  }
 		}		
@@ -1873,14 +1876,14 @@ function engine_start_game() {
 		  for (var alpharow=0; alpharow<3; alpharow++){
 		    var alphaholder = '';
 		    for (var alphacol=0; alphacol<26; alphacol++) {	
-		      newcharcode = getbyte(alpha_start + (alpharow*26) + alphacol);
+		      newcharcode = zGetByte(alpha_start + (alpharow*26) + alphacol);
                       if ((newcharcode >=155) && (newcharcode <=251)) {		     
                       	        // Yes, custom alphabets can refer to custom unicode tables.  Whee...
                                 if (unicode_start == 0) {
 				  alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
 				} else {
 				  if ((newcharcode-154)<= custom_unicode_charcount)
-                                    alphaholder += String.fromCharCode(get_unsigned_word(unicode_start + ((newcharcode-155)*2)));					
+                                    alphaholder += String.fromCharCode(zGetUnsignedWord(unicode_start + ((newcharcode-155)*2)));					
                                   else
                                     alphaholder += ' ';
 				}
@@ -1937,8 +1940,8 @@ function engine_run(answer) {
 				start_pc = pc;
 				if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
 				// Some useful debugging code:
-				// burin('eng pc', start_pc);
-				// burin('eng jit', jit[start_pc]);
+				//burin('eng pc', start_pc);
+				//burin('eng jit', jit[start_pc]);
 				stopping = jit[start_pc]();
 		}
 
@@ -2052,7 +2055,7 @@ function zscii_from(address, max_length, tell_length) {
 		var stopping_place = address + max_length;
 
 		while (running) {
-				var word = get_unsigned_word(address);
+				var word = zGetUnsignedWord(address);
 				address += 2;
 
 				running = !(word & 0x8000) && address<stopping_place;
@@ -2061,7 +2064,7 @@ function zscii_from(address, max_length, tell_length) {
 						var code = ((word>>(j*5))&0x1f);
 
 						if (abbreviation) {
-								temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
+								temp = temp + zscii_from(zGetUnsignedWord((32*(abbreviation-1)+code)*2+abbr_start)*2);
 								abbreviation = 0;
 						} else if (tenbit==-2) {
 
@@ -2162,7 +2165,7 @@ function name_of_object(object) {
 				return "<void>";
 		else {
 				var aa = objs_start + 124 + object*14;
-				return zscii_from(get_unsigned_word(aa)+1);
+				return zscii_from(zGetUnsignedWord(aa)+1);
 		}
 }
 
@@ -2200,12 +2203,12 @@ function zOut(text) {
 				var address = streamthrees[0][1];
 
 				for (var i=0; i<text.length; i++)
-						setbyte(text.charCodeAt(i), address++);
+						zSetByte(text.charCodeAt(i), address++);
 
 				streamthrees[0][1] = address;
 		} else {
 
-				var bits = getbyte(0x11) & 0x03;
+				var bits = zGetByte(0x11) & 0x03;
 				var changed = bits != engine__printing_header_bits;
 				engine__effect_parameters = engine__printing_header_bits; 
 				engine__printing_header_bits = bits;
@@ -2251,6 +2254,42 @@ function engine_transcript_text() {
 function engine_effect_parameters() {
 		return engine__effect_parameters;
 }
+
+////////////////////////////////////////////////////////////////
+
+function zGetByte(address) {
+		return engine__memory[address];
+}
+
+function zSetByte(value, address) {
+		engine__memory[address] = value;
+}
+
+// FIXME: the functions below need to be written to
+// access memory directly, rather than via other functions.
+// Only do this when things are stable, though.
+
+function zGetWord(addr) {
+		return unsigned2signed(zGetUnsignedWord(addr));
+}
+
+function unsigned2signed(value) {
+		return ((value & 0x8000)?~0xFFFF:0)|value;
+}
+
+function signed2unsigned(value) {
+		return value & 0xFFFF;
+}
+
+function zGetUnsignedWord(addr) {
+		return zGetByte(addr)*256+zGetByte(addr+1);
+}
+
+function zSetWord(value, addr) {
+		zSetByte((value>>8) & 0xFF, addr);
+		zSetByte((value) & 0xFF, addr+1);
+}
+
 
 ////////////////////////////////////////////////////////////////
 GNUSTO_LIB_HAPPY = 1;
