@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.103 2004/10/03 23:40:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.104 2005/01/12 05:54:35 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/10/03 23:40:05 $';
+const CVS_VERSION = '$Date: 2005/01/12 05:54:35 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -108,6 +108,10 @@ const SIBLING_REC = 1;
 const CHILD_REC = 2;
 
 const CALLED_FROM_INTERRUPT = 0;
+
+// Home alphabet is 0.  It will stay 0 for v3 and above, but can
+// be changed in v1/2
+var home_alph = 0;
 
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from run(). See the explanation below
@@ -1092,8 +1096,74 @@ const handlers_v578 = {
 // doesn't support extended opcodes (below v5), don't worry about
 // zeroing out codes above 999-- they can't be accessed anyway.
 const handlers_fixups = {
-		1: undefined, // not yet implemented-- see bug 5547
-		2: undefined, // not yet implemented-- see bug 5547
+		1: {
+				25: 0, // call_2s
+				26: 0, // call_2n
+				27: 0, // set_colour
+				28: 0, // throw
+				136: 0, // call_1s
+				143: handleZ_not, // replaces call_1n
+				181: handleZ_saveV123,
+				182: handleZ_restoreV123,
+				185: handleZ_pop, // replaces catch
+				188: handleZ_show_status,
+				190: 0, // extended opcodes
+				191: 0, // piracy
+				// 224 is shown in the ZMSD as being "call" before v4 and
+				// "call_vs" thence; this appears to be simply a name change.
+				// 228, similarly, is "sread" and then "aread".
+				236: 0, // call_vs
+				237: 0, // erase_window
+				238: 0, // erase_line
+				239: 0, // set_cursor
+				240: 0, // get_cursor
+				241: 0, // set_text_style
+				242: 0, // buffer_mode
+				246: 0, // read_char
+				247: 0, // scan_table, 
+				248: 0, // not
+				249: 0, // call_vn
+				250: 0, // call_vn2
+				251: 0, // tokenise
+				252: 0, // encode_text
+				253: 0, // copy_table
+				254: 0, // print_table
+				255: 0, // check_arg_count
+		},
+		2: {
+				25: 0, // call_2s
+				26: 0, // call_2n
+				27: 0, // set_colour
+				28: 0, // throw
+				136: 0, // call_1s
+				143: handleZ_not, // replaces call_1n
+				181: handleZ_saveV123,
+				182: handleZ_restoreV123,
+				185: handleZ_pop, // replaces catch
+				188: handleZ_show_status,
+				190: 0, // extended opcodes
+				191: 0, // piracy
+				// 224 is shown in the ZMSD as being "call" before v4 and
+				// "call_vs" thence; this appears to be simply a name change.
+				// 228, similarly, is "sread" and then "aread".
+				236: 0, // call_vs
+				237: 0, // erase_window
+				238: 0, // erase_line
+				239: 0, // set_cursor
+				240: 0, // get_cursor
+				241: 0, // set_text_style
+				242: 0, // buffer_mode
+				246: 0, // read_char
+				247: 0, // scan_table, 
+				248: 0, // not
+				249: 0, // call_vn
+				250: 0, // call_vn2
+				251: 0, // tokenise
+				252: 0, // encode_text
+				253: 0, // copy_table
+				254: 0, // print_table
+				255: 0, // check_arg_count
+		},
 		3: {
 				25: 0, // call_2s
 				26: 0, // call_2n
@@ -1998,6 +2068,7 @@ GnustoEngine.prototype = {
       this.m_transcript_buffer = '';
     
       // Reset the default alphabet.
+      home_alph = 0;
       this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
       this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       // T = magic ten bit flag
@@ -3308,7 +3379,7 @@ GnustoEngine.prototype = {
 			}
 
 			var temp = '';
-			var alph = 0;
+			var alph = home_alph;
 			var running = 1;
 			var start_address = address;
 
@@ -3346,11 +3417,39 @@ GnustoEngine.prototype = {
 											else
 													temp = temp + this.m_zalphabet[alph][code-6];
 											
-											alph = 0;
+											alph = home_alph;
 									} else {
-											if (code==0) { temp = temp + ' '; alph=0; }
-											else if (code<4) { abbreviation = code; }
-											else { alph = code-3; }
+											if (code==0) { temp = temp + ' '; alph=home_alph; }
+											else if (code<4) { 
+											    if (engine.m_version > 3) {abbreviation = code;}
+											    else {
+											      if (code==2){
+											          alph += 1;
+											          if (alph > 2) {alph=0;}                       								      											      	
+											      } else if (code==3) {
+											      	  alph -= 1;
+											      	  if (alph < 0) {alph=2;}											      
+											      }
+											      else {
+											        if (engine.m_version==2) {abbreviation=1;}
+											        else {temp = temp + '\n';} // in z1 1 is a newline
+											      } 
+											    }
+											}
+											else {
+											  if (engine.m_version > 2) {alph = code-3;}
+											  else {
+											      if (code==4){
+											          alph += 1;
+											          if (alph > 2) {alph=0;}                       								      											      	
+											      } else {
+											      	  alph -= 1;
+											      	  if (alph < 0) {alph=2;}											      
+											      }
+											      home_alph=alph;											   
+											  }
+											
+											}
 									}
 
 							} else if (tenbit==-1) {
