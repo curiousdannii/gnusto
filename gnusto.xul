@@ -29,13 +29,13 @@
 <menuseparator/>
 <menuitem label="Start transcript..." disabled="true" accesskey="T"/>
 <menuseparator/>
-<menuitem label="Exit" accesskey="X" oncommand="catcher('quitGame()')"/>
+<menuitem label="Exit" accesskey="X" oncommand="try{quitGame()}catch(e){deal_with_exception(e)}"/>
 </menupopup>
 </menu>
 
 <menu id="item-menu" label="Story" accesskey="S">
 <menupopup>
-<menuitem label="Open..." accesskey="O" oncommand="catcher('loadStory()')"/>
+<menuitem label="Open..." accesskey="O" oncommand="try{loadStory()}catch(e){deal_with_exception(e)}"/>
 <menuitem label="What's an .mz5, anyway?" accesskey="W"
 	oncommand="open('http://gnusto.mozdev.org/nullbytes.html')"/>
 </menupopup>
@@ -56,7 +56,7 @@
 
 <menu id="help-menu" label="Help" accesskey="H">
 <menupopup>
-<menuitem label="About Gnusto..." accesskey="A" oncommand="catcher('aboutBox()')"/>
+<menuitem label="About Gnusto..." accesskey="A" oncommand="try{aboutBox()}catch(e){deal_with_exception(e)}')"/>
 </menupopup>
 </menu>
 
@@ -66,7 +66,7 @@
 
 <html:pre id="upper"></html:pre><iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
-<textbox flex="0" id="input" onkeypress="return gotInput(event);"/>
+<textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
 
 <hbox flex="0">
 <description id="status" flex="5" value=""/>
