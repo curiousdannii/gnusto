@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.18 2003/03/09 14:22:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.19 2003/03/09 22:52:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -750,22 +750,24 @@ function dissemble() {
 				// List of arguments to the opcode.
 				var args = [];
 
-				var args = [];
+				// Inelegant function to load parameters according to a VAR byte (or word).
+				function handle_variable_parameters(types, bytecount) {
+						var argcursor = 0;
 
-				// Inelegant function to load parameters according to a VAR byte.
-				function handle_variable_parameters(argcursor) {
-						var types = getbyte(pc++);
+						if (bytecount==1) {
+								types = (types<<8) | 0xFF;
+						}
 
 						while (1) {
-								var current = types & 0xC0;
-								if (current==0xC0) {
+								var current = types & 0xC000;
+								if (current==0xC000) {
 										return;
-								} else if (current==0x00) {
+								} else if (current==0x0000) {
 										args[argcursor++] = getword(pc);
 										pc+=2;
-								} else if (current==0x40) {
+								} else if (current==0x4000) {
 										args[argcursor++] = getbyte(pc++);
-								} else if (current==0x80) {
+								} else if (current==0x8000) {
 										args[argcursor++] =
 												code_for_varcode(getbyte(pc++));
 								} else {
@@ -784,11 +786,11 @@ function dissemble() {
 						// If we just get a zero, we've probably
 						// been directed off into deep space somewhere.
 						
-						gnusto_error(201, pc-1); // lost in space
+						gnusto_error(201); // lost in space
 				} else if (instr==190) { // Extended opcode.
 						
 						instr = 1000+getbyte(pc++);
-						handle_variable_parameters(0);
+						handle_variable_parameters(getbyte(pc++), 1);
 						
 				} else if (instr & 0x80) {
 						if (instr & 0x40) { // Variable params
@@ -798,11 +800,13 @@ function dissemble() {
 										// variable parameters; reassign it.
 										instr &= 0x1F;
 								
-								handle_variable_parameters(0);
-
-								if (instr==250 || instr==236)
+								if (instr==250 || instr==236) {
 										// We get more of them!
-										handle_variable_parameters(4);
+										var types = get_unsigned_word(pc);
+										pc += 2;
+										handle_variable_parameters(types, 2);
+								} else
+										handle_variable_parameters(getbyte(pc++), 1);
 								
 						} else { // Short. All 1-OPs except for one 0-OP.
 
