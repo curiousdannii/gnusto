@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.2 2003/04/27 21:49:33 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.3 2003/04/27 22:48:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -22,6 +22,7 @@
 
 var barbara__holder = 0;
 var barbara__HTML = "http://www.w3.org/1999/xhtml";
+var barbara__current_css = '';
 
 ////////////////////////////////////////////////////////////////
 
@@ -40,6 +41,13 @@ function barbara_clear() {
 
 ////////////////////////////////////////////////////////////////
 
+function barbara_set_text_style(css_class) {
+		barbara__holder = 0;
+		barbara__current_css = css_class;
+}
+
+////////////////////////////////////////////////////////////////
+
 function barbara_chalk(text) {
 
 		if (barbara__holder==0) {
@@ -47,6 +55,9 @@ function barbara_chalk(text) {
 				barbara__holder =
 						document.createElementNS(barbara__HTML,
 																		 'html:span');
+
+				barbara__holder.setAttribute('class',
+																		 barbara__current_css);
 
 				document.getElementById('barbara').
 						appendChild(barbara__holder);
