@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.69 2003/05/26 18:47:56 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.70 2003/05/26 18:52:25 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1240,6 +1240,21 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				var entry_length = getbyte(dict_addr+separator_count+1);
 				var entries_count = getword(dict_addr+separator_count+2);
 				var entries_start = dict_addr+separator_count+4;
+
+				// Whether the dictionary is sorted.
+				// We don't use this at present (it would be a
+				// useful optimisation, though).
+				var is_sorted = 1;
+
+				if (entries_count < 0) {
+
+						// This should actually only happen on user dictionaries,
+						// but the distinction isn't a useful one, and so we don't
+						// bother to check.
+
+						is_sorted = 0;
+						entries_count = -entries_count;
+				}
 				
 				word = into_zscii(word);
 		
