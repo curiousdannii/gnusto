@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.65 2003/04/27 21:51:33 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.66 2003/04/27 22:50:13 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -156,8 +156,7 @@ function go_wrapper(answer, no_first_call) {
 
         case GNUSTO_EFFECT_STYLE:
 						p = engine_effect_parameters();
-						win_set_text_style(current_window,
-															 p[0], p[1], p[2]);
+						win_set_text_style(p[0], p[1], p[2]);
 						looping = 1;
 						break;
 
@@ -177,7 +176,7 @@ function go_wrapper(answer, no_first_call) {
 
 						// reset the css style variable to reflect the current
 						// state of text in the new window
-						win_set_text_style(current_window, -1, 0, 0);
+						win_set_text_style(-1, 0, 0);
 
 						if (current_window!=0 && current_window!=1)
 								gnusto_error(303, current_window);
