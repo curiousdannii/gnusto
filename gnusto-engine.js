@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.87 2003/08/04 00:06:34 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.88 2003/08/04 03:04:21 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -99,6 +99,10 @@ var alpha_start;
 // Address of Unicode Translation Table (if any).
 var unicode_start = 0;
 var custom_unicode_charcount = 0;
+
+// Information about the defined list of word separators
+var separator_count = 0;
+var separators = [];
 
 // |call_stack| stores all the return addresses for all the functions
 // which are currently executing.
@@ -1375,7 +1379,6 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		function look_up(word, dict_addr) {
 
-				var separator_count = zGetByte(dict_addr);
 				var entry_length = zGetByte(dict_addr+separator_count+1);
 				var entries_count = zGetWord(dict_addr+separator_count+2);
 				var entries_start = dict_addr+separator_count+4;
@@ -1394,19 +1397,24 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 						is_sorted = 0;
 						entries_count = -entries_count;
 				}
-				
+
+				var oldword = word;				
 				word = into_zscii(word);
 		
 				for (var i=0; i<entries_count; i++) {
+						//really ugly kludge until into_zscii is fixed properly
 						var address = entries_start+i*entry_length;
+					 	if (zscii_from(address)==oldword) {
+					 		return address;}
 						
 						var j=0;
-						while (j<word.length &&
+						while (j<word.length &&		
 									 zGetByte(address+j)==word.charCodeAt(j))
 								j++;
 
-						if (j==word.length) return address;
+						if (j==word.length)return address;
 				}
+				
 				return 0;
 		}
 
@@ -1425,8 +1433,37 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		var words_count = parse_buffer + 1;
 		zSetByte(0, words_count);
 		var cursor = parse_buffer+2;
+		//var cursor = ((zGetByte[cursor+1]&0xFF)*4) + 2
 
-		var words = result.split(' ');
+		var words = [];
+		var curword = '';
+		var wordindex = 0;
+		
+		for (var cpos=0; cpos < result.length; cpos++) {
+		  if (result[cpos]  == ' ') {
+		    if (curword != '') {
+		      words[wordindex++] = curword;
+		      curword = '';
+		    }
+		  } else {
+		  	if (IsSeparator(result[cpos])) {
+		  		if (curword != '') {
+		    		  words[wordindex++] = curword;}
+		    		words[wordindex++] = result[cpos];
+		    		curword = '';		
+		  	} else {
+		  	  curword += result[cpos];	
+		  	}
+		  }
+		}
+		
+		if (curword != '') words[wordindex++] = curword;
+		
+		//display the broken-up text for visual validation 
+		//for (var i=0; i < words.length; i++){
+		//  alert (i + ': ' + words[i] + ' ' + words[i].length);
+		//}
+
 		var position = 2;
 
 		for (var i in words) {
@@ -1973,6 +2010,11 @@ function engine_start_game(memory) {
 		alpha_start = zGetUnsignedWord(0x34);
 		hext_start = zGetUnsignedWord(0x36);		
 	
+		separator_count = zGetByte(dict_start);
+		for (var i=0; i<separator_count; i++) {		  
+		  separators[i]=zscii_char_to_ascii(zGetByte(dict_start + i+1));
+		}	
+	
 		// If there is a header extension...
 		if (hext_start > 0) {
 		  unicode_start = zGetUnsignedWord(hext_start+6);  // get start of custom unicode table, if any
@@ -2449,7 +2491,12 @@ function zSetWord(value, addr) {
 		zSetByte((value) & 0xFF, addr+1);
 }
 
-
+function IsSeparator(value) {
+	for (var sepindex=0; sepindex < separator_count; sepindex++) {
+		if (value == separators[sepindex]) return 1;	
+	}
+	return 0;	
+}
 ////////////////////////////////////////////////////////////////
 GNUSTO_LIB_HAPPY = 1;
 ////////////////////////////////////////////////////////////////
