@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.41 2003/06/16 05:00:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.42 2003/07/14 00:50:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -435,6 +435,10 @@ function bocardo__subchalk(win, text) {
 
 ////////////////////////////////////////////////////////////////
 
+// Stuff concerned with fixing bug 4050:
+
+var bocardo__seen_quote_box = 0;
+
 // The upper window can be made smaller by the story, but usually it
 // doesn't want the contents of the part that was removed to vanish,
 // at least not until the next scroll of the lower screen.
@@ -442,12 +446,27 @@ function bocardo__subchalk(win, text) {
 // It should only be used in conjunction with Barbara (rather than
 // when Bocardo is running both windows).
 function bocardo_collapse() {
-
-		while (bocardo__screen_window.childNodes.length > bocardo__top_window_height) {
-				bocardo__screen_window.removeChild(bocardo__screen_window.childNodes[bocardo__screen_window.childNodes.length-1]);
+		if (bocardo__seen_quote_box) {
+				bocardo__seen_quote_box = 0;
+				while (bocardo__screen_window.childNodes.length >
+							 bocardo__top_window_height) {
+						bocardo__screen_window.
+								removeChild(bocardo__screen_window.
+														childNodes[bocardo__screen_window.
+																			 childNodes.length-1]);
+				}
 		}
 }
 
+////////////////////////////////////////////////////////////////
+//
+// bocardo_record_seen_quote_box
+//
+function bocardo_record_seen_quote_box() {
+		if (bocardo__screen_window.childNodes.length > bocardo__top_window_height) {
+				bocardo__seen_quote_box = 1;
+		}
+}
 
 ////////////////////////////////////////////////////////////////
 UPPER_HAPPY = 1;
