@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.44 2003/06/04 02:16:24 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.45 2003/06/04 03:27:09 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -158,8 +158,10 @@ function ensureHappiness() {
 <bulletinboard id="screen">
 
 <!-- Lower window; ordinary HTML. -->
-<html:div top="0" left="0" width="640" id="barbara">
+<hbox flex="9">
+<html:div top="0" left="0" width="640" id="barbara" flex="9">
 </html:div>
+</hbox>
 
 <!-- Top window; all fixed width. -->
 <html:div top="0" left="0" width="640" height="480" id="bocardobox">
@@ -186,7 +188,7 @@ function ensureHappiness() {
 </scrollbox>
 
 <statusbar id="statusbox" flex="0">
-<statusbarpanel id="status" style="color: #888888; border-style: inset;" label=""/>
+<statusbarpanel id="status" style="color: #888888;" label=""/>
 </statusbar>
 
 </vbox>
