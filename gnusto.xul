@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.35 2003/05/02 22:14:43 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.36 2003/05/03 04:56:49 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -158,7 +158,9 @@ function ensureHappiness() {
 </html:div>
 
 <!-- Top window; all fixed width. -->
-<html:div id="bocardo" top="0" left="0" width="640" height="480">
+<html:div top="0" left="0" width="640" height="480">
+<vbox id="bocardo">
+</vbox>
 </html:div>
 
 </bulletinboard>
