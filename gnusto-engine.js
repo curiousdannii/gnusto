@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.99 2004/10/01 00:12:32 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.100 2004/10/01 00:35:12 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/10/01 00:12:32 $';
+const CVS_VERSION = '$Date: 2004/10/01 00:35:12 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -1816,18 +1816,29 @@ GnustoEngine.prototype = {
     var object_properties_address = this.getUnsignedWord(this.m_property_list_addr_start+(this.m_object_size*current_room_object_number));
     var outtext = this._zscii_from(object_properties_address+1);
     if (outtext.length > width) {
-    	outtext.slice(1,width-3);
+    	outtext = outtext.substring(0,width-3);
     	var outtext2 = '...';
     	var spacebuffer = '';
     } else {
       if ((this.m_version > 3) && ((this.getByte(1)&0x02)==2)) { // if it is a time game
-        var outtext2 = this.getUnsignedWord(this.m_vars_start+2) + ':' + this.getUnsignedWord(this.m_vars_start+4);
+        var hours = this.getUnsignedWord(this.m_vars_start+2);
+        var minutes = this.getUnsignedWord(this.m_vars_start+4);
+        if (minutes < 10) {
+          var outtext2 = hours + ':0' + minutes;	
+        } else {
+          var outtext2 = hours + ':' + minutes;
+        }
       } else { // if it is a score game
         var outtext2 = 'Score: ' + this.getUnsignedWord(this.m_vars_start+2) + '  Moves: ' + this.getUnsignedWord(this.m_vars_start+4);
       }
       if ((outtext.length + outtext2.length + 1) > width) {
-      	outtext2 = '';
-      
+      	outtext2 = ' S:' + this.getUnsignedWord(this.m_vars_start+2) + ' M:' + this.getUnsignedWord(this.m_vars_start+4);
+        if ((outtext.length + outtext2.length + 1) > width) {               
+          outtext2 = ' ' + this.getUnsignedWord(this.m_vars_start+2) + '/' + this.getUnsignedWord(this.m_vars_start+4);
+        }
+        if ((outtext.length + outtext2.length + 1) > width) {               
+          outtext2 = '';	
+        }
       }
       var spacebuffer = '';
       while ((outtext.length + outtext2.length + spacebuffer.length) < width) {
