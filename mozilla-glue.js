@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.93 2003/07/09 22:42:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.94 2003/07/14 00:47:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -484,7 +484,6 @@ function gotInput(e) {
 						result = result.replace('\u00A0', ' ', 'g');
 
 						win_destroy_input();
-						bocardo_collapse();
 
 						glue_print(result+'\n');
 						glue_set_answer(result);
@@ -552,9 +551,6 @@ function gotInput(e) {
 						}
 
 				}	else {
-
-						bocardo_collapse();
-
 						switch (e.keyCode) {
 
 								// Arrow keys
