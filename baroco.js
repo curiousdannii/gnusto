@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.15 2003/05/26 00:52:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.16 2003/05/27 02:11:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -21,19 +21,52 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 ////////////////////////////////////////////////////////////////
+//
+//                     PRIVATE VARIABLES
+//
+////////////////////////////////////////////////////////////////
 
-// Note: This will, perhaps, one day support both:
+// Note (bug 3809): Baroco will, perhaps, one day support both:
 //  1) the use of Bocardo for the upper screen and Barbara for the lower
 //  2) the use of Bocardo for both
 // The variable |baroco__enable_barbara| switches between these.
-// At present, only 1) is supported, though.
-
+// At present, only 1) is supported, though, and this variable is
+// only partially honoured.
 var baroco__enable_barbara = true;
 
+// True iff the system is forcing monospace to be on. Can be
+// set using win_force_monospace(). This is to support the
+// monospace header bit). 
+var baroco__forcing_monospace = 0;
+
+// Current size of the usable window, in pixels.
+// This is a list:
+//   [0] = width
+//   [1] = height
+// It can be queried with win_get_dimensions().
+var baroco__dimensions = null;
+
+// The current style for printing text, in Z-machine format.
+// Additively:
+//      0x01: set = reverse video
+//      0x02: set = bold
+//      0x04: set = italic, clear = roman
+//      0x08: set = monospace
+//              (baroco__forcing_monospace overrides this)
+var baroco__current_style = 0;
+
+// The current foreground colour, in Z-machine format.
+// 1=default; 2=black; 3=red; 4=green; 5=yellow;
+// 6=blue; 7=magenta; 8=cyan; 9=white.
+var baroco__current_foreground = 1;
+
+// The current background colour, in Z-machine format.
+var baroco__current_background = 1;
+
 ////////////////////////////////////////////////////////////////
-
-var win__forcing_monospace = 0;
-
+//
+//                     PUBLIC FUNCTIONS
+//
 ////////////////////////////////////////////////////////////////
 
 // Called on startup.
@@ -45,8 +78,12 @@ function win_init() {
 
 function win_start_game() {
 
-		barbara_start_game();
-		bocardo_start_game();
+		baroco__enable_barbara = true;
+		baroco__forcing_monospace = 0;
+		baroco__dimensions = null;
+		baroco__current_style = 0;
+		baroco__current_foreground = 1;
+		baroco__current_background = 1;
 
 		win_set_text_style(-1, 0, 0);
 
@@ -57,13 +94,17 @@ function win_start_game() {
 
 ////////////////////////////////////////////////////////////////
 
-var win__dimensions = null;
-
+// Gets the current size of the usable window, in pixels.
+// Returns a list:
+//   [0] = width
+//   [1] = height
 function win_get_dimensions() {
-		return win__dimensions;
+		return baroco__dimensions;
 }
 
-// This is called once at the start of play, and after that
+////////////////////////////////////////////////////////////////
+
+// Called once at the start of play, and after that
 // automatically called when the window resizes.
 // (FIXME: We should handle exceptions ourselves, really, since we're
 // called by events.)
@@ -71,19 +112,19 @@ function win_resize() {
 
 		function reset_width_and_height_of(something, set_height) {
 				var e = document.getElementById(something);
-				e.setAttribute('width',  win__dimensions[0]);
+				e.setAttribute('width',  baroco__dimensions[0]);
 				if (set_height) {
-						e.setAttribute('height', win__dimensions[1]);
+						e.setAttribute('height', baroco__dimensions[1]);
 				}
 		}
 
 		var fudge = document.getElementById('statusbox').boxObject.height + 30;
 
-		win__dimensions = [window.innerWidth,
+		baroco__dimensions = [window.innerWidth,
 											window.innerHeight-fudge,
 											];
 
-		burin('resize',win__dimensions);
+		burin('resize',baroco__dimensions);
 
 		// Reset explicit widths and heights in the XUL
 
@@ -95,8 +136,8 @@ function win_resize() {
 		// and height.
 
 		var char_sizes = bocardo_get_font_metrics();
-		var width_in_chars = Math.floor(win__dimensions[0]/char_sizes[0]);
-		var height_in_chars = Math.floor(win__dimensions[1]/char_sizes[1]);
+		var width_in_chars = Math.floor(baroco__dimensions[0]/char_sizes[0]);
+		var height_in_chars = Math.floor(baroco__dimensions[1]/char_sizes[1]);
 
 		bocardo_set_screen_size(width_in_chars, height_in_chars);
 		glue_store_screen_size(width_in_chars, height_in_chars);
@@ -201,11 +242,10 @@ function win_set_status_line(text) {
 
 ////////////////////////////////////////////////////////////////
 
-var baroco__current_style = 0;
-var baroco__current_foreground = 1;
-var baroco__current_background = 1;
-
 // Set the current text style, foreground and background colours.
+// Style numbers are the Z-machine standards, and -1 for "no change".
+// Colour numbers are the Z-machine standards, which includes
+// 0 for "no change".
 function win_set_text_style(style, foreground, background) {
 
 		// List of CSS classes we want.
@@ -268,7 +308,7 @@ function win_set_text_style(style, foreground, background) {
 		if (style & 0x2) css = css + ' sb'; // bold
 		if (style & 0x4) css = css + ' si'; // italic
 
-		if (style & 0x8 || win__forcing_monospace)
+		if (style & 0x8 || baroco__forcing_monospace)
 				css = css + ' sm';
 
 		////////////////////////////////////////////////////////
@@ -282,7 +322,7 @@ function win_set_text_style(style, foreground, background) {
 ////////////////////////////////////////////////////////////////
 
 function win_force_monospace(whether) {
-		win__forcing_monospace = whether;
+		baroco__forcing_monospace = whether;
 		win_set_text_style(-1, 0, 0);
 }
 
