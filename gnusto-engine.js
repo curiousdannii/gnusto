@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.33 2003/03/26 05:18:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.34 2003/03/26 05:51:05 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -475,7 +475,15 @@ var handlers = {
 		27: function(a) { // set_colour
 				return "gnustoglue_set_text_style(-1,"+a[0]+','+a[1]+")";
 		},
-		// 28 = throw. Not yet implemented
+		28: function(a) { // throw
+				// FIXME: I don't know whether this works; Inform never uses this
+				// opcode, and I don't have any of Infocom's original games around.
+				// If you know whether it works or doesn't, please say at
+				// <http://mozdev.org/bugs/show_bug.cgi?id=3467>. Thanks.
+		 
+				compiling = 0;
+				return "throw_stack_frame("+a[0]+");return";
+		},
 		128: function(a) { // jz
 				return brancher(a[0]+'==0');
 		},
@@ -561,13 +569,15 @@ var handlers = {
 		180: function(a) { // nop
 				return "";
 		},
-
 		184: function(a) { // ret_popped
 				compiling=0;
 				return "gnusto_return(gamestack.pop());return";
 		},
-		// not implemented:           0OP:185 9   5/6 catch -> (result)
-
+		185: function(a) { // catch
+				// The stack frame cookie is specified by Quetzal 1.3b s6.2
+				// to be the number of frames on the stack.
+				return storer("call_stack.length");
+		},
 		186: function(a) { // quit
 				compiling=0;
 				return "return "+GNUSTO_EFFECT_QUIT;
@@ -1151,15 +1161,37 @@ function aread(source, text_buffer, parse_buffer) {
 		return 10;
 }
 
+// Returns from a z-machine routine.
+// |value| is the numeric result of the routine.
+// It can also be null, in which case the remaining results of
+// the current opcode won't be executed (it won't run the "result eater").
 function gnusto_return(value) {
-		var eater = result_eaters.pop();
-
 		for (var i=locals_stack.shift(); i>0; i--) {
 				locals.shift();
 		}
-		param_counts.shift()
-				pc = call_stack.pop();
-		if (eater) eater(value);
+		param_counts.shift();
+		pc = call_stack.pop();
+
+		var eater = result_eaters.pop();
+		if (eater && (value!=null)) {
+				eater(value);
+		}
+}
+
+function throw_stack_frame(cookie) {
+		// Not tested. See caveats for @throw, above.
+
+		// The cookie is the value of call_stack.length when @catch was
+		// called. It cannot be less than 1 or greater than the current
+		// value of call_stack.length.
+
+		if (cookie>call_stack.length || cookie<1) {
+				gnusto_error(207, cookie);
+		}
+
+		while (call_stack.length > cookie-1) {
+				gnusto_return(null);
+		}
 }
 
 function get_prop_addr(object, property) {
