@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.72 2003/05/05 02:31:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.73 2003/05/07 06:40:13 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -34,6 +34,7 @@ var ignore_errors = {
 		706: 1, // Work around a bug in Library 15/2 (see bug 3314)
    };
 
+var ignore_transient_errors = false;
 // The reason that go_wrapper stopped last time. This is
 // global because other parts of the program might want to know--
 // for example, to disable input boxes.
@@ -521,8 +522,10 @@ function gnusto_error(n) {
 		} catch (e) {
 				m = m + '(Some symbols not defined.)';
 		}
-
-		alert(m);
+		
+		if (!ignore_transient_errors) {
+                  window.openDialog("chrome://gnusto/content/errorDialog.xul", "Error", "modal,centerscreen,chrome,resizable=no", m, n);               
+                }
 
 		if (n<500) throw -1;
 }
