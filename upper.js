@@ -1,8 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.13 2003/04/04 04:45:01 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.14 2003/04/04 09:24:07 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -53,7 +52,7 @@ function win_setup() {
 
 ////////////////////////////////////////////////////////////////
 
-function win_chalk(win, fg, bg, style, text) {
+function win_chalk(win, style, text) {
 
     // This function is written in terms of win__subchalk(). All *we*
     // have to do is split up |text| so that it never goes
@@ -86,7 +85,7 @@ function win_chalk(win, fg, bg, style, text) {
 										amount = win__screen_width - win__current_x[win];
 								}
 
-								win__subchalk(win, fg, bg, style, message.substring(0, amount));
+								win__subchalk(win, style, message.substring(0, amount));
 								
 								win__current_x[win] = 0;
 								win__current_y[win]++;
@@ -95,7 +94,7 @@ function win_chalk(win, fg, bg, style, text) {
 								
 								// The message is shorter.
 
-								win__subchalk(win, fg, bg, style, message);
+								win__subchalk(win, style, message);
 								win__current_x[win] += message.length;
 								message = '';
 						}
@@ -132,8 +131,16 @@ function win_chalk(win, fg, bg, style, text) {
 
 ////////////////////////////////////////////////////////////////
 
+function win_gotoxy(win, x, y) {
+		win__current_x[win] = x;
+		win__current_y[win] = y;
+}
+
+////////////////////////////////////////////////////////////////
+
 function win_set_top_window_size(lines) {
 		win__top_window_height = lines;
+		win_gotoxy(1, 0, 0);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -142,7 +149,7 @@ function win_set_top_window_size(lines) {
 //
 ////////////////////////////////////////////////////////////////
 
-function win__subchalk(win, fg, bg, style, text) {
+function win__subchalk(win, style, text) {
 
 		var x = win__current_x[win];
 		var y = win__current_y[win];
@@ -195,12 +202,15 @@ function win__subchalk(win, fg, bg, style, text) {
 				if (charactersSeen < x) {
 						// There aren't enough characters to go round. We
 						// must add extra spaces to the start of the text.
-						// FIXME: this is wrong; we should add them to
-						// the end of the last span.
+
+						var padding = '';
 
 						for (var i=0; i<(x-charactersSeen); i++) {
-								text = ' '+text;
+								padding = padding + ' ';
 						}
+
+						doppelganger = win__screen_doc.createElement('span');
+						doppelganger.appendChild(win__screen_doc.createTextNode(padding));
 				}
 
 				// Just append the text.
@@ -254,15 +264,16 @@ function win__subchalk(win, fg, bg, style, text) {
 						current_line.removeChild(spans[appendPoint]); // the others will slide up.
 				}
 
-				// ...add the broken span, if there was one...
-				if (doppelganger) {
-						current_line.insertBefore(doppelganger, spans[cursor]);
-				}
+		}
 
+		// ...add the broken span, if there was one...
+		if (doppelganger) {
+				current_line.insertBefore(doppelganger, spans[cursor]);
 		}
 
 		// ..and append our text.
 		var newSpan = win__screen_doc.createElement('span');
+		newSpan.setAttribute('style', style);
 		newSpan.appendChild(win__screen_doc.createTextNode(text));
 
 		if (appendPoint == -1) {
@@ -275,24 +286,13 @@ function win__subchalk(win, fg, bg, style, text) {
 ////////////////////////////////////////////////////////////////
 
 // Clears a window. |win| must be a valid window ID.
-function clear_window(win) {
-		// Inefficient, but it works for now.
-
-		// FIXME: it no longer works.
-
+function win_clear(win) {
 		while (win__screen_window.childNodes.length!=0) {
 				win__screen_window.removeChild(win__screen_window.childNodes[0]);
 		}
 
 		win__current_x[win] = 0;
 		win__current_y[win] = 0;
-}
-
-////////////////////////////////////////////////////////////////
-
-function win_gotoxy(win, x, y) {
-		win__current_x[win] = x;
-		win__current_y[win] = y;
 }
 
 ////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.36 2003/04/04 04:45:01 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.37 2003/04/04 09:24:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -165,10 +165,9 @@ function gnustoglue_output(what) {
 
 function output_flush() {
 		for (var i=0; i<2; i++) {
-				win_chalk(i, 0, 0, 0, window_buffers[i]);
+				win_chalk(i, current_css, window_buffers[i]);
 				window_buffers[i] = '';
 		}
- 		/* FIXME: probably delete: window.frames[1].scrollTo(0, lowerWindow.height); */
 }
 
 function gnustoglue_soundeffect(number, effect, volume, callback) {
@@ -179,6 +178,9 @@ function gnustoglue_soundeffect(number, effect, volume, callback) {
 
 // Would be nice to do these in the skin, so, for example,
 // a skin with muted tones could have pastel colours here.
+//
+// Maybe render everything into classes, rather than absolute CSS,
+// and let the skin decide it.
 var css_colours = ['', // 0 = current; never used here
 									'',  // 1 = default; never used here
 									'#000000', // 2 = black
@@ -194,13 +196,13 @@ var current_style = 0;
 var current_foreground = 1; // 1==default
 var current_background = 1;
 
+var current_css = '';
+
 function gnustoglue_set_text_style(style, foreground, background) {
 
-		/*
+		output_flush();
 
-			... disabled pending new layout...
-
-    var styling = '';
+		current_css = '';
 
 		if (style==0)
 				current_style = 0;
@@ -209,43 +211,35 @@ function gnustoglue_set_text_style(style, foreground, background) {
 
 				if (current_style & 0x1)
 						// "reverse video", whatever that means for us
-						styling = styling + 'background-color: #777777;color: #FFFFFF;';
+						// (FIXME: I think it should really switch FG and BG colours.)
+						current_css = current_css + 'background-color: #777777;color: #FFFFFF;';
 
 				if (current_style & 0x2)
 						// bold
-						styling = styling + 'font-weight:bold;';
+						current_css = current_css + 'font-weight:bold;';
 
 				if (current_style & 0x4)
 						// italic
-						styling = styling + 'font-style: italic;';
+						current_css = current_css + 'font-style: italic;';
 				
 				if (current_style & 0x8)
 						// monospace
-						styling = styling + 'font-family: monospace;';
+						current_css = current_css + 'font-family: monospace;';
 		}
 
 		if (foreground==0)
 				foreground = current_foreground;
 		if (foreground!=1) { // Not "default".
-				styling = styling + 'color:'+css_colours[foreground]+';';
+				current_css = current_css + 'color:'+css_colours[foreground]+';';
 				current_foreground = foreground;
 		}
 
 		if (background==0)
 				background = current_background;
 		if (background!=1) { // Not "default".
-				styling = styling + 'background:'+css_colours[background]+';';
+				current_css = current_css + 'background:'+css_colours[background]+';';
 				current_background = background;
 		}
-
-    if (current_window==0) {
-				current_text_holder = 
-						lowerWindow.createElement('span');
-				current_text_holder.setAttribute('style', styling);
-				tty.appendChild(current_text_holder);
-    }
-
-		*/
 }
 
 function gnustoglue_split_window(lines) {
@@ -273,24 +267,24 @@ function gnustoglue_erase_window(w) {
 				// FIXME: was: u_setup(u_width, u_height);
 				// this may come in useful when we put height-fixing back
 
-				clear_window(1);
+				win_clear(1);
 				break;
 
 		case 0: // clear lower window
 				// can't handle clearing lower window yet
 
-				clear_window(0);
+				win_clear(0);
 				break;
 
 		case -2: // clear both
-				clear_window(0);
-				clear_window(1);
+				win_clear(0);
+				win_clear(1);
 				break;
 
 		case -1: // clear both and unsplit
 				gnustoglue_split_window(0);
-				clear_window(0);
-				clear_window(1);
+				win_clear(0);
+				win_clear(1);
 				break;
 
 		default: // weird
@@ -366,7 +360,7 @@ function go_wrapper(answer) {
 				} else if (reasonForStopping == GNUSTO_EFFECT_VERIFY) {
 
 						// FIXME: Here we should verify the game.
-						// There are many more impotrant things to fix first,
+						// There are many more important things to fix first,
 						// though. So let's just say "yes" for now.
 
 						answer = 1;
