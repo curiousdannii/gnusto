@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.64 2003/05/25 21:35:52 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.65 2003/05/26 00:04:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -725,18 +725,17 @@ var handlers = {
 				compiling = 0;
 
 				var setter = "rebound=function(n){" +
-						storer("aread(n," + a[0]+","+a[1] + ")") +
+						storer("aread(n, a0," + a[1] + ")") +
 						"};";
 
-				var eep =
-				"engine__effect_parameters=={"+
-				"'recaps':"   + "getbyte(" + a[0] +   "),"+
-				"'maxchars':" + "getbyte(" + a[0] + "+1),"+
-				"}";
-
-				return "pc=" + pc + ";" + setter +
-				eep +
-				";return "+GNUSTO_EFFECT_INPUT;
+				return "var a0=eval("+ a[0] + ");burin('a0',a0);burin('a0+1',a0+1);burin('gb',getbyte(a0));burin('gb',getbyte(a0+1));" +
+				"pc=" + pc + ";" +
+				setter +
+				"engine__effect_parameters={"+
+				"'recaps':"   + "getbyte(a0+1),"+
+				"'maxchars':" + "getbyte(a0),"+
+				"};for (var i in engine__effect_parameters) burin(i,engine__effect_parameters[i]);"+
+				"return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
 				return handler_zOut('zscii_char_to_ascii('+a[0]+')');

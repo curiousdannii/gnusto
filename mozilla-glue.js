@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.80 2003/05/25 21:42:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.81 2003/05/26 00:04:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -39,6 +39,10 @@ var ignore_transient_errors = false;
 // global because other parts of the program might want to know--
 // for example, to disable input boxes.
 var glue__reason_for_stopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
+
+// The maximum number of characters that the input buffer can currently
+// accept.
+var glue__input_buffer_max_chars = 255;
 
 ////////////////////////////////////////////////////////////////
 
@@ -155,7 +159,10 @@ function go_wrapper(answer) {
 
 				case GNUSTO_EFFECT_INPUT:
 						win_relax();
-						win_set_input(['','']);
+						var eep = engine_effect_parameters();
+						for (var i in engine__effect_parameters) burin('geep '+i,engine__effect_parameters[i]);
+						glue__input_buffer_max_chars = eep.maxchars;
+						win_set_input([win_recaps(eep.recaps), '']);
 						break;
 
 				case GNUSTO_EFFECT_SAVE:
@@ -307,6 +314,9 @@ function glue__burin_to_file(area, text) {
     // ..........|1234567890:|
 		var spaces = '          :';
 
+		if (!area) area = '';
+		if (!text) text = '';
+
 		var message = area.toString() + spaces.substring(area.length);
 
 		text = '['+text.toString().replace(String.fromCharCode(10),
@@ -446,13 +456,19 @@ function gotInput(e) {
 
 						// Just an ordinary character. Insert it.
 
-						if (e.charCode==32) {
-								// Special case for space: use a non-breaking space.
-								current[0] = current[0] + '\u00A0';
-						} else {
-								current[0] = current[0] + String.fromCharCode(e.charCode);
-						}
-						win_set_input(current);
+						if ((current[0].length + current[1].length) <
+								glue__input_buffer_max_chars) {
+
+								if (e.charCode==32) {
+										// Special case for space: use a non-breaking space.
+										current[0] = current[0] + '\u00A0';
+								} else {
+										current[0] = current[0] + String.fromCharCode(e.charCode);
+								}
+								win_set_input(current);
+
+						} else glue__beep();
+
 				} else if (e.keyCode==8) {
 						// backspace
 						if (current[0].length>0) {
