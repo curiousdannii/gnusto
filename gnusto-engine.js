@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.36 2003/03/26 06:24:50 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.37 2003/03/27 02:14:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -778,6 +778,15 @@ var handlers = {
 				gnusto_error(700); // spurious restore_undo
 				return storer('0');
 		},
+
+		1011: function(a) { // print_unicode
+				gnustoglue_print_unicode(a[0]);
+		},
+
+		1012: function(a) { // check_unicode
+				return storer('gnustoglue_check_unicode('+a[0]+')');
+		},
+
 
 		// 1011 -- print_unicode } neither needed until we claim
 		// 1012 -- check_unicode } compliance with Standard 1.0
