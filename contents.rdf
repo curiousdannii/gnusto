@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<!--
+
+   Manifest for gnusto
+
+-->
+
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:chrome="http://www.mozilla.org/rdf/chrome#">
+
+  <!-- We supply one package: Gnusto -->
+
+  <RDF:Seq about="urn:mozilla:package:root">
+	<RDF:li resource="urn:mozilla:package:gnusto"/>
+  </RDF:Seq>
+
+  <!-- More information about this package -->
+
+  <RDF:Description about="urn:mozilla:package:gnusto"
+   chrome:displayName="Gnusto Z-machine"
+   chrome:author="marnanel@marnanel.org"
+   chrome:name="gnusto">
+  </RDF:Description>
+
+  <!-- (and add it onto the Tools menu) -->
+  <RDF:Seq about="urn:mozilla:overlays">
+    <RDF:li resource="chrome://communicator/content/tasksOverlay.xul"/>
+    <!-- And: chrome://communicator/content/pref/preftree.xul, later -->
+    </RDF:Seq>
+  <RDF:Seq about="chrome://communicator/content/tasksOverlay.xul">
+    <RDF:li>chrome://gnusto/content/addToMenus.xul</RDF:li>
+  </RDF:Seq>
+
+
+</RDF:RDF>
