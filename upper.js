@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.27 2003/04/22 13:27:30 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.28 2003/04/22 15:28:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -272,7 +272,7 @@ var win__current_style = [0,0];
 var win__current_foreground = [1,1];
 var win__current_background = [1,1];
 
-var win__current_css = ['',''];
+var win__current_css = ['ff bb','ff bb'];
 
 // Set the current text style, foreground and background colours
 // of a given window. Very Z-machine specific.
