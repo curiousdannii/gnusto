@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.14 2003/04/04 09:24:07 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.15 2003/04/05 08:25:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -144,6 +144,46 @@ function win_set_top_window_size(lines) {
 }
 
 ////////////////////////////////////////////////////////////////
+
+// Clears a window. |win| must be a valid window ID.
+function win_clear(win) {
+		while (win__screen_window.childNodes.length!=0) {
+				win__screen_window.removeChild(win__screen_window.childNodes[0]);
+		}
+
+		win__current_x[win] = 0;
+		win__current_y[win] = 0;
+}
+
+////////////////////////////////////////////////////////////////
+
+// Prints an array of strings, |lines|, on window |win| in
+// style |style|. The first line will be printed at the current
+// cursor position, and each subsequent line will be printed
+// at the point immediately below the previous one. This function
+// leaves the cursor where it started.
+
+function win_print_table(win, style, lines) {
+
+		var temp_x = win__current_x[win];
+		var temp_y = win__current_y[win];
+
+		for (i=0; i<lines.length; i++) {
+				win__current_x[win] = temp_x;
+				win__current_y[win] = (temp_y+i) % win__screen_height;
+
+				if (lines[i].length + temp_x > win__screen_width) {
+						lines[i] = lines[i].substring(win__screen_width-temp_x);
+				}
+
+				win_chalk(win, style, lines[i]);
+		}
+
+		win__current_x[win] = temp_x;
+		win__current_y[win] = temp_y;
+}
+
+////////////////////////////////////////////////////////////////
 //
 //                      Private functions
 //
@@ -154,25 +194,18 @@ function win__subchalk(win, style, text) {
 		var x = win__current_x[win];
 		var y = win__current_y[win];
 
-    // Firstly, decide on the CSS styles we're going to
-    // use in this section.
-
-    // Don't bother for now, but FIXME: do later.
-    var css_styles = '';
-
-    // Thirdly, let's get a handle on the line we want
-    // to modify.
+    // Let's get a handle on the line we want to modify.
 
     var lines = win__screen_window.childNodes;
 
-    // Fourthly, if the line doesn't yet exist we must create it.
+    // If the line doesn't yet exist, we must create it.
     // FIXME: possibly this will become redundant when we handle
     // dynamic screen resizing.
     while (lines.length <= y) {
 				win__screen_window.appendChild(win__screen_doc.createElement('div'));
     }
 
-    // Fifthly, we delete any bits of that line we're going to overwrite,
+    // We delete any bits of that line we're going to overwrite,
 		// and work out where to insert the new span. The line consists of a
 		// number of spans plus a carriage return (which we should ignore).
     var current_line = lines[y];
@@ -281,18 +314,6 @@ function win__subchalk(win, style, text) {
 		} else {
 				current_line.insertBefore(newSpan, spans[appendPoint]);
 		}
-}
-
-////////////////////////////////////////////////////////////////
-
-// Clears a window. |win| must be a valid window ID.
-function win_clear(win) {
-		while (win__screen_window.childNodes.length!=0) {
-				win__screen_window.removeChild(win__screen_window.childNodes[0]);
-		}
-
-		win__current_x[win] = 0;
-		win__current_y[win] = 0;
 }
 
 ////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.43 2003/04/04 13:23:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.44 2003/04/05 08:25:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -228,12 +228,16 @@ function brancher(condition) {
 				if_statement = 'if('+if_statement+')';
 		}
 
-		if (target_address == 0)
-				return if_statement + '{gnusto_return(0);return;}'
-						if (target_address == 1)
-								return if_statement + '{gnusto_return(1);return;}'
+		// Branches to the addresses 0 and 1 are actually returns with
+		// those values.
 
-										target_address = (pc + target_address) - 2;
+		if (target_address == 0)
+				return if_statement + '{gnusto_return(0);return;}';
+
+		if (target_address == 1)
+				return if_statement + '{gnusto_return(1);return;}';
+
+		target_address = (pc + target_address) - 2;
 
 		// This is an optimisation that's currently unimplemented:
 		// if there's no code there, we should mark that we want it later.
@@ -245,9 +249,9 @@ function brancher(condition) {
 
 function code_for_varcode(varcode) {
 		if (varcode==0)
-				return 'gamestack.pop()'
-						else if (varcode < 0x10)
-								return 'locals['+(varcode-1)+']';
+				return 'gamestack.pop()';
+		else if (varcode < 0x10)
+				return 'locals['+(varcode-1)+']';
 		else
 				return 'getword('+(vars_start+(varcode-16)*2)+')';
 
@@ -398,6 +402,16 @@ var GNUSTO_EFFECT_SETCURSOR      = 0x940;
 
 var GNUSTO_EFFECT_SETBUFFERMODE  = 0x950;
 var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
+
+// Returned if the story wants to print a table, as with
+// @print_table. (This is complicated enough to get its
+// own effect code, rather than just using an internal buffer
+// as most printing does.)
+//
+// engine_effect_parameters() will return a list of lines to print.
+//
+// Any value may be used as an answer; it will be ignored.
+var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
 
 ////////////////////////////////////////////////////////////////
 //
@@ -784,7 +798,14 @@ var handlers = {
 				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
 		},
 
-		// not implemented:   VAR:254 1E 5 print_table zscii-text width height skip print_table '"},
+		254: function(a) { // print_table
+
+				// Jam in defaults:
+				if (a.length < 4) { a.push(1); } // default height
+				if (a.length < 5) { a.push(0); } // default skip
+
+				return "pc="+pc+";engine__effect_parameters=engine__print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
+		},
 
 		255: function(a) { // check_arg_count
 				return brancher(a[0]+'<=param_count()');
@@ -957,6 +978,7 @@ function dissemble() {
 						// been directed off into deep space somewhere.
 						
 						gnusto_error(201); // lost in space
+
 				} else if (instr==190) { // Extended opcode.
 						
 						instr = 1000+getbyte(pc++);
@@ -1047,7 +1069,7 @@ function dissemble() {
 
 function trunc_divide(over, under) {
 	
-                var result;
+		var result;
 
 		if (under==0) {
 				gnusto_error(701); // division by zero
@@ -1056,7 +1078,7 @@ function trunc_divide(over, under) {
 
 		result = over / under;
 
-                if (result > 0) {
+		if (result > 0) {
 		  return Math.floor(result);
 		} else {
 		  return Math.ceil(result);
@@ -1071,7 +1093,7 @@ function zscii_char_to_ascii(zscii_code) {
 
 		var result;
 
-		if (zscii_code==13)
+		if (zscii_code==13 || zscii_code==10)
 				result = 10;
 		else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
 				result = zscii_code;
@@ -1627,6 +1649,48 @@ function copy_table(first, second, size) {
 						}
 				}
 		}
+}
+
+////////////////////////////////////////////////////////////////
+
+// Returns the lines that @print_table should draw, as in
+// the Z-spec.
+//
+// It's rather poorly defined there:
+//   * How is the text in memory encoded?
+//       [Straight ZSCII, not five-bit encoded.]
+//   * What happens to the cursor? Moved?
+//       [We're guessing not.]
+//   * Is the "table" a table in the Z-machine sense, or just
+//     a contiguous block of memory?
+//       [Just a contiguous block.]
+//   * What if the width takes us off the edge of the screen?
+//
+// It also goes largely un-noted that this is the only possible
+// way to draw on the lower window away from the current
+// cursor position. (If we take the view that v5 windows are
+// roughly the same thing as v6 windows, though, windows don't
+// "own" any part of the screen, so there's no such thing as
+// drawing on the lower window per se.)
+
+function engine__print_table(address, width, height, skip) {
+
+		var lines = [];
+
+		for (var y=0; y<height; y++) {
+
+				var s='';
+
+				for (var x=0; x<width; x++) {
+						s=s+zscii_char_to_ascii(getbyte(address++));
+				}
+
+				lines.push(s);
+
+				address += skip;
+		}
+
+		return lines;
 }
 
 ////////////////////////////////////////////////////////////////

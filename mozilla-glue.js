@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.39 2003/04/04 13:27:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.40 2003/04/05 08:25:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -411,6 +411,12 @@ function go_wrapper(answer) {
 
         case GNUSTO_EFFECT_SETINPUTSTREAM:
 						// FIXME: stub at present. See bug 3470.
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_PRINTTABLE:
+						win_print_table(current_window, current_css,
+														engine_effect_parameters());
 						looping = 1;
 						break;
 
