@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.10 2003/05/12 01:28:20 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.11 2003/05/13 09:13:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -172,7 +172,14 @@ function barbara_show_more() {
 		// check anyway...
 		if (!barbara__more_waiting) return;
 
-		barbara__set_viewport_top(barbara__get_viewport_top() + barbara__get_page_height());
+		var a = 'GVT was '+barbara__get_viewport_top()+'; adding '+barbara__get_viewport_height();
+
+		barbara__set_viewport_top(barbara__get_viewport_top() +
+															barbara__get_viewport_height());
+
+		document.title = a + '; GVT is now '+barbara__get_viewport_top();
+
+		barbara_relax();
 }
 
 ////////////////////////////////////////////////////////////////
