@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.18 2003/04/05 16:52:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.19 2003/04/10 00:03:06 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -247,7 +247,9 @@ function win__subchalk(win, style, text) {
     // FIXME: possibly this will become redundant when we handle
     // dynamic screen resizing.
     while (lines.length <= y) {
-				win__screen_window.appendChild(win__screen_doc.createElement('div'));
+                                var newdiv = win__screen_doc.createElement('div');
+                                newdiv.setAttribute('style', 'width: 100%; background-color: ' + css_colours[current_background]);
+                                win__screen_window.appendChild(newdiv);
     }
 
     // We delete any bits of that line we're going to overwrite,
