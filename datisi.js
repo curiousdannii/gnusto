@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.3 2003/04/21 00:11:50 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.4 2003/04/21 02:58:20 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -224,7 +224,7 @@ function command_open(a) {
 
 		var BINIS_CTR = "@mozilla.org/binaryinputstream;1";
 		var nsIBinaryInputStream = Components.interfaces.nsIBinaryInputStream;
-
+		
 		var ios = Components.classes[IOS_CTR].getService(nsIIOService);
 
 		var uri = ios.newFileURI(localfile);
@@ -235,16 +235,53 @@ function command_open(a) {
 		buf.init(is, localfile.fileSize);
 
 		if (!(BINIS_CTR in Components.classes)) {
-				// Oh dear :/ Then we can't load binary files.
-				gnusto_error(310);
-				return;
+		    // Fall back to slow-load method for pre-1.4 compatibility
+		    
+		    // But warn the user first...
+		    if (confirm("Loading binary files in javascript is extremely slow in Mozilla 1.3 and earlier.  " +
+		        "Loading this file may take from 20 seconds to 2 minutes depending on the speed of " +
+		        "your machine.  It is strongly recommended that you use Gnusto under Mozilla 1.4 or later.  " +
+		        "Gnusto (and Mozilla) will appear to lock up while the file is loading.")) {
+		    
+		      var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
+   		      fc.init(localfile, 1, 0, 0);
+
+		      var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1", "nsIScriptableInputStream")();
+		      sis.init(fc);
+
+                      var fileContents = sis.read(localfile.fileSize);
+		
+	  	      var ss = fc.QueryInterface(Components.interfaces.nsISeekableStream);
+
+                      // Due to the fact that the pre-1.4 method reads the contents of the file as a string,
+                      // every time it hits a null, it thinks it's done.  So if we've stopped but aren't at
+                      // the end of the file, tack on a null, seek past the null, keep reading.
+                      // Lather, Rinse, Repeat.
+                      while (fileContents.length!=localfile.fileSize) {
+                          ss.seek(0, fileContents.length + 1);  
+                          fileContents += "\0" + sis.read(localfile.fileSize);
+                      }
+                      
+                      // We just got a string but all our functions are expecting an array of bytes.
+                      // So we do some faux-typecasting.  (I'd just like to take this opportunity to
+                      // suggest that loosely-typed languages are a really, really stupid idea.)
+                      var TransContents = [];
+                      TransContents.length = fileContents.length;
+                      for (var i=0; i < fileContents.length; i++){
+                        TransContents[i] = fileContents[i].charCodeAt();
+                      }
+                      fc.close();
+                      dealWith(TransContents);
+                    }
 		}
+		else {
 
-		// now wrap the buffered input stream in a binary stream
-		var bin = Components.classes[BINIS_CTR].createInstance(nsIBinaryInputStream);
-		bin.setInputStream(buf);
+    		  // now wrap the buffered input stream in a binary stream
+		  var bin = Components.classes[BINIS_CTR].createInstance(nsIBinaryInputStream);
+		  bin.setInputStream(buf);
 
-		dealWith(bin.readByteArray(localfile.fileSize));
+		  dealWith(bin.readByteArray(localfile.fileSize));
+		}
 
 }
 
