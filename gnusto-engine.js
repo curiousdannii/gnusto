@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.37 2003/03/27 02:14:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.38 2003/03/27 05:06:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -786,11 +786,6 @@ var handlers = {
 		1012: function(a) { // check_unicode
 				return storer('gnustoglue_check_unicode('+a[0]+')');
 		},
-
-
-		// 1011 -- print_unicode } neither needed until we claim
-		// 1012 -- check_unicode } compliance with Standard 1.0
-
 }
 
 function getword(addr) {
@@ -1708,30 +1703,29 @@ function zscii_from(address, max_length, tell_length) {
 				running = !(word & 0x8000) && address<stopping_place;
 
 				for (var j=2; j>=0; j--) {
-						var code = ((word>>(j*5))&0x1f)
+						var code = ((word>>(j*5))&0x1f);
 
-								if (abbreviation) {
-										temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
-										abbreviation = 0;
-								} else if (tenbit==-2) {
-										if (code<1) { temp = temp + ' '; alph=0; }
-										else if (code<4) { abbreviation = code; }
-										else if (code<6) { alph = code-3; }
-										else {
-												if (alph==2 && code==6)
-														tenbit = -1;
-												else
-														temp = temp +
-																zalphabet[alph][code-6];
-												alph = 0;
-										}
-								} else if (tenbit==-1) {
-										tenbit = code;
-								} else {
-										temp = temp + zscii_char_to_ascii(
-																											(tenbit<<5) + code);
-										tenbit = -2;
+						if (abbreviation) {
+								temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
+								abbreviation = 0;
+						} else if (tenbit==-2) {
+								if (code<1) { temp = temp + ' '; alph=0; }
+								else if (code<4) { abbreviation = code; }
+								else if (code<6) { alph = code-3; }
+								else {
+										if (alph==2 && code==6)
+												tenbit = -1;
+										else
+												temp = temp +
+														zalphabet[alph][code-6];
+										alph = 0;
 								}
+						} else if (tenbit==-1) {
+								tenbit = code;
+						} else {
+								temp = temp + zscii_char_to_ascii((tenbit<<5) + code);
+								tenbit = -2;
+						}
 				}
 		}
 
