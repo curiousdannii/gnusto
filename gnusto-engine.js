@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.48 2003/04/11 13:15:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.49 2003/04/14 16:25:07 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1141,7 +1141,9 @@ function gnusto_random(arg) {
 		if (arg>0) {
 				return 1 + Math.round(arg * Math.random());
 		} else {
-				// Else we should reseed the RNG. Um.
+				// Else we should reseed the RNG and return 0.
+                                Math.random(arg);
+                                return 0;
 		}
 }
 
