@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.81 2004/01/18 03:15:28 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.82 2004/01/18 03:48:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/01/18 03:15:28 $';
+const CVS_VERSION = '$Date: 2004/01/18 03:48:24 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -593,10 +593,14 @@ function handleZ_read(engine, a) {
 		if (engine.m_version>=5) {
 				// In z5-z8, @read is a store instruction.
 				rebound_for_no_timeout = engine._storer(rebound_for_no_timeout);
+		} // Otherwise we just leave the call to _aread() as it is.
+
+		if (engine.m_version>=5) {
+				// z5+ use two header bytes at the start of the table.
 				recaps_getter = "m_memory[0xFFFF&a0+1]";
 				char_count_getter = "m_memory[0xFFFF&a0]";
 		} else {
-				// z1-z4.
+				// z1-z4 only use one. (They don't have recaps.)
 				recaps_getter = '0';
 				char_count_getter = "m_memory[0xFFFF&a0]+1";
 		}
@@ -2643,7 +2647,7 @@ GnustoEngine.prototype = {
 					// In z1-z4, the array is null-terminated.
 			
 					max_chars = this.m_memory[text_buffer]+1;
-					result = entered.substring(0,max_chars);
+					result = entered.substring(0,max_chars).toLowerCase();
 
 					for (var i=0;i<result.length;i++) {
 							this.setByte(result.charCodeAt(i), text_buffer + 1 + i);
