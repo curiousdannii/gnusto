@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.23 2003/04/11 20:41:46 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.24 2003/04/11 22:50:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -46,8 +46,6 @@ function win_setup() {
 
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
-
-		win_resize(80, 25);
 
 		win_set_top_window_size(0);
 }
