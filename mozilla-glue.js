@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.45 2003/04/06 12:02:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.46 2003/04/07 17:05:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -46,6 +46,7 @@ function ensureHappiness() {
 		ensureOneFile('TOSSIO_HAPPY');
 		ensureOneFile('UPPER_HAPPY');
 		ensureOneFile('VENKMAN_MSG_HAPPY');
+		ensureOneFile('BAF_HAPPY');
 }
 
 var current_text_holder = 0;
@@ -626,6 +627,8 @@ function start_up() {
 		// Do that every time the size changes, actually.
 		window.addEventListener('resize',
 														glue_store_screen_size,	0);
+
+		baf_init();
 }
 
 function play() {

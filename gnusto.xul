@@ -16,6 +16,9 @@
 <!-- Property handling. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/venkman-msg.js"/>
 
+<!-- Reviews and so on. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/baf.js"/>
+
 <!-- Debugger -->
 <script type="application/x-javascript" src="chrome://gnusto/content/tossio.js"/>
 
@@ -99,6 +102,9 @@
 </hbox>
 
 <iframe flex="9" id="screen" type="content-primary" src="lower.html"/>
+
+<vbox flex="9" id="infobox" hidden="true">
+</vbox>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
 </vbox>

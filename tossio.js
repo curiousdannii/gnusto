@@ -795,12 +795,6 @@ var tossio_verbs = {
 							 }
 
 					 }],
-		'at': ['(temporary testing function for new screen handler)','',
-					function(a) {
-							window_current_x[0] = a[1];
-							window_current_y[0] = a[2];
-							chalk(0, 0, 0, 0, a[3]);
-					}],
 		'about': ['show the about box',
 						 '...',
 						 function (a) {
@@ -809,6 +803,11 @@ var tossio_verbs = {
 											 'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
 											 'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
 						 }],
+		'bafgenre': ['show reviews',
+								'...',
+								function (a) {
+										baf_describe_genre(a[1]);
+								}],
 };
 
 function tossio_debug_instruction(command) {
