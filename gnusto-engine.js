@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.103 2003/08/28 22:02:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.104 2003/08/28 22:07:51 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -783,15 +783,8 @@ var handlers = {
 				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
 		},
 		142: function Z_load(a) {
-				
-				// Warning: This has never been tested, since Inform does
-				// not generate this opcode. If you're able to test it,
-				// please report the results at
-				// <http://mozdev.org/bugs/show_bug.cgi?id=3468>.
-				
-				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('load',"store " + c);
-				return storer(c);
+				return storer('varcode_get('+a[0]+')');
 		},
 		143: function Z_call_1n(a) {
 				// can we use handler_call here, too?
@@ -951,9 +944,8 @@ var handlers = {
 				return store_into('gamestack.pop()', a[0]);
 		},
 		233: function Z_pull(a) {
-				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('pull',c +'=gamestack.pop()');
-				return store_into(c, 'gamestack.pop()');
+				return 'varcode_set(gamestack.pop(),'+a[0]+')';
 		},
 		234: function Z_split_window(a) {
 				compiling=0;
