@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.106 2005/01/12 07:33:01 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.107 2005/01/12 07:35:37 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/01/12 07:33:01 $';
+const CVS_VERSION = '$Date: 2005/01/12 07:35:37 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -2063,12 +2063,7 @@ GnustoEngine.prototype = {
     
       this.m_console_buffer = '';
       this.m_transcript_buffer = '';
-    
-      // Home alphabet is 0.  It will stay 0 for v3 and above, but can
-      // be changed in v1/2
-      this.m_home_alph = 0;
-      this.m_alph = 0;
-      
+        
       this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
       this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       // T = magic ten bit flag
@@ -4166,11 +4161,6 @@ GnustoEngine.prototype = {
   // Address of custom alphabet table (if any).
   m_alpha_start: 0,
 
-  // Current "home" alphabet-- always 0 in v3+, changed via shift_lock
-  m_home_alph: 0,
-  // Current alphabet-- differs from home if shifted
-  m_alph: 0,
-  
   // Holder for the z-alphabet
   m_zalphabet: [],
   
