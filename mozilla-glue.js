@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.90 2003/06/22 15:49:45 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.91 2003/06/22 15:56:34 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -298,10 +298,8 @@ function command_exec(args) {
 // after the header total to the checksum given in the header).
 // Returns false if anything stops us finding out (like the
 // original file having been deleted). We use the value
-// currently in the header for comparison, not the one in
-// the original file; this shouldn't make much of a difference.
-// (FIXME: should we?)
-//
+// in the orignal file's header for comparison, not the one in
+// the current header.
 function glue__verify() {
 		
 		var localfile = new Components.
@@ -327,7 +325,8 @@ function glue__verify() {
 		// FIXME: Why isn't there a constant somewhere
 		// for the header word address?
 
-		return (total & 0xFFFF) == zGetUnsignedWord(0x1c);
+		return (total & 0xFFFF) == 
+				(original_content[0x1c]<<8 | original_content[0x1d]);
 }
 
 ////////////////////////////////////////////////////////////////
