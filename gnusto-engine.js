@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.41 2003/11/17 22:23:49 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.42 2003/11/18 05:02:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/17 22:23:49 $';
+const CVS_VERSION = '$Date: 2003/11/18 05:02:38 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -700,10 +700,10 @@ function handleZ_read_char(engine, a) {
 function handleZ_scan_table(engine, a) { 
     //VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
     if (a.length == 4) {
-      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
+      return "t=_scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
 	engine._storer("t") + ";" +  engine._brancher('t');
     } else { // must use the default for Form, 0x82
-      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
+      return "t=_scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
 	engine._storer("t") + ";" +  engine._brancher('t');
     }
   }
@@ -1201,7 +1201,7 @@ GnustoEngine.prototype = {
   // |answer| is for returning answers to earlier effect codes. If you're
   // not answering an effect code, pass 0 here.
   run: function ge_run() {
-   
+
     // burin('run', answer);
     var start_pc = 0;
     var stopping = 0;
@@ -1218,8 +1218,10 @@ GnustoEngine.prototype = {
     while(!stopping) {
 
 				if (turns++ >= turns_limit) {
-					// Wimp out for now.
-						m_effects = [GNUSTO_EFFECT_WIMP_OUT];
+						// Wimp out for now.
+						// Can't use GNUSTO_EFFECT_WIMP_OUT directly
+						// because it has "" around it.
+						this.m_effects = ['WO'];
 						return 1;
 				}
 
@@ -1240,11 +1242,10 @@ GnustoEngine.prototype = {
       // Some useful debugging code:
 			// FIXME: make this togglable (copper trail)
       //burin('eng pc', start_pc.toString(16));
-      //burin('eng jit', jscode);
-    
+			//burin('eng jit', jscode);
+
       stopping = jscode();
     }
-
   },
   
   walk: function ge_walk(answer) {
@@ -2213,7 +2214,7 @@ GnustoEngine.prototype = {
 
 			if (object==0) return 0; // Kill that V0EFH before it starts.
 
-			var result = this.property_search(object, -1, property);
+			var result = this._property_search(object, -1, property);
 
 			if (result[2]) {
 					// There's a real property number in there;
@@ -2833,6 +2834,7 @@ GnustoEngine.prototype = {
 					} else {
 
 							if (this.m_output_to_console) {
+									dump(text);
 									this.m_console_buffer = this.m_console_buffer + text;
 							}
 
@@ -2848,13 +2850,13 @@ GnustoEngine.prototype = {
 	////////////////////////////////////////////////////////////////
 
 	consoleText: function ge_console_text() {
-			var temp = this.m_console_buffer;
+			var temp = this.m_console_buffer.replace('\x00','','g');
 			this.m_console_buffer = '';
 			return temp;
 	},
 
 	_transcript_text: function ge_transcript_text() {
-			var temp = this.m_transcript_buffer;
+			var temp = this.m_transcript_buffer.replace('\x00','','g');
 			this.m_transcript_buffer = '';
 			return temp;
 	},
