@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.99 2003/08/26 19:02:51 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.100 2003/08/28 19:55:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -284,6 +284,10 @@ function brancher(condition) {
 				(target_address)+';return;}';
 }
 
+////////////////////////////////////////////////////////////////
+//
+// code_for_varcode is in the process of being replaced.
+//
 function code_for_varcode(varcode) {
 		if (varcode==0)
 				return 'gamestack.pop()';
@@ -293,6 +297,54 @@ function code_for_varcode(varcode) {
 				return 'zGetWord('+(vars_start+(varcode-16)*2)+')';
 
 		gnusto_error(170); // impossible
+}
+
+////////////////////////////////////////////////////////////////
+//
+// varcode_get
+//
+// Retrieves the value specified by |varcode|, and returns it.
+// |varcode| is interpreted as in ZSD 4.2.2:
+//    0     = pop from game stack
+//    1-15  = local variables
+//    16 up = global variables
+//
+// TODO: We need a varcode_getcode() which returns a JS string
+// which will perform the same job as this function, to save us
+// the extra call we use when encoding "varcode_get(constant)".
+
+function varcode_get(varcode) {
+		if (varcode==0)
+				return gamestack.pop();
+		else if (varcode < 0x10)
+				return locals[(varcode-1)];
+		else
+				return zGetWord(vars_start+(varcode-16)*2);
+
+		gnusto_error(170); // impossible
+}
+
+////////////////////////////////////////////////////////////////
+// varcode_set
+//
+// Retrieves the value specified by |varcode|, and returns it.
+// |varcode| is interpreted as in ZSD 4.2.2.
+//    0     = push to game stack
+//    1-15  = local variables
+//    16 up = global variables
+//
+// TODO: We need a varcode_setcode() which returns a JS string
+// which will perform the same job as this function, to save us
+// the extra call we use when encoding "varcode_set(n, constant)".
+
+function varcode_set(value, varcode) {
+		if (varcode==0) {
+				gamestack.push(value);
+		} else if (varcode < 0x10) {
+				locals[varcode-1] = value;
+		} else {
+				zSetWord(value, vars_start+(varcode-16)*2);
+		}
 }
 
 function store_into(lvalue, rvalue) {
