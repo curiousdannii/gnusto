@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.31 2003/04/27 18:11:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.32 2003/04/27 19:04:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -187,7 +187,7 @@ function win_chalk(win, text) {
 
 								win__subchalk(win, message.substring(0, amount));
 								
-								message = message.substring(amount);
+								message = message.substring(amount+1);
 
 								newline();
 								if (paused_for_more) return message;
@@ -379,7 +379,8 @@ function win__subchalk(win, text) {
 				//// Possibly the line above will become redundant
 				//// once bug 3658 is fixed.
 
-				newdiv.setAttribute('class', win__current_css[current_window]);
+				// *Possibly* not what we want any more for the upper window
+				//newdiv.setAttribute('class', win__current_css[current_window]);
 				win__screen_window.appendChild(newdiv);
     }
 

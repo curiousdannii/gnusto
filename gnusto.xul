@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.29 2003/04/27 18:11:02 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.30 2003/04/27 19:04:23 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -145,13 +145,21 @@ function ensureHappiness() {
 
 <vbox flex="1">
 
+<stack flex="1">
+
+<!-- Top window; all fixed width. -->
+
 <vbox id="baroco" flex="1">
-<hbox><description id="a" value="1234567890All that I have I give to you...34567890123456789012345678901234567890" /></hbox>
-<hbox><description id="b" value="123456789012345678901234567890"/><description id="c" style="font-weight: bold;" value="1234567890"/><description id="d" value="1234567890123456789012345678901234567890" /></hbox>
-<hbox><description id="e" value="12345678901234567890123456789012345678901234567890123456789012345678901234567890" /></hbox>
+<description value="TOP"/>
 </vbox>
 
-<iframe flex="9" id="screen" type="content-primary" src="output.html" hidden="true"/>
+<!-- Lower window; ordinary HTML. -->
+
+<vbox id="barbara" flex="1">
+<iframe type="content-primary" src="output.html" flex="1"/>
+</vbox>
+
+</stack>
 
 <textbox flex="0" id="input"/>
 </vbox>
