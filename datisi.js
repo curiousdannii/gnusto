@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.12 2003/05/07 22:35:06 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.13 2003/05/27 05:03:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -495,36 +495,6 @@ function sys_show_story_title(newname) {
 				window.title = sys__story_name + " - Gnusto";
 		}
 }
-
-// reset important screen variables between games.  This is a *very* dirty
-// implementation and should be replaced by something that doesn't suck as
-// soon as we can manage.
-function dirty_reset() {
-                
-				/* hmm, this crashes Gnusto for me; I'm commenting it out pending
-					 fixes to Baroco, which I suspect is what's confusing it
-
-        win__current_style = 0;
-        win__current_foreground = 1;
-        win__current_background = 1;
-        win__current_css = ['ff bb','ff bb'];
-        win__screen_scroll_count = 0;
-
-        if (win__screen_doc != 0) {
-            var body = win__screen_doc.getElementsByTagName('body')[0];
-            body.setAttribute('class', 'b' + win__current_background);
-				}
-
-        win__current_x[0] = 0;
-        win__current_y[0] = 0;
-        win__current_x[1] = 0;
-        win__current_y[1] = 0;
-
-				*/
-
-                               
-}
-
 
 ////////////////////////////////////////////////////////////////
 var DATISI_HAPPY = 1;
