@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.58 2003/04/21 00:11:50 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.59 2003/04/22 10:51:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -21,7 +21,6 @@
 
 ////////////////////////////////////////////////////////////////
 
-var current_text_holder = 0;
 var current_window = 0;
 
 // Array of contents of a .z5 file, one byte per element.
@@ -47,70 +46,6 @@ function gnustoglue_soundeffect(number, effect, volume, callback) {
 		// all sound-effects are just beeps to us at present.
 		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
 		sound.beep();
-}
-
-// Would be nice to do these in the skin, so, for example,
-// a skin with muted tones could have pastel colours here.
-//
-// Maybe render everything into classes, rather than absolute CSS,
-// and let the skin decide it.
-var css_colours = ['', // 0 = current; never used here
-									'',  // 1 = default; never used here
-									'#000000', // 2 = black
-									'#FF0000', // 3 = red
-									'#00FF00', // 4 = green
-									'#FFFF00', // 5 = yellow
-									'#0000FF', // 6 = blue
-									'#FF00FF', // 7 = magenta
-									'#00FFFF', // 8 = cyan
-									'#FFFFFF'];// 9 = white
-
-var win__current_style = [];
-var win__current_foreground = [];
-var win__current_background = [];
-
-var current_css = '';
-
-function gnustoglue_set_text_style(style, foreground, background) {
-
-		current_css = '';
-
-		if (style==0)
-				win__current_style[current_window] = 0;
-		else {
-				if (style!=-1) win__current_style[current_window] |= style;
-
-				if (win__current_style[current_window] & 0x1)
-						// "reverse video", whatever that means for us
-						// (FIXME: I think it should really switch FG and BG colours.)
-						current_css = current_css + 'background-color: #777777;color: #FFFFFF;';
-
-				if (win__current_style[current_window] & 0x2)
-						// bold
-						current_css = current_css + 'font-weight:bold;';
-
-				if (win__current_style[current_window] & 0x4)
-						// italic
-						current_css = current_css + 'font-style: italic;';
-				
-				if (win__current_style[current_window] & 0x8)
-						// monospace
-						current_css = current_css + 'font-family: monospace;';
-		}
-
-		if (foreground==0)
-				foreground = win__current_foreground[current_window];
-		if (foreground!=1) { // Not "default".
-				current_css = current_css + 'color:'+css_colours[foreground]+';';
-				win__current_foreground[current_window] = foreground;
-		}
-
-		if (background==0)
-				background = win__current_background[current_window];
-		if (background!=1) { // Not "default".
-				current_css = current_css + 'background:'+css_colours[background]+';';
-				win__current_background[current_window] = background;
-		}
 }
 
 function gnustoglue_split_window(lines) {
@@ -151,7 +86,7 @@ var glue__effect_before_more_prompt = 0;
 
 // Convenience wrapper for win_chalk().
 function glue_print(text) {
-		return win_chalk(current_window, current_css, text);
+		return win_chalk(current_window, text);
 }
 
 // The reason that go_wrapper stopped last time. This is
@@ -253,7 +188,8 @@ function go_wrapper(answer, no_first_call) {
 
         case GNUSTO_EFFECT_STYLE:
 						p = engine_effect_parameters();
-						gnustoglue_set_text_style(p[0], p[1], p[2]);
+						win_set_text_style(current_window,
+															 p[0], p[1], p[2]);
 						looping = 1;
 						break;
 
@@ -271,11 +207,14 @@ function go_wrapper(answer, no_first_call) {
         case GNUSTO_EFFECT_SETWINDOW:
 						current_window = engine_effect_parameters();
 
-                                                //reset the css style variable to reflect the current state of text in the new window
-                                                gnustoglue_set_text_style(win__current_style[current_window], 0, 0);                                                
+						// reset the css style variable to reflect the current
+						// state of text in the new window
+						win_set_text_style(current_window,
+															 win__current_style[current_window],
+															 0, 0);
 
 						if (current_window!=0 && current_window!=1)
-								gnusto_error(303, w);
+								gnusto_error(303, current_window);
 
 						looping = 1;
 						break;
@@ -317,7 +256,7 @@ function go_wrapper(answer, no_first_call) {
 						break;
 
         case GNUSTO_EFFECT_PRINTTABLE:
-						win_print_table(current_window, current_css,
+						win_print_table(current_window,
 														engine_effect_parameters());
 						looping = 1;
 						break;
@@ -403,12 +342,7 @@ function camenesbounce_catch(e) {
 function start_up() {
 		document.getElementById('input').focus();
 
-                //set defaults for current (lower) window
-                gnustoglue_set_text_style(0, 1, 1);
-                //set defaults for upper window
-                win__current_foreground[1] = 1;
-                win__current_background[1] = 1;
-                win__current_style[1] = 0;
+		win_init();
 
 		glue__get_font_metrics();
 
