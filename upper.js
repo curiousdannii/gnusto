@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.45 2003/07/31 23:40:48 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.46 2003/08/01 17:27:29 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -220,7 +220,12 @@ function bocardo_gotoxy(win, x, y) {
 
 function bocardo_set_top_window_size(lines) {
 		bocardo__top_window_height = lines;
-		bocardo_gotoxy(1, 0, 0);
+
+                var char_sizes = bocardo_get_font_metrics();
+		var lines_to_shift = Math.floor(lines - (barbara__get_page_height() / char_sizes[1]));
+  		for (i=0; i< lines_to_shift;i++)
+  			barbara_chalk('\n');	
+		//bocardo_gotoxy(1, 0, 0); //not required?
 }
 
 ////////////////////////////////////////////////////////////////

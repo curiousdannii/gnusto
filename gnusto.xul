@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.59 2003/07/24 21:43:41 naltrexone42 Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.60 2003/08/01 17:27:29 naltrexone42 Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -158,7 +158,7 @@ function ensureHappiness() {
 </menubar>
 
 <vbox flex="9">
-<scrollbox flex="9" top="0" left="0" width="620" height="400" orient="vertical" id="barbarabox" class="bb ff">
+<scrollbox flex="9" top="0" left="0" width="620" height="0" orient="vertical" id="barbarabox" class="bb ff">
 
 <bulletinboard id="screen">
 
@@ -169,13 +169,13 @@ function ensureHappiness() {
 </hbox>
 
 <!-- Top window; all fixed width. -->
-<html:div flex="0" top="0" left="0" width="620" height="400" id="bocardobox">
+<html:div flex="0" top="0" left="0" width="620" height="0" id="bocardobox">
 <vbox id="bocardo" class="bocardoid">
 </vbox>
 </html:div>
 
 <!-- Usually invisible: detection of font sizes. -->
-<html:div top="0" left="0" width="620" height="400">
+<html:div top="0" left="0" width="620" height="0">
 <vbox class="bocardoid" id="fontsize" hidden="true">
 <hbox>
 <description value="012" class="bocardo"/>
