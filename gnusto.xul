@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.45 2003/06/04 03:27:09 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.46 2003/06/04 03:30:22 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -159,7 +159,7 @@ function ensureHappiness() {
 
 <!-- Lower window; ordinary HTML. -->
 <hbox flex="9">
-<html:div top="0" left="0" width="640" id="barbara" flex="9">
+<html:div top="0" left="0" width="640" id="barbara" flex="9" class="ff bb">
 </html:div>
 </hbox>
 
