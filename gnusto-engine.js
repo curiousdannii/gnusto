@@ -1,15 +1,23 @@
-///////////////////////////////////////////////////////////////
+// gnusto-lib.js -- the Gnusto JavaScript Z-machine library.
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.5 2003/02/04 21:32:00 marnanel Exp $
 //
-// gnusto v0.0.10
-//
-// This is an early release of the Gnusto JavaScript
-// Z-machine library.
-//
-// This version still has some problems with scope.
-//
-// Copyright (c) 2002, Thomas Thurman <marnanel@marnanel.org>
-// Released under the GNU GPL.
-//
+// Copyright (c) 2003 Thomas Thurman
+// thomas@thurman.org.uk
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have be able to view the GNU General Public License at 
+// http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
 ////////////////////////////////////////////////////////////////
 /////////////////////// Global variables ///////////////////////
 ////////////////////////////////////////////////////////////////
@@ -343,7 +351,9 @@ var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
 //
 // If |r|'s code contains a return statement, it must make sure to set the PC
 // somehow, either directly or, for example, via gnusto_return().
-
+//
+// (FIXME: Consider using named functions instead: Venkman will probably
+// prefer it.)
 var handlers = {
 
 	1: function(a) { // je
@@ -660,19 +670,19 @@ var handlers = {
 	255: function(a) { // check_arg_count
 		return brancher(a[0]+'<=param_count()');
 	},
-
+	
 	1000: function(a) { // save
 		compiling=0;
 		var setter = "rebound=function(n) { " +
 			storer('n') + "};";
-		return "pc="+pc+";"+setter+"};return "+GNUSTO_EFFECT_SAVE;
+		return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
 	},
 
 	1001: function(a) { // restore
 		compiling=0;
 		var setter = "rebound=function(n) { " +
 			storer('n') + "};";
-		return "pc="+pc+";"+setter+"};return "+GNUSTO_EFFECT_RESTORE;
+		return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
 	},
 
 	1009: function(a) { // save_undo
@@ -803,8 +813,6 @@ function dissemble() {
 
 		if (handlers[instr]) {
 			code = code + handlers[instr](args)+';';
-//			var aaa = handlers[instr](args)+';';
-//			code = code + 'print("'+aaa.replace('"','`','g')+'");'+aaa;
 		} else {
 			throw "No handler for opcode "+instr+" at "+
 				pc.toString(16);
