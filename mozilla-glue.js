@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.37 2003/04/04 09:24:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.38 2003/04/04 11:16:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -157,19 +157,6 @@ function setbyte(value, address) {
     zbytes[address] = value;
 }
 
-var window_buffers = ['', ''];
-
-function gnustoglue_output(what) {
-		window_buffers[current_window] = window_buffers[current_window] + what;
-}
-
-function output_flush() {
-		for (var i=0; i<2; i++) {
-				win_chalk(i, current_css, window_buffers[i]);
-				window_buffers[i] = '';
-		}
-}
-
 function gnustoglue_soundeffect(number, effect, volume, callback) {
 		// all sound-effects are just beeps to us at present.
 		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
@@ -199,8 +186,6 @@ var current_background = 1;
 var current_css = '';
 
 function gnustoglue_set_text_style(style, foreground, background) {
-
-		output_flush();
 
 		current_css = '';
 
@@ -296,9 +281,13 @@ function gnustoglue_erase_window(w) {
 function gnustoglue_set_cursor(y, x) {
 		if (current_window==1) {
 				// @set_cursor has no effect on the lower window.
-				output_flush();
 				win_gotoxy(current_window, x-1, y-1);
 		}
+}
+
+// Convenience wrapper for win_chalk().
+function glue_print(text) {
+		win_chalk(current_window, current_css, text);
 }
 
 // The reason that go_wrapper stopped last time. This is
@@ -309,6 +298,7 @@ var reasonForStopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
 function go_wrapper(answer) {
 
     var looping;
+		var p; // variable to hold parameters temporarily below
 
 		// If we stopped on a breakpoint last time, fix it up.
 		if (reasonForStopping == GNUSTO_EFFECT_BREAKPOINT && breakpoints[pc]) {
@@ -320,36 +310,49 @@ function go_wrapper(answer) {
 
 				reasonForStopping = go(answer);
 
-				output_flush();
-		
-				if (reasonForStopping == GNUSTO_EFFECT_WIMP_OUT) {
+				glue_print(engine_console_text());
+
+				switch (reasonForStopping) {
+
+				case GNUSTO_EFFECT_WIMP_OUT:
 						if (!single_step) {
 								// Well, just go round again.
 								answer = 0;
 								looping = 1;
 						}
-				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT) {
+						break;
+				case GNUSTO_EFFECT_INPUT:
 						// we know how to do this.
 						// Just bail out of here.
-				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT_CHAR) {
+						break;
+
+				case GNUSTO_EFFECT_INPUT_CHAR:
 						// similar
-				} else if (reasonForStopping == GNUSTO_EFFECT_SAVE) {
+						break;
+
+				case GNUSTO_EFFECT_SAVE:
 						// nope
 						alert("Saving of games isn't implemented yet.");
 						answer = 0;
 						looping = 1;
-				} else if (reasonForStopping == GNUSTO_EFFECT_RESTORE) {
+            break;
+
+				case GNUSTO_EFFECT_RESTORE:
 						// nope here, too
 						alert("Loading saved games isn't implemented yet.");
 						answer = 0;
 						looping = 1;
-				} else if (reasonForStopping == GNUSTO_EFFECT_QUIT) {
+            break;
+
+				case GNUSTO_EFFECT_QUIT:
 						alert("End of game.");
 						// not really the best plan in the long term to close
 						// the main window when the game asks for it, but
 						// for now...
 						window.close();
-				} else if (reasonForStopping == GNUSTO_EFFECT_PIRACY) {
+            break;
+
+				case GNUSTO_EFFECT_PIRACY:
 						// "Interpreters are asked to be gullible and
 						// to unconditionally branch."
 						//
@@ -357,22 +360,75 @@ function go_wrapper(answer) {
 						// that the user can set to influence the result.
 						answer = 0;
 						looping = 1;
-				} else if (reasonForStopping == GNUSTO_EFFECT_VERIFY) {
+            break;
 
+				case GNUSTO_EFFECT_VERIFY:
 						// FIXME: Here we should verify the game.
 						// There are many more important things to fix first,
 						// though. So let's just say "yes" for now.
 
 						answer = 1;
 						looping = 1;
+            break;
 
-				} else if (reasonForStopping == GNUSTO_EFFECT_BREAKPOINT) {
+				case GNUSTO_EFFECT_BREAKPOINT:
 						// Ooh, a breakpoint! Lovely!
 						looping = 0;
 						tossio_notify_breakpoint_hit();
-				} else
+						break;
+
+        case GNUSTO_EFFECT_STYLE:
+						p = engine_effect_parameters();
+						gnustoglue_set_text_style(p[0], p[1], p[2]);
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SOUND:
+						p = engine_effect_parameters();
+						gnustoglue_soundeffect(p[0], p[1], p[2], p[3], p[4]);
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SPLITWINDOW:
+						gnustoglue_split_window(engine_effect_parameters());
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SETWINDOW:
+						gnustoglue_set_window(engine_effect_parameters());
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_ERASEWINDOW:
+						gnustoglue_erase_window(engine_effect_parameters());
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_ERASELINE:
+						gnustoglue_erase_line(engine_effect_parameters());
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SETCURSOR:
+						p = engine_effect_parameters();
+						gnustoglue_set_cursor(p[0], p[1]);
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SETBUFFERMODE:
+						gnustoglue_set_buffer_mode(engine_effect_parameters());
+						looping = 1;
+						break;
+
+        case GNUSTO_EFFECT_SETINPUTSTREAM:
+						gnustoglue_set_input_stream(engine_effect_parameters());
+						looping = 1;
+						break;
+
+				default:
 						// give up: it's nothing we know
 						gnusto_error(304, "0x"+reasonForStopping.toString(16));
+				}
     } while (looping);
 
 		if (debug_mode) {
@@ -421,7 +477,7 @@ function gotInput(event) {
 		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
 				inputBox.value = '';
 
-				gnustoglue_output(value+'\n');
+				glue_print(value+'\n');
 				go_wrapper(value);
 		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
 				var useful = 1;
@@ -566,7 +622,7 @@ function gnusto_error(n) {
 				}
 
 				if (debug_mode) {
-						gnustoglue_output('\n\n--- Error ---:\n'+m);
+						glue_print('\n\n--- Error ---:\n'+m);
 				}
 
 		} catch (e) {
@@ -602,7 +658,7 @@ function gnustoglue_notify_transcription(whether) {
 }
 
 function gnustoglue_transcribe(text) {
-		/* if (current_window==0) {*/
+		if (current_window==0) {
 				if (!transcription_file) {
 						if (!gnustoglue_notify_transcription(1)) {
 								gnusto_error(308);
@@ -610,7 +666,7 @@ function gnustoglue_transcribe(text) {
 				}
 				transcription_file.write(text, text.length);
 				transcription_file.flush();
-				/*						}*/
+		}
 }
 
 function gnustoglue_input_stream(number) {
@@ -639,7 +695,7 @@ function gnustoglue_check_unicode(code) {
 }
 
 function gnustoglue_print_unicode(code) {
-		gnustoglue_output(String.fromCharCode(code));
+		glue_print(String.fromCharCode(code));
 }
 
 ////////////////////////////////////////////////////////////////

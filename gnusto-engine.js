@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.41 2003/04/03 16:47:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.42 2003/04/04 11:16:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -161,6 +161,15 @@ var parser_debugging = 0;
 // defined; at present, all values should be 1, except that if a breakpoint's
 // value is 2, it won't trigger, but it will be reset to 1.
 var breakpoints = {};
+
+// Buffer of text written to console.
+var engine__console_buffer = '';
+
+// Buffer of text written to transcript.
+var engine__transcript_buffer = '';
+
+// Effect parameters hold additional information for effect codes.
+var engine__effect_parameters = 0;
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -355,6 +364,18 @@ var GNUSTO_EFFECT_VERIFY     = 0x600;
 // You probably just want to return 0.
 var GNUSTO_EFFECT_PIRACY     = 0x610;
 
+// New effect codes still to be described:
+var GNUSTO_EFFECT_STYLE          = 0x700;
+var GNUSTO_EFFECT_SOUND          = 0x800;
+
+var GNUSTO_EFFECT_SPLITWINDOW    = 0x900;
+var GNUSTO_EFFECT_SETWINDOW      = 0x910;
+var GNUSTO_EFFECT_ERASEWINDOW    = 0x920;
+var GNUSTO_EFFECT_ERASELINE      = 0x930;
+var GNUSTO_EFFECT_SETCURSOR      = 0x940;
+var GNUSTO_EFFECT_SETBUFFERMODE  = 0x950;
+var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
+
 ////////////////////////////////////////////////////////////////
 //
 // |handlers|
@@ -473,7 +494,7 @@ var handlers = {
 				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
 		27: function(a) { // set_colour
-				return "gnustoglue_set_text_style(-1,"+a[0]+','+a[1]+")";
+				return "pc="+pc+";engine__effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
 		},
 		28: function(a) { // throw
 				// FIXME: I don't know whether this works; Inform never uses this
@@ -656,32 +677,32 @@ var handlers = {
 				return store_into(c, 'gamestack.pop()');
 		},
 		234: function(a) { // split_window
-				return 'gnustoglue_split_window('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
 		},
 		235: function(a) { // set_window
-				return 'gnustoglue_set_window('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
 		},
 		236: function(a) { // call_vs2
 				return storer(call_vn(a,1));
 		},
 		237: function(a) { // erase_window
-				return 'gnustoglue_erase_window('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
 		},
 		238: function(a) { // erase_line
-				return 'gnustoglue_erase_line('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
 		},
 		239: function(a) { // set_cursor
-				return 'gnustoglue_set_cursor('+a[0]+','+a[1]+')';
+				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
 
 		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
 
 		241: function(a) { // set_text_style
-				return 'gnustoglue_set_text_style('+a[0]+',0,0)';
+				return "pc="+pc+";engine__effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
 		},
 		
 		242: function(a) { // buffer_mode
-				return 'gnustoglue_set_buffer_mode('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
 		},
 
 		243: function(a) { // output_stream
@@ -689,7 +710,7 @@ var handlers = {
 		},
 
 		244: function(a) { // input_stream
-				return 'gnustoglue_set_input_stream('+a[0]+')';
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
 		},
 
 		245: function(a) { // sound_effect
@@ -697,10 +718,8 @@ var handlers = {
 				// deal with callbacks at present.
 
 				while (a.length < 5) { a.push(0); }
-				return 'gnustoglue_soundeffect('+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+','+')';
+				return "pc="+pc+';engine__effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
 		},
-
-		// not implemented:   VAR:245 15 5/3 sound_effect number effect volume routine sound_effect '"},
 
 		246: function(a) { // read_char
 				// Maybe factor out "read" and this?
@@ -1134,15 +1153,11 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		setbyte(0, words_count);
 		var cursor = parse_buffer+2;
 
-		if (parser_debugging) { gnustoglue_output('[Text is: '+result+']\n'); }
-
 		var words = result.split(' ');
 		var position = 2;
 
 		for (var i in words) {
 				var lexical = look_up(words[i]);
-
-				if (parser_debugging) { gnustoglue_output('[Word '+i+' is number '+lexical+']\n'); }
 
 				setword(lexical, cursor);
 				cursor+=2;
@@ -1151,14 +1166,6 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		
 				position += words[i].length+1;
 				setbyte(getbyte(words_count)+1, words_count);
-		}
-
-		if (parser_debugging) {
-				gnustoglue_output('[Parse buffer dump:');
-				for (var j=parse_buffer; j<cursor; j++) {
-						gnustoglue_output(' '+getbyte(j).toString(16));
-				}
-				gnustoglue_output(']\n');
 		}
 
 		// Return the ASCII value for the Enter key. tokenise() is supposed
@@ -1634,6 +1641,9 @@ function setup() {
 		streamthrees = [];
 		output_to_script = 0;
 
+		engine__console_buffer = '';
+		engine__transcript_buffer = '';
+
 		// We don't also reset the debugging variables, because
 		// they need to persist across re-creations of this object.
 
@@ -1885,6 +1895,8 @@ function name_of_object(object) {
 		}
 }
 
+////////////////////////////////////////////////////////////////
+
 function output(text) {
 		if (streamthrees.length) {
 				// Stream threes disable any other stream while they're on.
@@ -1897,9 +1909,32 @@ function output(text) {
 
 								streamthrees[0][1] = address;
 		} else {
-				if (output_to_console) gnustoglue_output(text);
-				if (output_to_transcript) gnustoglue_transcribe(text);
+				if (output_to_console) {
+						engine__console_buffer = engine__console_buffer + text;
+				}
+
+				if (output_to_transcript) {
+						engine__transcript_buffer = engine__transcript_buffer + text;
+				}
 		}
+}
+
+////////////////////////////////////////////////////////////////
+
+function engine_console_text() {
+		var temp = engine__console_buffer;
+		engine__console_buffer = '';
+		return temp;
+}
+
+function engine_transcript_text() {
+		var temp = engine__transcript_buffer;
+		engine__transcript_buffer = '';
+		return temp;
+}
+
+function engine_effect_parameters() {
+		return engine__effect_parameters;
 }
 
 ////////////////////////////////////////////////////////////////
