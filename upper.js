@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.46 2003/08/01 17:27:29 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.47 2003/08/04 05:55:13 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -47,14 +47,25 @@ function bocardo_init() {
 }
 
 ////////////////////////////////////////////////////////////////
+// bocardo__clear
+//
+// Removes all children of a DOM node.
+function bocardo__clear(node) {
+    while (node.childNodes.length!=0) {
+        node.removeChild(node.childNodes[0]);
+    }
+}
 
+////////////////////////////////////////////////////////////////
+// bocardo_start_game
+//
 // Called before a game starts.
 function bocardo_start_game() {
 
     bocardo__screen_doc = document;
 
     bocardo__screen_window = bocardo__screen_doc.getElementById('bocardo');
-    barbarix_clear(bocardo__screen_window);
+    bocardo__clear(bocardo__screen_window);
 
     bocardo__current_x = [];
     bocardo__current_y = [];
