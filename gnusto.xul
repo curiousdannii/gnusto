@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.49 2003/06/16 05:33:59 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.50 2003/06/16 06:03:29 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -157,7 +157,7 @@ function ensureHappiness() {
 </menubar>
 
 <vbox flex="9">
-<scrollbox flex="9" top="0" left="0" width="640" height="480" orient="vertical" id="barbarabox">
+<scrollbox flex="9" top="0" left="0" width="640" height="480" orient="vertical" id="barbarabox" class="bb ff">
 
 <bulletinboard id="screen">
 
@@ -175,15 +175,15 @@ function ensureHappiness() {
 
 <!-- Usually invisible: detection of font sizes. -->
 <html:div top="0" left="0" width="640" height="480">
-<vbox class="bocardoid" id="fontsize" hidden="true">
+<vbox class="bocardoid" id="fontsize" hidden="true"-->
 <hbox>
-<description value="012"/>
-<description value="34" class="sb"/>
-<description value="56" class="si"/>
-<description value="789"/>
+<description value="012" class="bocardo"/>
+<description value="34" class="bocardo sb"/>
+<description value="56" class="bocardo si"/>
+<description value="789" class="bocardo"/>
 </hbox>
-<hbox><description value="?Font_Size"/></hbox>
-<hbox><description value="abcdefghij"/></hbox>
+<hbox><description value="?Font_Size" class="bocardo"/></hbox>
+<hbox><description value="abcdefghij" class="bocardo"/></hbox>
 </vbox>
 </html:div>
 
