@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.18 2003/06/19 22:58:20 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.19 2003/07/14 00:45:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -68,6 +68,8 @@ function barbara_start_game() {
 ////////////////////////////////////////////////////////////////
 
 function barbara_clear() {
+		bocardo_collapse();
+
 		barbarix_clear(document.getElementById('barbara'));
 		document.getElementById('barbarabox').setAttribute('class',
 																											 barbara__current_css);
@@ -182,15 +184,11 @@ function barbara_relax() {
 
 		var slippage = barbara__get_page_height() - barbara__most_seen;
 
-		burin('relax', 'page_height='+barbara__get_page_height());
-		burin('relax', 'slippage='+slippage);
-		burin('relax', 'most_seen='+barbara__most_seen);
-		burin('relax', 'viewport_height='+barbara__get_viewport_height());
-
 		if (barbara__get_page_height() < barbara__get_viewport_height()) {
 				// Then we haven't started scrolling yet, so do nothing.
-				burin('relax', 'Nothing happens.');
 		} else {
+				// The lower screen scrolls by some amount.
+
 				if (slippage > barbara__get_viewport_height()) {
 						// More than a screenful. Scroll to the top...
 						barbara__set_viewport_top(barbara__most_seen);
@@ -200,6 +198,9 @@ function barbara_relax() {
 						barbara__set_viewport_top(barbara__get_page_height());
 						barbara__set_more(0);
 				}
+
+				// This implies collapsing the upper screen (see bug 4050).
+				bocardo_collapse();
 		}
 }
 
