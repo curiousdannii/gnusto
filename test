@@ -32,6 +32,7 @@ while (1) {
     engine.run();
 
     var effect = engine.effect(0);
+    dump(engine.consoleText());
 
     dump('[');
     dump(effect);
@@ -39,6 +40,9 @@ while (1) {
 
     if (effect=='SS' || effect=='TW' || effect=='SW' || effect=='SC') {
       // harmless; carry on
+    } else if (effect=='RS') {
+      engine.answer(0, 'version');
+      // and go round again
     } else {
       dump('*** UNKNOWN EFFECT. *** Abort.\n');
       break;
