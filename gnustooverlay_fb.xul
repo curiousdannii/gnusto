@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet href="chrome://gnusto/skin/gnustooverlay.css" type="text/css"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://gnusto/locale/gnustooverlay.dtd">
+
+<overlay id="gnustooverlay"
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <!-- functions -->
+  <script type="application/x-javascript" src="chrome://gnusto/content/gnustooverlay.js" />
+  
+  <!-- Tools menu item -->
+  <menupopup id="menu_ToolsPopup">
+    <menuitem 
+        id="gnusto-item" 
+        label="&gnustoMenu.label;" 
+        insertafter="prefSep"
+        oncommand="toGnusto();" />
+  </menupopup>
+
+  <!-- Button for customisation and addition to toolbar -->
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton class="toolbarbutton-1" 
+                   id="gnusto-button" 
+                   label="&gnustoButton.label;" 
+                   oncommand="toGnusto();" 
+                   tooltiptext="&gnustoButton.tooltip;" 
+                   type="menu-button;" />
+  </toolbarpalette>
+
+</overlay>

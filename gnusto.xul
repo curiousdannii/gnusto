@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<?xml-stylesheet href="chrome://gnusto/content/gnusto.css" type="text/css"?>
+<?xml-stylesheet href="chrome://gnusto/skin/gnusto.css" type="text/css"?>
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.41 2003/05/16 04:52:25 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.42 2003/05/16 11:15:39 naltrexone42 Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk

@@ -98,7 +98,7 @@ function removePackageReferences(){
 	var overlay1= new overlayRemover(chromeUrl+ 
 		"overlayinfo/communicator/content/overlays.rdf",
 		"chrome://communicator/content/tasksOverlay.xul",
-		"chrome://gnusto/content/addToMenus.xul");
+		"chrome://gnusto/content/gnustooverlay_moz.xul");
 	overlay1.remove();
 
 	// delete gnusto directory
@@ -150,12 +150,6 @@ var removeFromChrome= {
 				aDS.Unassert(myResource, prop, targetNode);
 			}
 		}
-
-		// repeat for locale info
-		rootSeq= RDFU.findSeq(aDS, "urn:mozilla:locale:en-US:packages");
-		myResource= gRDF.GetResource("urn:mozilla:locale:en-US:gnusto");
-		myNode= myResource.QueryInterface(Components.interfaces.nsIRDFNode);
-		rootSeq.RemoveElement(myNode, true);
 
 		// now flush the datasource back to disk
 		RDFU.saveDataSource(aDS);
