@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.106 2003/08/29 02:10:19 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.107 2003/08/29 02:38:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2199,8 +2199,8 @@ function engine_start_game(memory) {
 				pc_translate_for_routine = pc_translate_v45;
 				pc_translate_for_string = pc_translate_v45;
 		} else if (version<=7) {
-				routine_start  = zGetUnsignedWord(0x28);
-				string_start   = zGetUnsignedWord(0x2a);		
+				routine_start  = zGetUnsignedWord(0x28)*8;
+				string_start   = zGetUnsignedWord(0x2a)*8;
 				pc_translate_for_routine = pc_translate_v67R;
 				pc_translate_for_string = pc_translate_v67S;
 		} else if (version==8) {
