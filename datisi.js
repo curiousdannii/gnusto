@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.19 2003/07/11 03:03:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.20 2003/07/20 01:25:49 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -259,7 +259,7 @@ function dealWith(content) {
 				}
 		} else {
 				// Don't know. Complain.
-				gnusto_error(309);
+				gnusto_error(309, 'V '+content[0]);
 				return 0;
 		}
 }
