@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.89 2003/08/04 05:33:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.90 2003/08/08 07:28:43 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -904,8 +904,8 @@ var handlers = {
 		                if (a.length == 4) {
                                    return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
                                        storer("t") + ";" +  brancher('t');
-		                } else { // must use the default for Form, 0x86
-                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x86 +");" +
+		                } else { // must use the default for Form, 0x82
+                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
                                        storer("t") + ";" +  brancher('t');
 		                }
 		},
