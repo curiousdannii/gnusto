@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.11 2003/02/28 12:17:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.12 2003/02/28 12:23:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -58,15 +58,15 @@ function loadMangledZcode(zcode) {
     zbytes = [];
 
 		// We're required to modify some bits according to what we're able to supply.
-		setbyte(0x01, 0xB8);
-		setbyte(0x11, getbyte(0x11) & 0xC2);
+		setbyte(0xB8, 0x01);
+		setbyte(getbyte(0x11) & 0xC2, 0x11);
 		// It's not at all clear what architecture we should claim to be. We could
 		// decide to be the closest to the real machine we're running on (6=PC, 3=Mac,
 		// and so on), but the story won't be able to tell the difference because of
 		// the thick layers of interpreters between us and the metal. At least,
 		// we hope it won't.
-		setbyte(0x1E, 1); // uh, let's be a vax.
-		setbyte(0x1F, 103); // little "g" for gnusto
+		setbyte(  1, 0x1E); // uh, let's be a vax.
+		setbyte(103, 0x1F); // little "g" for gnusto
 }
 
 function getbyte(address) {
