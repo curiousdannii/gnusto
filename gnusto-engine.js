@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.15 2003/03/02 17:47:57 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.16 2003/03/02 18:08:22 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -276,12 +276,16 @@ function simple_call(target, arguments) {
 				functino;
 }
 
-function simple_print(a) {
+function simple_print(dummy, suffix) {
 		var zf = zscii_from(pc,65535,1);
-		var message=(zf[0].
+		var message = zf[0];
+
+		if (suffix) message = message + suffix;
+
+		message=message.
 								 replace('\\','\\\\','g').
 								 replace('"','\\"','g').
-								 replace('\n','\\n','g')); // not elegant
+								 replace('\n','\\n','g'); // not elegant
 		pc=zf[1];
 		return 'output("'+message+'")';
 }
@@ -518,7 +522,7 @@ var handlers = {
 		178: simple_print, // print
 		179: function(a) { // print_ret
 				compiling = 0;
-				return simple_print() + ';gnusto_return(1);return';
+				return simple_print(0,'\n')+';gnusto_return(1);return';
 		},
 		180: function(a) { // nop
 				return "";
