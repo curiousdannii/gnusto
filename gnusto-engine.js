@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.88 2004/02/09 08:21:29 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.89 2004/02/17 06:41:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/02/09 08:21:29 $';
+const CVS_VERSION = '$Date: 2004/02/17 06:41:02 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -859,6 +859,7 @@ function handleZ_saveV123(engine, a) {
     engine.m_compilation_running=0;
     var setter = 'm_rebound=function(){'+
 				engine._brancher('m_answers[0]')+'};';
+
     return "m_state_to_save=_saveable_state(1);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
 }
 
@@ -868,28 +869,25 @@ function handleZ_saveV45678(engine, a) {
     var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
 
-    var qq= "m_state_to_save=_saveable_state("+
+    return "m_state_to_save=_saveable_state("+
 				(engine.m_version==4? '1': '3') +
 				");m_pc="+engine.m_pc+";" +
 				setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
-
-		dump(qq);
-		dump(' < QQ\n');
-		return qq;
 }
 		
 function handleZ_restoreV123(engine, a) {
     engine.m_compilation_running=0;
-    var setter = "m_rebound=function() { " +
-      engine._brancher('m_answers[0]') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
+    engine._brancher(''); // Throw it away; it's never used
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
 }
 
 function handleZ_restoreV45678(engine, a) {
     engine.m_compilation_running=0;
-    var setter = "m_rebound=function() { " +
-      engine._storer('m_answers[0]') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
+    var setter = 'm_rebound=function() { ' +
+				'var t=m_answers[0]; if (t==0){' +
+				engine._storer('t') + '}};';
+    return "m_pc="+engine.m_pc+";" + setter +
+				"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
 }
 		
 function handleZ_log_shift(engine, a) {
@@ -1134,8 +1132,8 @@ const handlers_fixups = {
 				27: 0, // set_colour
 				28: 0, // throw
 				143: handleZ_not, // replaces call_1n
-				181: handleZ_saveV45678,
-				182: handleZ_restoreV45678,
+				181: handleZ_saveV45678, // was illegal in v5 (EXT used instead)
+				182: handleZ_restoreV45678, // ditto
 				185: handleZ_pop, // replaces catch
 				190: 0, // extended opcodes
 				191: 0, // piracy
@@ -1457,7 +1455,7 @@ GnustoEngine.prototype = {
 			// Restore the memory.
 			this.m_memory = mem.concat(this.m_memory.slice(mem.length));
 
-			if (this.m_version <= 4) {
+			if (this.m_version <= 3) {
 					// This is pretty ugly, but then the design isn't too beautiful either.
 					// The Quetzal code loads up with the PC pointing at the end of the @save
 					// which saved it. The end is the half-an-instruction which gives a branch
@@ -1486,11 +1484,11 @@ GnustoEngine.prototype = {
 	},
 
   get version() {
-    gnusto_error(101, "'version' not implemented");
+			gnusto_error(101, "'version' not implemented");
   },
 
   get signature() {
-    gnusto_error(101, "'signature' not implemented");
+			gnusto_error(101, "'signature' not implemented");
   },
 
   get cvsVersion() {
@@ -2070,7 +2068,6 @@ GnustoEngine.prototype = {
 			var starting_pc = this.m_pc;
 
 			do {
-
 					// List of arguments to the opcode.
 					var args = [];
 
@@ -2156,8 +2153,9 @@ GnustoEngine.prototype = {
 					
 							instr &= 0x1F;
 					}
-			
+
 					if (this.m_handlers[instr]) {
+
 							code = code + this.m_handlers[instr](this, args)+';';
 							//VERBOSE burin(code,'');
 					} else if (instr>=1128 && instr<=1255 &&
@@ -4208,7 +4206,6 @@ function gef_createinstance(outer, interface_id)
   throw Components.results.NS_ERROR_INVALID_ARG;
 }
 
-
 ////////////////////////////////////////////////////////////////
 //
 // The Module
@@ -4254,7 +4251,6 @@ function mod_canunload(compMgr) {
   return true;
 }
 
-
 ////////////////////////////////////////////////////////////////
 //
 // NSGetModule
@@ -4264,6 +4260,10 @@ function mod_canunload(compMgr) {
 function NSGetModule(compMgr, fileSpec) {
 		return Module;
 }
+
+/*
+marnanel: commented out because it fails to work in components
+          for me at present.
 
 gnustoEngineInit(); // begin initialization
 
@@ -4277,11 +4277,11 @@ function gnustoEngineInit() {
 	
 		// Component registration
 		var compMgr = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-	        var compGnustoEngine = new gnustoEngine;
+		var compGnustoEngine = new gnustoEngine;
 		compMgr.registerFactory(ENGINE_COMPONENT_ID, ENGINE_DESCRIPTION, ENGINE_CONTRACT_ID, compGnustoEngine);
 	}
 
 }
-
+*/
 
 // EOF gnusto-engine.js //
