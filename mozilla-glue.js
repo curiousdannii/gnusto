@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.79 2003/05/18 01:56:57 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.80 2003/05/25 21:42:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -69,16 +69,19 @@ function setword(value, addr) {
 
 ////////////////////////////////////////////////////////////////
 
+// Goes "beep".
 function glue__beep() {
 		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
 		sound.beep();
 }
 
+// Invokes a sound effect from the current game file.
+// (Actually, it just bleeps at the moment.)
 function glue__sound_effect(number, effect, volume, callback) {
-		// all sound-effects are just beeps to us at present.
 		glue__beep();
 }
 
+// Outputs to the screen, and the transcription file if necessary.
 function glue_print(text) {
 
 		burin('output', text);
@@ -390,6 +393,7 @@ function glue_store_screen_size(width_in_chars,
 
 ////////////////////////////////////////////////////////////////
 
+// Calls the various *_init() functions.
 function start_up() {
 
 		glue_init();
