@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.50 2003/04/14 17:57:57 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.51 2003/04/14 18:34:59 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -834,20 +834,20 @@ var handlers = {
 		1002: function Z_log_shift(a) {
 				// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
 				if (a[1] < 0) {		
-						return storer(a[0]+'>>>'+a[1]);
+						return storer(a[0]+">>>"+abs(a[1]));
 				}
 				else {
-						return storer(a[0]+'<<'+a[1]);
+						return storer(a[0]+"<<"+a[1]);
 				}
 		},
 
 		1003: function Z_art_shift(a) {
 				// arithmetic-bit-shift.  Right shifts are sign-extended
 				if (a[1] < 0) {		
-					return storer(a[0]+'>>'+a[1]);
+					return storer(a[0]+">>"+abs(a[1]));
 				}
 				else {
-					return storer(a[0]+'<<'+a[1]);
+					return storer(a[0]+"<<"+a[1]);
 				}	
 		},
 
