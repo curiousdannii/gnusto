@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.42 2003/05/16 11:15:39 naltrexone42 Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.43 2003/05/26 23:48:04 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -185,7 +185,7 @@ function ensureHappiness() {
 </scrollbox>
 
 <statusbar id="statusbox" flex="0">
-<statusbarpanel id="status" label=""/>
+<statusbarpanel id="status" style="color: #888888; border-style: inset;" label=""/>
 </statusbar>
 
 </vbox>
