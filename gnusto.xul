@@ -27,7 +27,7 @@
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
-<menuitem label="Start transcript..." disabled="true" accesskey="T"/>
+<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="try{doTranscript()}catch(e){deal_with_exception(e)}"/>
 <menuseparator/>
 <menuitem label="Exit" accesskey="X" oncommand="try{quitGame()}catch(e){deal_with_exception(e)}"/>
 </menupopup>
@@ -64,14 +64,11 @@
 
 <vbox flex="1">
 
-<html:pre id="upper"></html:pre><iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
+<html:pre id="upper"></html:pre>
+
+<iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
-
-<hbox flex="0">
-<description id="status" flex="5" value=""/>
-<progressmeter id="progress" flex="1" value="100" mode="determined"/>
-</hbox>
 
 </vbox>
 
