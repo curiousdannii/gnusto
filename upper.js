@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.4 2003/03/28 20:40:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.5 2003/03/30 05:00:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -57,48 +57,48 @@ function chalk(win, fg, bg, style, text) {
 
     for (var line in text) {
 
-	var message = text[line];
+				var message = text[line];
 
-	while (message!='') {
+				while (message!='') {
 
-	    if (message.length > (80 - window_current_x[win])) {
+						if (message.length > (80 - window_current_x[win])) {
+								
+								// The message is longer than the rest of this line.
 
-		// The message is longer than the rest of this line.
+								var amount = 80 - window_current_x[win];
+								
+								// Fairly pathetic wordwrap. FIXME: replace later
+								// with a better dynamic programming algorithm.
 
-		var amount = 80 - window_current_x[win];
-	     
-		// Fairly pathetic wordwrap. FIXME: replace later
-		// with a better dynamic programming algorithm.
+								while (amount!=0 && message[amount]!=' ') {
+										amount--;
+								}
+					
+								if (amount==0) {
+										// ah, whatever, just put it back and forget the
+										// wordwrap.
+										amount = 80 - window_current_x[win];
+								}
 
-		while (amount!=0 && message[amount]!=' ') {
-		    amount--;
-		}
+								subchalk(win, fg, bg, style, message.substring(0, amount));
+								
+								window_current_x[win] = 0;
+								window_current_y[win]++;
+								message = message.substring(amount+1);
+						} else {
+								
+								// The message is shorter.
 
-		if (amount==0) {
-		    // ah, whatever, just put it back and forget the
-		    // wordwrap.
-		    amount = 80 - window_current_x[win];
-		}
+								subchalk(win, fg, bg, style, message);
+								window_current_x[win] += message.length;
+								message = '';
+						}
+				}
 
-		subchalk(win, fg, bg, style, message.substring(0, amount));
-
-		window_current_x[win] = 0;
-		window_current_y[win]++;
-		message = message.substring(amount+1);
-	    } else {
-
-		// The message is shorter.
-
-		subchalk(win, fg, bg, style, message);
-		window_current_x[win] += message.length;
-		message = '';
-	    }
-	}
-
-	if (line+1!=text.length) {
-	    window_current_x[win] = 0;
-	    window_current_y[win]++;
-	}
+				if (line<text.length-1) {
+						window_current_x[win] = 0;
+						window_current_y[win]++;
+				}
     }
 }
 
@@ -124,15 +124,78 @@ function subchalk(win, fg, bg, style, text) {
 
     // Fourthly, if the line doesn't yet exist we must create it.
     while (lines.length <= window_current_y[win]) {
-	var newLine = window_documents[win].createElement('span');
-	newLine.appendChild(window_documents[win].createTextNode('\n'));
-	windows[win].appendChild(newLine);
+				var newLine = window_documents[win].createElement('span');
+				newLine.appendChild(window_documents[win].createTextNode('\n'));
+				windows[win].appendChild(newLine);
     }
 
-    // Lastly, we actually append the text.
+    // Fifthly, we delete any bits of that line we're going to overwrite,
+		// and work out where to insert the new span. The line consists of a
+		// number of spans plus a carriage return (which we should ignore).
     var current_line = lines[window_current_y[win]];
 
-    current_line.appendChild(window_documents[win].createTextNode(text));
+		var spans = current_line.childNodes;
+
+		var charactersSeen = 0;
+		var cursor = 0;
+
+		// Go past all the spans before us.
+
+		while (cursor<spans.length-1 && charactersSeen+spans[cursor].childNodes[0].data.length <= window_current_x[win]) {
+				charactersSeen += spans[cursor].childNodes[0].data.length;
+				cursor++;
+		} 
+
+		// |cursor| is now either pointing at the point where we want to
+		// write the current span, or at the span which contains that
+		// point. In the latter case, we must break it.
+
+		var charactersTrimmed = 0;
+		if (charactersSeen < window_current_x[win]) {
+				var amountToKeep = window_current_x[win] - charactersSeen;
+				charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
+				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
+
+				// FIXME: This fails when spans[cursor] entirely contains the overwritten text.
+				// What we should probably do is check for this here, clone the node, insert it,
+				// and get the end-trimmer to trim the cloned node.
+
+				// And push them on one place; they insert *after* us.
+				cursor++;
+
+		}
+
+		var appendPoint = cursor;
+
+		if (cursor<spans.length-1) {
+				// Delete any spans which are hidden by our span.
+				var charactersDeleted = charactersTrimmed;
+				var spansToDelete = 0;
+				while (charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
+						charactersDeleted += spans[cursor].childNodes[0].data.length;
+						cursor++;
+						spansToDelete++;
+				}
+				
+				// And trim the RHS of the first span after our new span.
+				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
+		}
+
+
+		// Now we've finished looking at the line, we can start modifying it.
+
+		// FIXME: If we're after the current end of the line, we may need to add spaces.
+
+		// Delete the spans which are underneath our text...
+		for (var i=appendPoint; i<appendPoint+spansToDelete; i++) {
+				current_line.removeChild(spans[appendPoint]); // the others will slide up.
+		}
+
+		// ..and append our text.
+		var newSpan = window_documents[win].createElement('span');
+		newSpan.appendChild(window_documents[win].createTextNode(text));
+		current_line.insertBefore(newSpan, spans[appendPoint]);
+
 }
 
 ////////////////////////////////////////////////////////////////
