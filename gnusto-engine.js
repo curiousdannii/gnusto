@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.57 2003/04/21 05:43:53 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.58 2003/04/22 21:13:35 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -864,7 +864,7 @@ var handlers = {
 		},
 
 		1011: function Z_print_unicode(a) {
-				gnustoglue_print_unicode(a[0]);
+				return "output(String.fromCharCode(" +a[0]+"))";
 		},
 
 		1012: function Z_check_unicode(a) {
@@ -1790,7 +1790,7 @@ function setup() {
 		  unicode_start = get_unsigned_word(hext_start+6);  // get start of custom unicode table, if any
 		  if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
 		    custom_unicode_charcount = getbyte(unicode_start);
-		    unicode_start += 3;
+		    unicode_start += 1;
 		  }
 		}		
 
