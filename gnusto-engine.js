@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.10 2003/02/28 11:14:41 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.11 2003/02/28 12:17:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -439,8 +439,12 @@ var handlers = {
 		26: function(a) { // call_2n
 				// can we use simple_call here, too?
 				compiling=0; // Got to stop after this.
-				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)"
+				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
+		27: function(a) { // set_colour
+				return "gnustoglue_set_text_style(-1,"+a[0]+','+a[1]+")";
+		},
+		// 28 = throw. Not yet implemented
 		128: function(a) { // jz
 				return brancher(a[0]+'==0');
 		},
@@ -616,7 +620,7 @@ var handlers = {
 		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
 
 		241: function(a) { // set_text_style
-				return 'gnustoglue_set_text_style('+a[0]+')';
+				return 'gnustoglue_set_text_style('+a[0]+',1,1)';
 		},
 		
 		242: function(a) { // buffer_mode

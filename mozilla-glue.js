@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.10 2003/02/25 10:48:16 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.11 2003/02/28 12:17:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -58,6 +58,7 @@ function loadMangledZcode(zcode) {
     zbytes = [];
 
 		// We're required to modify some bits according to what we're able to supply.
+		setbyte(0x01, 0xB8);
 		setbyte(0x11, getbyte(0x11) & 0xC2);
 		// It's not at all clear what architecture we should claim to be. We could
 		// decide to be the closest to the real machine we're running on (6=PC, 3=Mac,
@@ -94,15 +95,6 @@ function setbyte(value, address) {
     if (value>255) throw "too high "+value;
 
     zbytes[address] = value;
-}
-
-function style_text(how) {
-    if (current_window==0) {
-				current_text_holder = 
-						lowerWindow.createElement('span');
-				current_text_holder.setAttribute('style', how);
-				tty.appendChild(current_text_holder);
-    }
 }
 
 function print_text(what) {
@@ -151,15 +143,31 @@ function gnustoglue_output(what) {
 				throw "unearthly window "+current_window+' in gnustoglue_output';
 }
 
-var current_style = 0;
+// Would be nice to do these in the skin, so, for example,
+// a skin with muted tones could have pastel colours here.
+var css_colours = ['', // 0 = current; never used here
+									'',  // 1 = default; never used here
+									'#000000', // 2 = black
+									'#FF0000', // 3 = red
+									'#00FF00', // 4 = green
+									'#FFFF00', // 5 = yellow
+									'#0000FF', // 6 = blue
+									'#FF00FF', // 7 = magenta
+									'#00FFFF', // 8 = cyan
+									'#FFFFFF'];// 9 = white
 
-function gnustoglue_set_text_style(style) {
+var current_style = 0;
+var current_foreground = 1; // 1==default
+var current_background = 1;
+
+function gnustoglue_set_text_style(style, foreground, background) {
+
     var styling = '';
 
 		if (style==0)
 				current_style = 0;
 		else {
-				current_style |= style;
+				if (style!=-1) current_style |= style;
 
 				if (current_style & 0x1)
 						// "reverse video", whatever that means for us
@@ -177,8 +185,27 @@ function gnustoglue_set_text_style(style) {
 						// monospace
 						styling = styling + 'font-family: monospace;';
 		}
-		
-    style_text(styling);
+
+		if (foreground==0)
+				foreground = current_foreground;
+		if (foreground!=1) { // Not "default".
+				styling = styling + 'color:'+css_colours[foreground]+';';
+				current_foreground = foreground;
+		}
+
+		if (background==0)
+				background = current_background;
+		if (background!=1) { // Not "default".
+				styling = styling + 'background:'+css_colours[background]+';';
+				current_background = background;
+		}
+
+    if (current_window==0) {
+				current_text_holder = 
+						lowerWindow.createElement('span');
+				current_text_holder.setAttribute('style', styling);
+				tty.appendChild(current_text_holder);
+    }
 }
 
 function gnustoglue_split_window(lines) {
@@ -286,7 +313,7 @@ function play() {
     u_setup(80,0);
     set_upper_window();
 
-    gnustoglue_set_text_style(0);
+    gnustoglue_set_text_style(0, 1, 1);
 
     setup();
     go_wrapper(0);
@@ -298,7 +325,7 @@ function deal_with_exception(e) {
 		// back down to this level.
 
 		if (e!=-1) {
-				alert('-- gnusto error --\n'+code+'\n'+e);
+				alert('-- gnusto error --\n'+e);
 				throw e;
 		}
 }
