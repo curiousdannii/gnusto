@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.75 2003/12/17 21:44:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.76 2003/12/17 22:07:50 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/17 21:44:35 $';
+const CVS_VERSION = '$Date: 2003/12/17 22:07:50 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -351,7 +351,7 @@ function handleZ_mod(engine, a) {
   }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+",-1,"+a[0]+','+a[1]+"];return";
   }
 function handleZ_throw(engine, a) {
     //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
@@ -454,7 +454,7 @@ function handleZ_nop(engine, a) {
 function handleZ_restart(engine, a) {
     //VERBOSE burin('restart','');
     engine.m_compilation_running=0;
-    return "m_effects=["+GNUSTO_EFFECT_RESTART+"];return 1";
+    return "m_effects=["+GNUSTO_EFFECT_RESTART+"];return";
   }
 		
 function handleZ_ret_popped(engine, a) {
@@ -476,7 +476,7 @@ function handleZ_pop(engine, a) {
 function handleZ_quit(engine, a) {
     //VERBOSE burin('quit','');
     engine.m_compilation_running=0;
-    return "m_effects=["+GNUSTO_EFFECT_QUIT+"];return 1";
+    return "m_effects=["+GNUSTO_EFFECT_QUIT+"];return";
   }
 
 function handleZ_new_line(engine, a) {
@@ -502,8 +502,8 @@ function handleZ_piracy(engine, a) {
     engine.m_compilation_running = 0;
 				
     var setter = 'm_rebound=function(){'+engine._brancher('(!m_answers[0])')+'};';
-    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"m_effects=[GNUSTO_EFFECT_PIRACY];return 1;");
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_PIRACY+"];return 1";
+    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"m_effects=[GNUSTO_EFFECT_PIRACY];return;");
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_PIRACY+"];return";
 }
 
 ////////////////////////////////////////////////////////////////
@@ -605,7 +605,7 @@ function handleZ_read(engine, a) {
 				GNUSTO_EFFECT_INPUT + "," +
 				recaps_getter + "," +
 				char_count_getter + "," +
-				"_terminating_characters()];return 1";
+				"_terminating_characters()];return";
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
@@ -631,45 +631,45 @@ function handleZ_pull(engine, a) {
 function handleZ_split_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('split_window','lines=' + a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SPLITWINDOW+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SPLITWINDOW+","+a[0]+"];return";
   }
 function handleZ_set_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_window','win=' + a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETWINDOW+","+a[0]+"];return";
   }
 function handleZ_erase_window(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('erase_window','win=' + a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASEWINDOW+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASEWINDOW+","+a[0]+"];return";
   }
 function handleZ_erase_line(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('erase_line',a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASELINE+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASELINE+","+a[0]+"];return";
   }
 function handleZ_set_cursor(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETCURSOR+","+a[0]+","+a[1]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETCURSOR+","+a[0]+","+a[1]+"];return";
   }
 		
 function handleZ_get_cursor(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('get_cursor',a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_GETCURSOR+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_GETCURSOR+","+a[0]+"];return";
   }
 		
 function handleZ_set_text_style(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('set_text_style',a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+","+a[0]+",0,0];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_STYLE+","+a[0]+",0,0];return";
   }
 		
 function handleZ_buffer_mode(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('buffer_mode',a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETBUFFERMODE+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETBUFFERMODE+","+a[0]+"];return";
   }
 		
 function handleZ_output_stream(engine, a) {
@@ -680,7 +680,7 @@ function handleZ_output_stream(engine, a) {
 function handleZ_input_stream(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('input_stream',a[0]);
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETINPUTSTREAM+","+a[0]+"];return 1";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_SETINPUTSTREAM+","+a[0]+"];return";
   }
 		
 function handleZ_sound_effect(engine, a) {
@@ -690,7 +690,7 @@ function handleZ_sound_effect(engine, a) {
     engine.m_compilation_running=0;
     //VERBOSE burin('sound_effect','better logging later');
     while (a.length < 5) { a.push(0); }
-    return "m_pc="+engine.m_pc+';m_effects=['+GNUSTO_EFFECT_SOUND+','+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return 1';
+    return "m_pc="+engine.m_pc+';m_effects=['+GNUSTO_EFFECT_SOUND+','+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return';
   }
 		
 // Maybe factor out "read" and this?
@@ -752,7 +752,7 @@ function handleZ_read_char(engine, a) {
 				rebound_args_setter +
 				rebound_setter +
 				"m_effects=["+GNUSTO_EFFECT_INPUT_CHAR+
-				","+timeout_deciseconds+"];return 1";
+				","+timeout_deciseconds+"];return";
   }
 		
 function handleZ_scan_table(engine, a) { 
@@ -792,7 +792,7 @@ function handleZ_print_table(engine, a) {
     if (a.length < 3) { a.push(1); } // default height
     if (a.length < 4) { a.push(0); } // default skip
     //VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
-    return "m_pc="+engine.m_pc+";m_effects=_print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return 1";
+    return "m_pc="+engine.m_pc+";m_effects=_print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return";
   }
 		
 function handleZ_check_arg_count(engine, a) {
@@ -809,7 +809,7 @@ function handleZ_saveV5678(engine, a) {
     engine.m_compilation_running=0;
     var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
-    return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
+    return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
 }
 		
 function handleZ_restoreV1234(engine, a) {
@@ -821,7 +821,7 @@ function handleZ_restoreV5678(engine, a) {
     engine.m_compilation_running=0;
     var setter = "m_rebound=function(n) { " +
       engine._storer('m_answers[0]') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return 1";
+    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return";
   }
 		
 function handleZ_log_shift(engine, a) {
@@ -869,34 +869,34 @@ function handleZ_check_unicode(engine, a) {
     // methods to do so somehow (e.g. with an onscreen keyboard).
     return engine._storer('3');
 }
-  ////////////////////////////////////////////////////////////////
-  //
-  // |handlers|
-  //
-  // An array mapping opcodes to functions. Each function is passed
-  // a series of arguments (between zero and eight, as the Z-machine
-  // allows) as an array, called |a| below. It returns a string of JS,
-  // called |r| in these comments, which can be evaluated to do the job of that
-  // opcode. Note, again, that this is a string (not a function object).
-  //
-  // Extended ("EXT") opcodes are stored 1000 higher than their number.
-  // For example, 1 is "je", but 1001 is "restore".
-  //
-  // |r|'s code may set |engine.m_compilation_running| to 0 to stop compile() from producing
-  // code for any more opcodes after this one. (compile() likes to group
-  // code up into blocks, where it can.)
-  //
-  // |r|'s code may contain a return statement for two reasons: firstly, to
-  // prevent execution of any further generated code before we get to take
-  // our bearings again (for example, |r| must cause a return if it knows that
-  // the program counter has been modified: PC changes can't take effect until
-  // the next lookup of a code block, so we need to force that to happen
-  // immediately). In such cases, return zero or an undefined result. Secondly,
-  // we can return 1 to cause an effect in the external environment.
-  //
-  // If |r|'s code contains a return statement, it must make sure to set the PC
-  // somehow, either directly or, for example, via _func_return().
-  //
+
+////////////////////////////////////////////////////////////////
+//
+// |handlers|
+//
+// An array mapping opcodes to functions. Each function is passed
+// a series of arguments (between zero and eight, as the Z-machine
+// allows) as an array, called |a| below. It returns a string of JS,
+// called |r| in these comments, which can be evaluated to do the job of that
+// opcode. Note, again, that this is a string (not a function object).
+//
+// Extended ("EXT") opcodes are stored 1000 higher than their number.
+// For example, 1 is "je", but 1001 is "restore".
+//
+// |r|'s code may set |engine.m_compilation_running| to 0 to stop compile() from producing
+// code for any more opcodes after this one. (compile() likes to group
+// code up into blocks, where it can.)
+//
+// |r|'s code may contain a return statement to prevent the execution of
+// any further generated code before we get to take our bearings again.
+// For example, |r| must cause a return if it knows that a jump occurred.
+// If a handler wishes to send an effect to the environment, it should
+// set |m_effects| in the engine to a non-empty list and return.
+//
+// Formerly, |r| was required to set the PC if it was going to stop the
+// engine and the PC wasn't going to be set any other way (e.g. via
+// _func_return()). This is now done automatically by _touch(), so
+// you shouldn't do it any more.
 
 const handlers_v578 = {
     1: handleZ_je,
@@ -1394,7 +1394,6 @@ GnustoEngine.prototype = {
 
     // burin('run', answer);
     var start_pc = 0;
-    var stopping = 0;
     var turns = 0;
     var jscode;
     var turns_limit = this.m_single_step? 1: 10000;
@@ -1405,7 +1404,9 @@ GnustoEngine.prototype = {
 				this.m_rebound_args = [];
 		}
 
-    while(!stopping) {
+		this.m_effects = [];
+
+    while(this.m_effects.length == 0) {
 
 				if (turns++ >= turns_limit) {
 						// Wimp out for now.
@@ -1435,7 +1436,8 @@ GnustoEngine.prototype = {
 						burin('jit', jscode);
 				}
 
-      stopping = jscode();
+      jscode();
+
     }
   },
   
