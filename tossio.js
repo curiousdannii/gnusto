@@ -726,10 +726,6 @@ function command_put(a) {
 
 }
 
-function command_bafgenre(a) {
-		baf_describe_genre(a[1]);
-}
-
 function tossio_notify_breakpoint_hit() {
 		tossio_print('\n ** Hit breakpoint. **\n');
 }
