@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.85 2003/07/21 06:08:16 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.86 2003/08/03 07:08:32 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -651,7 +651,7 @@ var handlers = {
 				return store_into(c, c+'-1');
 		},
 		135: function Z_print_addr(a) {
-				return handler_zOut('zscii_from('+pc_translate(a[0])+')',0);
+				return handler_zOut('zscii_from('+a[0]+')',0);
 		},
 		136: function Z_call_1s(a) {
 				return handler_call(a[0], '');
