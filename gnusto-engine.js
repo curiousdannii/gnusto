@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.56 2003/04/20 15:13:44 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.57 2003/04/21 05:43:53 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -79,6 +79,16 @@ var stat_start;
 // Address of the start of the abbreviations table in memory. (Can this
 // be changed? If not, we could decode them all first.)
 var abbr_start;
+
+// Address of the start of the header extension table in memory.
+var hext_start;
+
+// Address of custom alphabet table (if any).
+var alpha_start;
+
+// Address of Unicode Translation Table (if any).
+var unicode_start = 0;
+var custom_unicode_charcount = 0;
 
 // |call_stack| stores all the return addresses for all the functions
 // which are currently executing.
@@ -1133,11 +1143,16 @@ function zscii_char_to_ascii(zscii_code) {
 		else if (zscii_code>=155 && zscii_code<=251) {
 				// Extra characters.
 
-				// var translation_table = get_unsigned_word(); ...
-				// We need to support the header extension table to do this.
-				// (This is a Z-spec 1.0 thing; it's nothing to do with Infocom.)
+                                if (unicode_start == 0) 
+				  return String.fromCharCode(default_unicode_translation_table[zscii_code]);
+				  else { // if we're using a custom unicode translation table...
+				  if ((zscii_code-154)<= custom_unicode_charcount) 
+                                    return String.fromCharCode(get_unsigned_word(unicode_start + ((zscii_code-155)*2)));					
+                                  else 
+                                    gnusto_error(703, zscii_code); // unknown zscii code
+                                  
+				}
 
-				return String.fromCharCode(default_unicode_translation_table[zscii_code]);
 
 				// FIXME: It's not clear what to do if they request a character
 				// that's off the end of the table.
@@ -1767,6 +1782,17 @@ function setup() {
 		vars_start = get_unsigned_word(0xC);
 		stat_start = get_unsigned_word(0xE);
 		abbr_start = get_unsigned_word(0x18);
+		alpha_start = get_unsigned_word(0x34);
+		hext_start = get_unsigned_word(0x36);		
+	
+	        // If there is a header extension...
+		if (hext_start > 0) {
+		  unicode_start = get_unsigned_word(hext_start+6);  // get start of custom unicode table, if any
+		  if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
+		    custom_unicode_charcount = getbyte(unicode_start);
+		    unicode_start += 3;
+		  }
+		}		
 
 		rebound = 0;
 
@@ -1777,6 +1803,40 @@ function setup() {
 
 		engine__console_buffer = '';
 		engine__transcript_buffer = '';
+		
+		// Reset the default alphabet on reload.  Yes these are already defined in tossio,
+		// but that's because it might use them before they get defined here.
+                zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
+		zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()'; // T = magic ten bit flag		
+		
+		var newchar;
+		var newcharcode;		
+		if (alpha_start > 0) { // If there's a custom alphabet...
+		  for (var alpharow=0; alpharow<3; alpharow++){
+		    var alphaholder = '';
+		    for (var alphacol=0; alphacol<26; alphacol++) {	
+		      newcharcode = getbyte(alpha_start + (alpharow*26) + alphacol);
+                      if ((newcharcode >=155) && (newcharcode <=251)) {		     
+                      	        // Yes, custom alphabets can refer to custom unicode tables.  Whee...
+                                if (unicode_start == 0) {
+				  alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
+				} else {
+				  if ((newcharcode-154)<= custom_unicode_charcount)
+                                    alphaholder += String.fromCharCode(get_unsigned_word(unicode_start + ((newcharcode-155)*2)));					
+                                  else
+                                    alphaholder += ' ';
+				}
+		      } else {
+		        newchar = String.fromCharCode(newcharcode);
+		        if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
+		        alphaholder += newchar;
+		      }
+		    }		    
+		    zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
+		  }
+		}
+		
 
 		// We don't also reset the debugging variables, because
 		// they need to persist across re-creations of this object.
@@ -1893,7 +1953,7 @@ var default_unicode_translation_table = {
 		223:0xbf, // inverted query
 };
 
-var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
+//var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
 
 function zscii_from(address, max_length, tell_length) {
 
@@ -1941,15 +2001,11 @@ function zscii_from(address, max_length, tell_length) {
 						} else if (tenbit==-2) {
 
 								if (code>5) {
-										if (alph!=2)
-												temp = temp + String.fromCharCode(code+(alph?59:91));
-										else {
-												// OK, the alphabet is 2, so...
-												if (code==6)
-														tenbit = -1; // Magic ten-bit code
-												else
-														temp = temp +	zalphabet2[code-7];
-										}
+										if (alph==2 && code==6)
+												tenbit = -1;
+										else
+												temp = temp + zalphabet[alph][code-6];
+												
 										alph = 0;
 								} else {
 										if (code==0) { temp = temp + ' '; alph=0; }
