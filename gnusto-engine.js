@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.107 2003/08/29 02:38:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.108 2003/08/29 07:07:53 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1484,8 +1484,8 @@ function zscii_char_to_ascii(zscii_code) {
 
 				// FIXME: It's not clear what to do if they request a character
 				// that's off the end of the table.
-		}	else {
-				gnusto_error(703, zscii_code); // unknown zscii code
+		}	else {  //let's do nothing for the release-- we'll check the spec afterwards.
+				//gnusto_error(703, zscii_code); // unknown zscii code
 		}
 
 		return String.fromCharCode(result);
