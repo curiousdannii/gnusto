@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.16 2003/05/27 02:11:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.17 2003/07/14 00:46:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -329,11 +329,16 @@ function win_force_monospace(whether) {
 ////////////////////////////////////////////////////////////////
 
 function win_relax() {
+
 		if (baroco__enable_barbara) {
 				barbara_relax();
 		} else {
 				bocardo_relax();
 		}
+
+		// If there's a quotation box up, we're giving the user a chance
+		// to see it now, so set the flag. (Bug 4050)
+		bocardo_record_seen_quote_box();
 }
 
 ////////////////////////////////////////////////////////////////
