@@ -95,7 +95,7 @@
 <vbox flex="1">
 
 <vbox flex="1">
-<html:pre id="upper"></html:pre>
+<iframe flex="0" id="upper" type="content-primary" src="lower.html"/>
 <iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>

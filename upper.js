@@ -1,7 +1,8 @@
+// gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.3 2003/03/15 13:59:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.4 2003/03/28 20:40:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -23,6 +24,128 @@
 ////////////////////////////////////////////////////////////////
 var UPPER_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
+
+var window_documents = [];
+var windows = [];
+var window_current_x = [];
+var window_current_y = [];
+
+function window_setup() {
+    window_documents[0] = frames[1].document;
+    window_documents[1] = frames[0].document;
+
+    windows[0] = window_documents[0].getElementById('text');
+    windows[1] = window_documents[1].getElementById('text');
+
+    window_current_x[0] = window_current_y[0] = 0;
+    window_current_x[1] = window_current_y[1] = 0;
+}
+
+////////////////////////////////////////////////////////////////
+
+function chalk(win, fg, bg, style, text) {
+
+    // This function is written in terms of subchalk(). All *we*
+    // have to do is split up |text| so that it never goes
+    // over the edge of the screen, and break at newlines.
+
+    // FIXME: We need some way of figuring out the font size,
+    // especially relative to the screen width and height.
+    // For now, we'll assume the screen is 80 characters wide.
+
+    text = text.toString().split('\n');
+
+    for (var line in text) {
+
+	var message = text[line];
+
+	while (message!='') {
+
+	    if (message.length > (80 - window_current_x[win])) {
+
+		// The message is longer than the rest of this line.
+
+		var amount = 80 - window_current_x[win];
+	     
+		// Fairly pathetic wordwrap. FIXME: replace later
+		// with a better dynamic programming algorithm.
+
+		while (amount!=0 && message[amount]!=' ') {
+		    amount--;
+		}
+
+		if (amount==0) {
+		    // ah, whatever, just put it back and forget the
+		    // wordwrap.
+		    amount = 80 - window_current_x[win];
+		}
+
+		subchalk(win, fg, bg, style, message.substring(0, amount));
+
+		window_current_x[win] = 0;
+		window_current_y[win]++;
+		message = message.substring(amount+1);
+	    } else {
+
+		// The message is shorter.
+
+		subchalk(win, fg, bg, style, message);
+		window_current_x[win] += message.length;
+		message = '';
+	    }
+	}
+
+	if (line+1!=text.length) {
+	    window_current_x[win] = 0;
+	    window_current_y[win]++;
+	}
+    }
+}
+
+////////////////////////////////////////////////////////////////
+
+function subchalk(win, fg, bg, style, text) {
+
+    // Firstly, decide on the CSS styles we're going to
+    // use in this section.
+
+    // Don't bother for now, but FIXME: do later.
+    var css_styles = '';
+
+    // Secondly... FIXME: Here we will need a translation for the lower window.
+    // A request to write on line N is mapped to a request to write
+    // on the topmost visible line plus N, if there's more lines
+    // than fit on the screen.
+
+    // Thirdly, let's get a handle on the line we want
+    // to modify.
+
+    var lines = windows[win].childNodes;
+
+    // Fourthly, if the line doesn't yet exist we must create it.
+    while (lines.length <= window_current_y[win]) {
+	var newLine = window_documents[win].createElement('span');
+	newLine.appendChild(window_documents[win].createTextNode('\n'));
+	windows[win].appendChild(newLine);
+    }
+
+    // Lastly, we actually append the text.
+    var current_line = lines[window_current_y[win]];
+
+    current_line.appendChild(window_documents[win].createTextNode(text));
+}
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+//                 OLD STUFF IS BELOW
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+
 
 var u_width = 80;
 var u_height = 3;

@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.32 2003/03/27 07:52:59 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.33 2003/03/28 20:40:58 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -48,8 +48,8 @@ function ensureHappiness() {
 		ensureOneFile('VENKMAN_MSG_HAPPY');
 }
 
+var upperWindow = 0;
 var lowerWindow = 0;
-var tty = 0;
 var current_text_holder = 0;
 var current_window = 0;
 
@@ -173,28 +173,8 @@ function gnustoglue_output(what) {
 
 		if (!what) return;
 
-    if (current_window==0) {
-				// Lower window.
-
-				var newline;
-
-				while (what.indexOf && (newline=what.indexOf('\n'))!=-1) {
-						print_text(what.substring(0, newline));
-						what = what.substring(newline+1);
-	
-						print_newline();
-				}
-
-				print_text(what);
-		
-				window.frames[0].scrollTo(0, lowerWindow.height);
-
-    } else if (current_window==1) {
-				// Upper window.
-				u_write(what);
-				set_upper_window();
-    } else
-				gnustoglue_error(303, current_window);
+		chalk(current_window, 0, 0, 0, what);
+		window.frames[1].scrollTo(0, lowerWindow.height);
 }
 
 function gnustoglue_soundeffect(number, effect, volume, callback) {
@@ -221,6 +201,10 @@ var current_foreground = 1; // 1==default
 var current_background = 1;
 
 function gnustoglue_set_text_style(style, foreground, background) {
+
+		/*
+
+			... disabled pending new layout...
 
     var styling = '';
 
@@ -266,6 +250,8 @@ function gnustoglue_set_text_style(style, foreground, background) {
 				current_text_holder.setAttribute('style', styling);
 				tty.appendChild(current_text_holder);
     }
+
+		*/
 }
 
 function gnustoglue_split_window(lines) {
@@ -404,8 +390,9 @@ function set_upper_window() {
 function start_up() {
 		document.getElementById('input').focus();
 
-    lowerWindow = frames[0].document;
-    tty = lowerWindow.getElementById('tty');
+		window_setup();
+		upperWindow = frames[0].document;
+    lowerWindow = frames[1].document;
 
     u_setup(80,0);
     set_upper_window();
