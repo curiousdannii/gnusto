@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.6 2003/02/24 22:34:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.7 2003/02/25 00:27:13 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -117,6 +117,9 @@ function print_newline() {
 }
 
 function gnustoglue_output(what) {
+
+		if (!what) return;
+
     if (current_window==0) {
 				// Lower window.
 
@@ -141,27 +144,33 @@ function gnustoglue_output(what) {
 				throw "unearthly window "+current_window+' in gnustoglue_output';
 }
 
+var current_style = 0;
+
 function gnustoglue_set_text_style(style) {
-    var styling = ''
+    var styling = '';
 
-				if (style!=0) {
-						if (style & 0x1)
+		if (style==0)
+				current_style = 0;
+		else {
+				current_style |= style;
+
+				if (current_style & 0x1)
 						// "reverse video", whatever that means for us
-						styling = styling + 'background-color: #777777;color: #000000;';
+						styling = styling + 'background-color: #777777;color: #FFFFFF;';
 
-						if (style & 0x2)
+				if (current_style & 0x2)
 						// bold
 						styling = styling + 'font-weight:bold;';
 
-						if (style & 0x4)
+				if (current_style & 0x4)
 						// italic
 						styling = styling + 'font-style: italic;';
-
-						if (style & 0x8)
+				
+				if (current_style & 0x8)
 						// monospace
 						styling = styling + 'font-family: monospace;';
-				}
-
+		}
+		
     style_text(styling);
 }
 
@@ -254,17 +263,21 @@ function play() {
     u_setup(80,0);
     set_upper_window();
 
-    style_text('');
+    gnustoglue_set_text_style(0);
 
     setup();
     go_wrapper(0);
 }
 
 function catcher(code) {
+
+		var result = 0;
+
     // note: we may want to setTimeout(eval(code),10) or something similar
     // instead later, to give Moz a chance to catch up with displaying
+
     try {
-				eval(code);
+				result = eval(code);
     } catch(e) {
 
 				// -1 is thrown by gnusto_error when it wants to kill everything
@@ -275,21 +288,72 @@ function catcher(code) {
 						throw e;
 				}
     }
+
+		return result;
 }
 
-function gotInput(keycode) {
-    if (keycode==13) {
-				var inputBox = document.getElementById("input");
-				var value = inputBox.value;
+function gotInput(event) {
+		var inputBox = document.getElementById("input");
+		var value = inputBox.value;
 
-				if (reasonForStopping==GNUSTO_EFFECT_INPUT) {
+		if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
+				inputBox.value = '';
+				gnustoglue_output(value+'\n');
+				go_wrapper(value);
+		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
+				var useful = 1;
+
+				if (event.keyCode==0) {
+						var code = event.charCode;
+
+						if (code>=32 && code<=126)
+								// Regular ASCII; just pass it straight through
+								go_wrapper(code);
+						else
+								useful = 0;
+				}
+				else {
+						switch (event.keyCode) {
+
+								// Arrow keys
+						case  37 : go_wrapper(129); break;
+						case  38 : go_wrapper(130); break;
+						case  39 : go_wrapper(131); break;
+						case  40 : go_wrapper(132); break;
+
+								// Function keys
+						case 112 : go_wrapper(133); break;
+						case 113 : go_wrapper(134); break;
+						case 114 : go_wrapper(135); break;
+						case 115 : go_wrapper(136); break;
+						case 116 : go_wrapper(137); break;
+						case 117 : go_wrapper(138); break;
+						case 118 : go_wrapper(139); break;
+						case 119 : go_wrapper(140); break;
+						case 120 : go_wrapper(141); break;
+						case 121 : go_wrapper(142); break;
+
+								// delete / backspace
+						case  46 : go_wrapper(8); break;
+						case   8 : go_wrapper(8); break;
+
+								// newline / return
+						case  10 : go_wrapper(13); break;
+						case  13 : go_wrapper(13); break;
+
+								// escape
+						case  27 : go_wrapper(27); break;
+
+						default:
+								useful = 0; // nope, didn't do it for us.
+						}
+				}
+
+				if (useful) {
 						inputBox.value = '';
-						gnustoglue_output(value+'\n');
-						go_wrapper(value);
-				} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR && value!='') {
-						inputBox.value = '';
-						gnustoglue_output(value.substring(0, 1)+'\n');
-						go_wrapper(value.charCodeAt(0));
+						return 0;
+				} else {
+						return 1;
 				}
 		}
 }
