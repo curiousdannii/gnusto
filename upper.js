@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.28 2003/04/22 15:28:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.29 2003/04/25 18:25:59 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -235,6 +235,8 @@ function win_clear(win) {
 		if (win==1) {
 				// Clearing a window resets its "more" counter.
 				win__screen_scroll_count = 0;
+                                var body = win__screen_doc.getElementsByTagName('body')[0];
+                                body.setAttribute('bgcolor', win__current_background);
 		}
 }
 
@@ -268,9 +270,9 @@ function win_print_table(win, lines) {
 
 ////////////////////////////////////////////////////////////////
 
-var win__current_style = [0,0];
-var win__current_foreground = [1,1];
-var win__current_background = [1,1];
+var win__current_style = 0;
+var win__current_foreground = 1;
+var win__current_background = 1;
 
 var win__current_css = ['ff bb','ff bb'];
 
@@ -293,23 +295,23 @@ function win_set_text_style(win, style, foreground, background) {
 		// when it should set the current style to zero too.
 
 		if (style==-1) // Don't change
-				style = win__current_style[current_window];
+				style = win__current_style;
 		else if (style==0)
-				win__current_style[current_window] = 0;
+				win__current_style = 0;
 		else {
-				win__current_style[current_window] |= style;
-				style = win__current_style[current_window];
+				win__current_style |= style;
+				style = win__current_style;
 		}
 
 		if (foreground==0) // Don't change
-				foreground = win__current_foreground[current_window];
+				foreground = win__current_foreground;
 		else
-				win__current_foreground[current_window] = foreground;
+				win__current_foreground = foreground;
 
 		if (background==0) // Don't change
-				background = win__current_background[current_window];
+				background = win__current_background;
 		else
-				win__current_background[current_window] = background;
+				win__current_background = background;
 
 		////////////////////////////////////////////////////////////////
 
