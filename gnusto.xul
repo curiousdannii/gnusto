@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.31 2003/04/27 19:25:23 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.32 2003/04/27 20:03:15 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -56,6 +56,7 @@ function ensureHappiness() {
       'VENKMAN_MSG',
       'BAF',
       'BARBARIX',
+      'BAROCO',
       'DARII',
       'DATISI',
    ];
@@ -101,8 +102,9 @@ function ensureHappiness() {
 <!-- Glue for Mozilla. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/mozilla-glue.js"/>
 
-<!-- Upper window. -->
+<!-- Screen handlers. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/upper.js"/>
+<script type="application/x-javascript" src="chrome://gnusto/content/baroco.js"/>
 
 <menubar>
 
@@ -170,9 +172,6 @@ Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor
 <!-- Top window; all fixed width. -->
 
 <vbox id="baroco" flex="1">
-<description value="TOP TOP TOP"/>
-<description value="TOP TOP TOP 2"/>
-<description value="TOP TOP TOP 3"/>
 </vbox>
 
 </stack>

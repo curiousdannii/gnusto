@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.63 2003/04/27 18:11:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.64 2003/04/27 20:03:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -210,9 +210,7 @@ function go_wrapper(answer, no_first_call) {
 
 						// reset the css style variable to reflect the current
 						// state of text in the new window
-						win_set_text_style(current_window,
-															 win__current_style[current_window],
-															 0, 0);
+						win_set_text_style(current_window, -1, 0, 0);
 
 						if (current_window!=0 && current_window!=1)
 								gnusto_error(303, current_window);
@@ -296,6 +294,7 @@ function glue_init() {
 function start_up() {
 
 		glue_init();
+		bocardo_init();
 		win_init();
 		baf_init();
 		sys_init();
@@ -304,7 +303,7 @@ function start_up() {
 
 function play() {
 		document.getElementById('input').focus();
-		win_setup();
+		win_start_game();
     setup();
 		/* FIXME: later... glue_store_screen_size(); */
 

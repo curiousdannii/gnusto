@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.32 2003/04/27 19:04:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.33 2003/04/27 20:03:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -22,70 +22,70 @@
 
 ////////////////////////////////////////////////////////////////
 
-var win__screen_doc = 0;
-var win__screen_window = 0;
-var win__current_x = [];
-var win__current_y = [];
-var win__top_window_height = 0;
+var bocardo__screen_doc = 0;
+var bocardo__screen_window = 0;
+var bocardo__current_x = [];
+var bocardo__current_y = [];
+var bocardo__top_window_height = 0;
 
-var win__screen_width = 80; //  a good default size
-var win__screen_height = 25; // a good default size
+var bocardo__screen_width = 80; //  a good default size
+var bocardo__screen_height = 25; // a good default size
 
 ////////////////////////////////////////////////////////////////
 
 // Called on startup.
-function win_init() {
+function bocardo_init() {
 		// Does nothing at present.
 }
 
 ////////////////////////////////////////////////////////////////
 
-function win_setup() {
+function bocardo_start_game() {
 
-    win__screen_doc = document;
+    bocardo__screen_doc = document;
 
-		win__screen_window = win__screen_doc.getElementById('baroco');
-		barbarix_clear(win__screen_window);
+		bocardo__screen_window = bocardo__screen_doc.getElementById('baroco');
+		barbarix_clear(bocardo__screen_window);
 
-    win__current_x[0] = win__current_y[0] = 0;
-    win__current_x[1] = win__current_y[1] = 0;
+    bocardo__current_x[0] = bocardo__current_y[0] = 0;
+    bocardo__current_x[1] = bocardo__current_y[1] = 0;
 
-		win_set_top_window_size(0);
+		bocardo_set_top_window_size(0);
 
 		// too complicated for now!
-		//win_resize();
+		//bocardo_resize();
 		//// Do that every time the size changes, actually.
-		//window.addEventListener('resize', win_resize, 0);
+		//window.addEventListener('resize', bocardo_resize, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
-function win_resize() {
+function bocardo_resize() {
 
 		// for now:
 		return;
 		/****************************************************************/
 
-		/*		win__screen_width = width;
-					win__screen_height = height; */
+		/*		bocardo__screen_width = width;
+					bocardo__screen_height = height; */
 
 		// FIXME: Is this guaranteed to be pixels?
 
-		var bocardoHeight = parseInt(win__screen_doc.defaultView.getComputedStyle(win__screen_window,null).getPropertyValue('height'));
-		var bocardoWidth = parseInt(win__screen_doc.defaultView.getComputedStyle(win__screen_window,null).getPropertyValue('width'));
+		var bocardoHeight = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(bocardo__screen_window,null).getPropertyValue('height'));
+		var bocardoWidth = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(bocardo__screen_window,null).getPropertyValue('width'));
 
 		var totalLinesHeight = 0;
 		var maxLineWidth = 0;
 
-		var lines = win__screen_window.childNodes;
+		var lines = bocardo__screen_window.childNodes;
 
 		for (var i=0; i<lines.length; i++) {
 
 				// Need to base calculations on spans, and only spans with text in.
 				// Or perhaps only on textnodes.
 
-				var lineWidth = parseInt(win__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('width'));
-				var lineHeight = parseInt(win__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('height'));
+				var lineWidth = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('width'));
+				var lineHeight = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('height'));
 
 				if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
 				totalLinesHeight += lineHeight;
@@ -97,38 +97,38 @@ function win_resize() {
 
 ////////////////////////////////////////////////////////////////
 
-var win__screen_scroll_count = 0;
+var bocardo__screen_scroll_count = 0;
 
-function win_reset_scroll_count() {
-		win__screen_scroll_count = 0;
+function bocardo_reset_scroll_count() {
+		bocardo__screen_scroll_count = 0;
 }
 
 ////////////////////////////////////////////////////////////////
 
-function win_chalk(win, text) {
+function bocardo_chalk(win, text) {
 
 		var paused_for_more = 0;
 
-    // This function is written in terms of win__subchalk(). All *we*
+    // This function is written in terms of bocardo__subchalk(). All *we*
     // have to do is split up |text| so that it never goes
     // over the edge of the screen, and break at newlines.
 
 		// Subfunction to move to the next line (whatever that means,
 		// depending on which window we're on.)
 		function newline() {
-				win__current_x[win] = 0;
+				bocardo__current_x[win] = 0;
 
-				win__current_y[win]++;
+				bocardo__current_y[win]++;
 
 				if (win==0) {
 
-						win__screen_scroll_count++;
+						bocardo__screen_scroll_count++;
 						
 						// Do we need to stop and write [MORE]?
 
-						if (win__screen_scroll_count >= win__screen_height-win__top_window_height) {
+						if (bocardo__screen_scroll_count >= bocardo__screen_height-bocardo__top_window_height) {
 								// Yes. Reset the scroll count.
-								win__screen_scroll_count = 0;
+								bocardo__screen_scroll_count = 0;
 										
 								// Reconstruct the message...
 								message = message + text.slice(line,text.length).join('\n');
@@ -136,23 +136,23 @@ function win_chalk(win, text) {
 								paused_for_more = 1;
 						} else {
 
-								while (win__current_y[0]>=win__screen_height) {
+								while (bocardo__current_y[0]>=bocardo__screen_height) {
 										
 										// We hit the bottom of the lower window.
 										// Try for a scroll.
 								
-										win__screen_window.removeChild(win__screen_window.childNodes[win__top_window_height]);
-										win__current_y[0]--; // Get back onto the screen
+										bocardo__screen_window.removeChild(bocardo__screen_window.childNodes[bocardo__top_window_height]);
+										bocardo__current_y[0]--; // Get back onto the screen
 								}
 						}
 
-				} else if (win==1 && win__current_y[1]==win__top_window_height) {
+				} else if (win==1 && bocardo__current_y[1]==bocardo__top_window_height) {
 						// We hit the bottom of the top window.
 						// The z-spec leaves the behaviour undefined, but suggests
 						// that we leave the cursor where it is. Frotz's behaviour
 						// is more easy to mimic: it simply wraps back to the top.
 
-						win__current_y[1] = 0;
+						bocardo__current_y[1] = 0;
 				}
 		}
 
@@ -166,11 +166,11 @@ function win_chalk(win, text) {
 
 				do {
 
-						if (message.length > (win__screen_width - win__current_x[win])) {
+						if (message.length > (bocardo__screen_width - bocardo__current_x[win])) {
 
 								// The message is longer than the rest of this line.
 
-								var amount = win__screen_width - win__current_x[win];
+								var amount = bocardo__screen_width - bocardo__current_x[win];
 								
 								// Fairly pathetic wordwrap. FIXME: replace later
 								// with a better dynamic programming algorithm.
@@ -182,10 +182,10 @@ function win_chalk(win, text) {
 								if (amount==0) {
 										// ah, whatever, just put it back and forget the
 										// wordwrap.
-										amount = win__screen_width - win__current_x[win];
+										amount = bocardo__screen_width - bocardo__current_x[win];
 								}
 
-								win__subchalk(win, message.substring(0, amount));
+								bocardo__subchalk(win, message.substring(0, amount));
 								
 								message = message.substring(amount+1);
 
@@ -195,8 +195,8 @@ function win_chalk(win, text) {
 								
 								// The message is shorter.
 
-								win__subchalk(win, message);
-								win__current_x[win] += message.length;
+								bocardo__subchalk(win, message);
+								bocardo__current_x[win] += message.length;
 								message = '';
 						}
 				} while (message!='' && !paused_for_more);
@@ -212,22 +212,22 @@ function win_chalk(win, text) {
 
 ////////////////////////////////////////////////////////////////
 
-function win_gotoxy(win, x, y) {
-		win__current_x[win] = x;
-		win__current_y[win] = y;
+function bocardo_gotoxy(win, x, y) {
+		bocardo__current_x[win] = x;
+		bocardo__current_y[win] = y;
 }
 
 ////////////////////////////////////////////////////////////////
 
-function win_set_top_window_size(lines) {
-		win__top_window_height = lines;
-		win_gotoxy(1, 0, 0);
+function bocardo_set_top_window_size(lines) {
+		bocardo__top_window_height = lines;
+		bocardo_gotoxy(1, 0, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
 // Clears a window. |win| must be a valid window ID.
-function win_clear(win) {
+function bocardo_clear(win) {
 
 		/* for now */
 
@@ -235,18 +235,18 @@ function win_clear(win) {
 
 		/****************************************************************/
 
-		while (win__screen_window.childNodes.length!=0) {
-				win__screen_window.removeChild(win__screen_window.childNodes[0]);
+		while (bocardo__screen_window.childNodes.length!=0) {
+				bocardo__screen_window.removeChild(bocardo__screen_window.childNodes[0]);
 		}
 
-		win__current_x[win] = 0;
-		win__current_y[win] = 0;
+		bocardo__current_x[win] = 0;
+		bocardo__current_y[win] = 0;
 
 		if (win==1) {
 				// Clearing a window resets its "more" counter.
-				win__screen_scroll_count = 0;
-				var body = win__screen_doc.getElementsByTagName('body')[0];
-				body.setAttribute('class', 'b' + win__current_background);
+				bocardo__screen_scroll_count = 0;
+				var body = bocardo__screen_doc.getElementsByTagName('body')[0];
+				body.setAttribute('class', 'b' + bocardo__current_background);
 		}
 }
 
@@ -258,37 +258,37 @@ function win_clear(win) {
 // at the point immediately below the previous one. This function
 // leaves the cursor where it started.
 
-function win_print_table(win, lines) {
+function bocardo_print_table(win, lines) {
 
-		var temp_x = win__current_x[win];
-		var temp_y = win__current_y[win];
+		var temp_x = bocardo__current_x[win];
+		var temp_y = bocardo__current_y[win];
 
 		for (i=0; i<lines.length; i++) {
-				win__current_x[win] = temp_x;
-				win__current_y[win] = (temp_y+i) % win__screen_height;
+				bocardo__current_x[win] = temp_x;
+				bocardo__current_y[win] = (temp_y+i) % bocardo__screen_height;
 
-				if (lines[i].length + temp_x > win__screen_width) {
-						lines[i] = lines[i].substring(win__screen_width-temp_x);
+				if (lines[i].length + temp_x > bocardo__screen_width) {
+						lines[i] = lines[i].substring(bocardo__screen_width-temp_x);
 				}
 
-				win_chalk(win, lines[i]);
+				bocardo_chalk(win, lines[i]);
 		}
 
-		win__current_x[win] = temp_x;
-		win__current_y[win] = temp_y;
+		bocardo__current_x[win] = temp_x;
+		bocardo__current_y[win] = temp_y;
 }
 
 ////////////////////////////////////////////////////////////////
 
-var win__current_style = 0;
-var win__current_foreground = 1;
-var win__current_background = 1;
+var bocardo__current_style = 0;
+var bocardo__current_foreground = 1;
+var bocardo__current_background = 1;
 
-var win__current_css = ['ff bb','ff bb'];
+var bocardo__current_css = ['ff bb','ff bb'];
 
 // Set the current text style, foreground and background colours
 // of a given window. Very Z-machine specific.
-function win_set_text_style(win, style, foreground, background) {
+function bocardo_set_text_style(win, style, foreground, background) {
 
 		// List of CSS classes we want.
 		var css = '';
@@ -305,23 +305,23 @@ function win_set_text_style(win, style, foreground, background) {
 		// when it should set the current style to zero too.
 
 		if (style==-1) // Don't change
-				style = win__current_style;
+				style = bocardo__current_style;
 		else if (style==0)
-				win__current_style = 0;
+				bocardo__current_style = 0;
 		else {
-				win__current_style |= style;
-				style = win__current_style;
+				bocardo__current_style |= style;
+				style = bocardo__current_style;
 		}
 
 		if (foreground==0) // Don't change
-				foreground = win__current_foreground;
+				foreground = bocardo__current_foreground;
 		else
-				win__current_foreground = foreground;
+				bocardo__current_foreground = foreground;
 
 		if (background==0) // Don't change
-				background = win__current_background;
+				background = bocardo__current_background;
 		else
-				win__current_background = background;
+				bocardo__current_background = background;
 
 		////////////////////////////////////////////////////////////////
 
@@ -351,7 +351,7 @@ function win_set_text_style(win, style, foreground, background) {
 		if (style & 0x4) css = css + ' si'; // italic
 		if (style & 0x8) css = css + ' sm'; // monospace
 
-		win__current_css[win] = css;
+		bocardo__current_css[win] = css;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -360,18 +360,18 @@ function win_set_text_style(win, style, foreground, background) {
 //
 ////////////////////////////////////////////////////////////////
 
-function win__subchalk(win, text) {
+function bocardo__subchalk(win, text) {
 
-		var x = win__current_x[win];
-		var y = win__current_y[win];
+		var x = bocardo__current_x[win];
+		var y = bocardo__current_y[win];
 
     // Let's get a handle on the line we want to modify.
 
     // If the line doesn't yet exist, we must create it.
     // FIXME: possibly this will become redundant when we handle
     // dynamic screen resizing.
-    while (win__screen_window.childNodes.length <= y) {
-				var newdiv = win__screen_doc.createElement('hbox');
+    while (bocardo__screen_window.childNodes.length <= y) {
+				var newdiv = bocardo__screen_doc.createElement('hbox');
 
 				// Commenting out for now, since I don't know what
 				// the effect of this will be on the XUL
@@ -380,14 +380,14 @@ function win__subchalk(win, text) {
 				//// once bug 3658 is fixed.
 
 				// *Possibly* not what we want any more for the upper window
-				//newdiv.setAttribute('class', win__current_css[current_window]);
-				win__screen_window.appendChild(newdiv);
+				//newdiv.setAttribute('class', bocardo__current_css[current_window]);
+				bocardo__screen_window.appendChild(newdiv);
     }
 
     // We delete any bits of that line we're going to overwrite,
 		// and work out where to insert the new span. The line consists of a
 		// sequence of spans.
-    var current_line = win__screen_window.childNodes[y];
+    var current_line = bocardo__screen_window.childNodes[y];
 
 		var spans = current_line.childNodes;
 
@@ -421,7 +421,7 @@ function win__subchalk(win, text) {
 								padding = padding + ' ';
 						}
 
-						doppelganger = win__screen_doc.createElement('description');
+						doppelganger = bocardo__screen_doc.createElement('description');
 						doppelganger.setAttribute('value', padding);
 				}
 
@@ -495,8 +495,8 @@ function win__subchalk(win, text) {
 		}
 
 		// ..and append our text.
-		var newSpan = win__screen_doc.createElement('description');
-		newSpan.setAttribute('class', win__current_css[win]);
+		var newSpan = bocardo__screen_doc.createElement('description');
+		newSpan.setAttribute('class', bocardo__current_css[win]);
 		newSpan.setAttribute('value', text);
 
 		if (appendPoint == -1) {
@@ -512,7 +512,7 @@ function win__subchalk(win, text) {
 /*
 
 // FIXME: In transition from mozilla-glue.
-function win__store_screen_size() {
+function bocardo__store_screen_size() {
 
 		var screen_width = 80;
 		var screen_height = 25;
@@ -545,7 +545,7 @@ function win__store_screen_size() {
 		setbyte(glue__font_height,               0x27); // font h, units
 
 		// Tell the window drivers about it
-		win_resize(screen_width, screen_height);
+		bocardo_resize(screen_width, screen_height);
 }
 
 */
