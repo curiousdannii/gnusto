@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.21 2003/03/21 02:13:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.22 2003/03/22 06:28:52 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -72,21 +72,31 @@ var ignore_errors = {
 		706: 1, // Work around a bug in Library 15/2 (see bug 3314)
    };
 
+////////////////////////////////////////////////////////////////
+//
+// Loads the |fixups| and |mangled| arrays, and clears |zbytes| ready to be
+// filled from them. |zcode| is an nsILocalFile, initialised and ready to be
+// read from. Returns false if there was an error (and the global state will be
+// unchanged), true if everything worked.
+//
+// Modified by Eric Liga <naltrexone42@yahoo.com> to remove deprecated
+// interfaces which are no longer present in Mozilla v1.3.
+//
 function loadMangledZcode(zcode) {
 
     if (!zcode.exists())
 				throw "Mangled Zcode file doesn't exist.";
 
-    var fc = new Components.Constructor("@mozilla.org/network/local-file-channel;1",
-																				"nsIFileChannel")();
-
-    var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
-																				 "nsIScriptableInputStream")();
-
     fixups = zcode.fileSize / 2;
 
-    fc.init(zcode, 1, 0);
-    sis.init(fc.open());
+		var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
+
+		fc.init(zcode, 1, 0, 0);
+
+		var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
+																				 "nsIScriptableInputStream")();
+
+		sis.init(fc);
 
     var tempMangled = sis.read(zcode.fileSize);
 
