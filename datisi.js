@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.4 2003/04/21 02:58:20 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.5 2003/04/23 12:53:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -283,6 +283,112 @@ function command_open(a) {
 		  dealWith(bin.readByteArray(localfile.fileSize));
 		}
 
+}
+
+////////////////////////////////////////////////////////////////
+
+var sys__vault = null;
+var sys__recent_list = null;
+
+function sys_init() {
+		sys__vault = Components.classes['@mozilla.org/file/directory_service;1'].
+				getService(Components.interfaces.nsIProperties).
+				get("ProfD", Components.interfaces.nsIFile);
+
+		sys__vault.append('gnusto');
+
+		if (!sys__vault.exists()) {
+				sys__vault.create(1, 0700);
+		}
+
+		sys__recent_list = sys__vault.clone();
+		sys__recent_list.append('recent.dat');
+
+		sys_update_recent_menu();
+}
+
+////////////////////////////////////////////////////////////////
+
+function sys_get_recent_list() {
+
+		if (sys__recent_list.exists()) {
+
+				var localfile= new Components.Constructor("@mozilla.org/file/local;1",
+																									"nsILocalFile",
+																									"initWithPath")
+						(sys__recent_list.path);
+		
+				var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
+				fc.init(localfile, 1, 0, 0);
+				
+				var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1", "nsIScriptableInputStream")();
+				sis.init(fc);
+
+				var fileContents = sis.read(localfile.fileSize);
+
+				fileContents = fileContents.replace('\r\n','\n');
+				fileContents = fileContents.replace('\r','\n');
+				fileContents = fileContents.split('\n');
+
+				var result = [];
+				var temp = [];
+
+				for (var j in fileContents) {
+						if (fileContents[j]=='') {
+								if (temp.length!=0) {
+										result.push(temp);
+										temp = [];
+								}
+						} else {
+								temp.push(fileContents[j]);
+						}
+				}
+
+				if (temp.length!=0)
+						result.push(temp);
+
+				return result;
+
+		} else
+				return []; // Nothing there.
+}
+
+////////////////////////////////////////////////////////////////
+
+// Unsure where this should best go, really...
+// perhaps it would be better in mozilla-glue.
+function sys_update_recent_menu() {
+		var recent = sys_get_recent_list();
+
+		for (var i in recent) {
+				var name = 'recent'+i;
+				var element = document.getElementById(name);
+				var command = 'alert("erroneous");';
+				var label = '?';
+
+				if (recent[i].length>0) command = 'open '+recent[i][0];
+
+				if (recent[i].length>1)
+						label = recent[i][1];
+				else
+						label = recent[i][0];
+
+				if (element==null) {
+
+						element = document.createElement('menuitem');
+
+						document.getElementById('file-menu').childNodes[0].appendChild(element);
+				}
+
+				var n = parseInt(i)+1;
+
+				element.setAttribute('label', n+'. '+label);
+				element.setAttribute('oncommand', 'dispatch("'+command+'")');
+				if (n<10)
+						element.setAttribute('accesskey', n);
+				else if (n==10)
+						element.setAttribute('accesskey', '0');
+		}
 }
 
 ////////////////////////////////////////////////////////////////

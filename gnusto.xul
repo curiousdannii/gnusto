@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.25 2003/04/20 12:23:37 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.26 2003/04/23 12:53:24 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -106,24 +106,17 @@ function ensureHappiness() {
 
 <menubar>
 
-<menu id="game-menu" label="Game" accesskey="G">
+<menu id="file-menu" label="File" accesskey="F">
 <menupopup>
 <menuitem label="New (restart)" accesskey="N" disabled="true" />
-<menuitem label="Open (restore)..." accesskey="O" disabled="true"/>
+<menuitem label="Open..." accesskey="O" oncommand="dispatch('open');"/>
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
-<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="try{doTranscript()}catch(e){deal_with_exception(e)}"/>
+<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="alert(sys_get_recent_list());"/>
 <menuseparator/>
 <menuitem label="Exit" accesskey="X" oncommand="try{quitGame()}catch(e){deal_with_exception(e)}"/>
-</menupopup>
-</menu>
-
-<menu id="story-menu" label="Story" accesskey="S">
-<menupopup>
-<menuitem label="Open..." accesskey="O" oncommand="dispatch('open');"/>
-<menuitem label="What's an .mz5, anyway?" accesskey="W"
-	oncommand="open('http://gnusto.mozdev.org/nullbytes.html')"/>
+<menuseparator/>
 </menupopup>
 </menu>
 
