@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.92 2003/08/10 17:46:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.93 2003/08/10 19:55:47 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -23,11 +23,11 @@
 
 ////////////////////////////////////////////////////////////////
 /////////////////////// Global variables ///////////////////////
-////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
 
-// This will hold the filename of the current game file (so we can
-// reset the memory from it as needed.
-var local_game_file = 0;
+		// This will hold the filename of the current game file (so we can
+		// reset the memory from it as needed.
+		var local_game_file = 0;
 
 // These are all initialised in the function engine_start_game().
 
@@ -493,9 +493,9 @@ function handler_print(dummy, suffix, is_return) {
 		if (suffix) message = message + suffix;
 
 		message=message.
-								 replace('\\','\\\\','g').
-								 replace('"','\\"','g').
-								 replace('\n','\\n','g'); // not elegant
+				replace('\\','\\\\','g').
+				replace('"','\\"','g').
+				replace('\n','\\n','g'); // not elegant
 		pc=zf[1];
 		//VERBOSE burin('print',message);
 		return handler_zOut('"'+message+'"', is_return);
@@ -642,8 +642,8 @@ var handlers = {
 		},
 		24: function Z_mod(a) { 
 				//VERBOSE burin('mod',a[0]+'%'+a[1]);
-				return storer(a[0]+'%'+a[1]); },
-
+				return storer(a[0]+'%'+a[1]);
+		},
 		25: function Z_call_2s(a) {
 				//VERBOSE burin('call2s',a[0]+'-'+a[1]);
 				return handler_call(a[0], a[1]);
@@ -725,7 +725,7 @@ var handlers = {
 				if (a[0] & 0x8000) {
 						a[0] = (~0xFFFF) | a[0];
 				}
-
+				
 				var addr=(a[0] + pc) - 2;
 				//VERBOSE burin('jump',"pc="+addr+";return");
 				return "pc="+addr+";return";
@@ -735,12 +735,12 @@ var handlers = {
 				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
 		},
 		142: function Z_load(a) {
-
+				
 				// Warning: This has never been tested, since Inform does
 				// not generate this opcode. If you're able to test it,
 				// please report the results at
 				// <http://mozdev.org/bugs/show_bug.cgi?id=3468>.
-
+				
 				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('load',"store " + c);
 				return storer(c);
@@ -751,7 +751,7 @@ var handlers = {
 				//VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
 				return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
 		},
-
+		
 		176: function Z_rtrue(a) {
 				//VERBOSE burin('rtrue',"gnusto_return(1);return");
 				compiling=0;
@@ -805,8 +805,8 @@ var handlers = {
 				//VERBOSE burin('newline','');
 				return handler_zOut("'\\n'",0);
 		},
-
-                188: function Z_show_status(a){ //(illegal from V4 onward)
+		
+		188: function Z_show_status(a){ //(illegal from V4 onward)
 				//VERBOSE burin('illegalop','188');
 				gnusto_error(199);
 		},
@@ -818,21 +818,21 @@ var handlers = {
 				//VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
 		},
-
+		
 		190: function Z_illegal_extended(a) {
 				// 190 can't be generated; it's the start of an extended opcode
 				//VERBOSE burin('illegalop','190');
 				gnusto_error(199);
 		},
-
+		
 		191: function Z_piracy(a) {
 				compiling = 0;
-
+				
 				var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
 				//VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
 		},
-
+		
 		224: function Z_call_vs(a) {
 				//VERBOSE burin('call_vs','see call_vn');
 				return storer(call_vn(a,1));
@@ -862,18 +862,20 @@ var handlers = {
 						// ...then we should do something with a[2] and a[3],
 						// which are timed input parameters. For now, though,
 						// we'll just ignore them.
-					//VERBOSE burin('read',"should have been timed-- not yet supported");
+						//VERBOSE burin('read',"should have been timed-- not yet supported");
 				}
 
 				compiling = 0;
 				
 				var setter = "rebound=function(n){" +
-						storer("aread(n, a0," + a[1] + ")") +
-						"};";
+				storer("aread(n, a0," + a[1] + ")") +
+				"};";
 
 				//VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
-						setter + "engine__effect_parameters={"+ "'recaps':"   + "zGetByte(a0+1),"+
-						"'maxchars':" + "zGetByte(a0),"+ "};" + "return GNUSTO_EFFECT_INPUT");
+				setter + "engine__effect_parameters={"+
+				"'recaps':" + "zGetByte(a0+1),"+
+				"'maxchars':" + "zGetByte(a0),"+
+				"};" + "return GNUSTO_EFFECT_INPUT";
 
 				return "var a0=eval("+ a[0] + ");" +
 				"pc=" + pc + ";" +
@@ -934,13 +936,13 @@ var handlers = {
 				//VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
-
-                240: function Z_get_cursor(a) {
-                                compiling=0;
+		
+		240: function Z_get_cursor(a) {
+				compiling=0;
 				//VERBOSE burin('get_cursor',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
-                },
-
+		},
+		
 		241: function Z_set_text_style(a) {
 				compiling=0;
 				//VERBOSE burin('set_text_style',a[0]);
@@ -952,74 +954,74 @@ var handlers = {
 				//VERBOSE burin('buffer_mode',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
 		},
-
+		
 		243: function Z_output_stream(a) {
 				//VERBOSE burin('output_stream',a[0]+', ' + a[1]);
 				return 'set_output_stream('+a[0]+','+a[1]+')';
 		},
-
+		
 		244: function Z_input_stream(a) {
 				compiling=0;
 				//VERBOSE burin('input_stream',a[0]);
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
 		},
-
+		
 		245: function Z_sound_effect(a) {
 				// We're rather glossing over whether and how we
 				// deal with callbacks at present.
-
+				
 				compiling=0;
 				//VERBOSE burin('sound_effect','better logging later');
 				while (a.length < 5) { a.push(0); }
 				return "pc="+pc+';engine__effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
 		},
-
+		
 		246: function Z_read_char(a) {
 				// Maybe factor out "read" and this?
 				//VERBOSE burin('read_char','');
 				// a[0] is always 1; probably not worth checking for this
-
+				
 				if (a[3]) {
 						// ...then we should do something with a[2] and a[3],
 						// which are timed input parameters. For now, though,
 						// we'll just ignore them.
-					//VERBOSE burin('read_char','should have been timed-- not yet supported');
+						//VERBOSE burin('read_char','should have been timed-- not yet supported');
 				}
-
+				
 				compiling = 0;
-
+				
 				var setter = "rebound=function(n) { " +
 				storer("n") +
 				"};";
-
+				
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
 		},
-
+		
 		247: function Z_scan_table(a) { 
 				//VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
-		                if (a.length == 4) {
-                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
-                                       storer("t") + ";" +  brancher('t');
-		                } else { // must use the default for Form, 0x82
-                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
-                                       storer("t") + ";" +  brancher('t');
-		                }
+				if (a.length == 4) {
+						return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
+						storer("t") + ";" +  brancher('t');
+				} else { // must use the default for Form, 0x82
+						return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
+						storer("t") + ";" +  brancher('t');
+				}
 		},
-
+		
 		248: function Z_not(a) {
 				//VERBOSE burin('not','~'+a[1]+'&0xffff');
 				return storer('~'+a[1]+'&0xffff');
 		},
-
+		
 		249: call_vn,
-
+		
 		250: call_vn, // call_vn2,
-
+		
 		251: function Z_tokenise(a) {
 				//VERBOSE burin('tokenise',"engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
 				return "engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
-
+		
 		252: function Z_encode_text(a) {
 				//VERBOSE burin('tokenise',"engine__encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
 				return "engine__encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
@@ -1029,21 +1031,21 @@ var handlers = {
 				//VERBOSE burin('copy_table',"copy_table("+a[0]+','+a[1]+','+a[2]+")");
 				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
 		},
-
+		
 		254: function Z_print_table(a) {
-
+				
 				// Jam in defaults:
 				if (a.length < 4) { a.push(1); } // default height
 				if (a.length < 5) { a.push(0); } // default skip
 				//VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
 				return "pc="+pc+";engine__effect_parameters=engine__print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
 		},
-
+		
 		255: function Z_check_arg_count(a) {
 				//VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
 				return brancher(a[0]+'<=param_count()');
 		},
-	
+		
 		1000: function Z_save(a) {
 				//VERBOSE burin('save','');
 				compiling=0;
@@ -1051,7 +1053,7 @@ var handlers = {
 				storer('n') + "};";
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
 		},
-
+		
 		1001: function Z_restore(a) {
 				//VERBOSE burin('restore','');
 				compiling=0;
@@ -1059,17 +1061,17 @@ var handlers = {
 				storer('n') + "};";
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
 		},
-
+		
 		1002: function Z_log_shift(a) {
 				//VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
 				// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
-                                return storer("log_shift("+a[0]+','+a[1]+')');
+				return storer("log_shift("+a[0]+','+a[1]+')');
 		},
 
 		1003: function Z_art_shift(a) {
 				//VERBOSE burin('log_shift',"art_shift("+a[0]+','+a[1]+')');
 				// arithmetic-bit-shift.  Right shifts are sign-extended
-                                return storer("art_shift("+a[0]+','+a[1]+')');
+				return storer("art_shift("+a[0]+','+a[1]+')');
 		},
 
 		1004: function Z_set_font(a) {
@@ -1153,10 +1155,10 @@ function log_shift(value, shiftbits) {
 function art_shift(value, shiftbits){
 		// arithmetic-bit-shift.  Right shifts are sign-extended
 		if (shiftbits < 0) {		
-			return (value >> (-1* shiftbits)) & 0x7FFF;
+				return (value >> (-1* shiftbits)) & 0x7FFF;
 		}
 		else {
-			return (value << shiftbits) &0x7FFF;
+				return (value << shiftbits) &0x7FFF;
 		}	
 }
 
@@ -1183,32 +1185,32 @@ function is_valid_breakpoint(addr) {
 }
 
 /*
-function golden_print(text) {
-		var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
-		transcription_file.write(text, text.length);
-		transcription_file.close();
-}
+	function golden_print(text) {
+	var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
+	transcription_file.write(text, text.length);
+	transcription_file.close();
+	}
 
-function golden_trail(addr) {
-			var text = 'pc : '+addr.toString(16);
-			burin('gold',text);
+	function golden_trail(addr) {
+	var text = 'pc : '+addr.toString(16);
+	burin('gold',text);
 
-		// Extra debugging information which may sometimes be useful
-		var v = 0;
+	// Extra debugging information which may sometimes be useful
+	var v = 0;
 
-		for (var jj=0; jj<16; jj++) {
-				v = locals[jj] & 65535;
-				text = text + ' '+jj.toString(16)+'='+v.toString(16);
-		}
+	for (var jj=0; jj<16; jj++) {
+	v = locals[jj] & 65535;
+	text = text + ' '+jj.toString(16)+'='+v.toString(16);
+	}
 
-		if (gamestack.length!=0) {
-				v = gamestack[gamestack.length-1] & 65535;
-				text = text + ' s='+v.toString(16);
-				}
+	if (gamestack.length!=0) {
+	v = gamestack[gamestack.length-1] & 65535;
+	text = text + ' s='+v.toString(16);
+	}
 
-    text = text + '\n';
-		golden_print(text);
-}
+	text = text + '\n';
+	golden_print(text);
+	}
 */
 
 // dissemble() returns a string of JavaScript code representing the
@@ -1366,8 +1368,8 @@ function dissemble() {
 		// set it automatically at the end of each fragment.
 
 		if (single_step||debug_mode) {
-			code = code + 'pc='+pc; 
-			//VERBOSE burin(code,'');
+				code = code + 'pc='+pc; 
+				//VERBOSE burin(code,'');
 		}
 
 		// Name the function after the starting position, to make life
@@ -1391,9 +1393,9 @@ function trunc_divide(over, under) {
 		result = over / under;
 
 		if (result > 0) {
-		  return Math.floor(result);
+				return Math.floor(result);
 		} else {
-		  return Math.ceil(result);
+				return Math.ceil(result);
 		}			
 		  
 }
@@ -1412,13 +1414,13 @@ function zscii_char_to_ascii(zscii_code) {
 		else if (zscii_code>=155 && zscii_code<=251) {
 				// Extra characters.
 
-                                if (unicode_start == 0) 
-				  return String.fromCharCode(default_unicode_translation_table[zscii_code]);
-				  else { // if we're using a custom unicode translation table...
-				  if ((zscii_code-154)<= custom_unicode_charcount) 
-                                    return String.fromCharCode(zGetUnsignedWord(unicode_start + ((zscii_code-155)*2)));					
-                                  else 
-                                    gnusto_error(703, zscii_code); // unknown zscii code
+				if (unicode_start == 0) 
+						return String.fromCharCode(default_unicode_translation_table[zscii_code]);
+				else { // if we're using a custom unicode translation table...
+						if ((zscii_code-154)<= custom_unicode_charcount) 
+								return String.fromCharCode(zGetUnsignedWord(unicode_start + ((zscii_code-155)*2)));					
+						else 
+								gnusto_error(703, zscii_code); // unknown zscii code
                                   
 				}
 
@@ -1433,24 +1435,24 @@ function zscii_char_to_ascii(zscii_code) {
 }
 
 function gnusto_random(arg) {
-                if (arg==0) {  //zero returns to true random mode-- seed from system clock
-                    engine__use_seed = 0;
-                    return 0;
-                } else {
-		  if (arg>0) {  //return a random number between 1 and arg.
-                                 if (engine__use_seed == 0) {
-	    			      return 1 + Math.round((arg -1) * Math.random());
-                                  } else {
-                                      engine__random_seed--;
-                                      return Math.round(Math.abs(Math.tan(engine__random_seed))*8.71*arg)%arg;
-                                  }
+		if (arg==0) {  //zero returns to true random mode-- seed from system clock
+				engine__use_seed = 0;
+				return 0;
+		} else {
+				if (arg>0) {  //return a random number between 1 and arg.
+						if (engine__use_seed == 0) {
+								return 1 + Math.round((arg -1) * Math.random());
+						} else {
+								engine__random_seed--;
+								return Math.round(Math.abs(Math.tan(engine__random_seed))*8.71*arg)%arg;
+						}
 	  	  } else {
-				  // Else we should reseed the RNG and return 0.
-                                  engine__random_seed = arg;
-                                  engine__use_seed = 1;
-                                  return 0;
-		  }
-               }
+						// Else we should reseed the RNG and return 0.
+						engine__random_seed = arg;
+						engine__use_seed = 1;
+						return 0;
+				}
+		}
 }
 
 function func_prologue(actuals) {
@@ -1521,7 +1523,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 						//really ugly kludge until into_zscii is fixed properly
 						var address = entries_start+i*entry_length;
 					 	if (zscii_from(address)==oldword) {
-					 		return address;}
+								return address;}
 
 						var j=0;
 						while (j<word.length &&		
@@ -1556,21 +1558,21 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		var wordindex = 0;
 		
 		for (var cpos=0; cpos < result.length; cpos++) {
-		  if (result[cpos]  == ' ') {
-		    if (curword != '') {
-		      words[wordindex++] = curword;
-		      curword = '';
-		    }
-		  } else {
-		  	if (IsSeparator(result[cpos])) {
-		  		if (curword != '') {
-		    		  words[wordindex++] = curword;}
-		    		words[wordindex++] = result[cpos];
-		    		curword = '';		
-		  	} else {
-		  	  curword += result[cpos];	
-		  	}
-		  }
+				if (result[cpos]  == ' ') {
+						if (curword != '') {
+								words[wordindex++] = curword;
+								curword = '';
+						}
+				} else {
+						if (IsSeparator(result[cpos])) {
+								if (curword != '') {
+										words[wordindex++] = curword;}
+								words[wordindex++] = result[cpos];
+								curword = '';		
+						} else {
+								curword += result[cpos];	
+						}
+				}
 		}
 		
 		if (curword != '') words[wordindex++] = curword;
@@ -1583,22 +1585,22 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		var position = 2;
 
 		for (var i in words) {
-                         if ((words[i] != '') && (words[i] != ' ')) {
-				var lexical = look_up(words[i], dictionary);
+				if ((words[i] != '') && (words[i] != ' ')) {
+						var lexical = look_up(words[i], dictionary);
 
-        // burin('token', words[i]+' '+lexical);
+						// burin('token', words[i]+' '+lexical);
 
-				if (!(overwrite && lexical==0)) {
-						zSetWord(lexical, cursor);
-				}
+						if (!(overwrite && lexical==0)) {
+								zSetWord(lexical, cursor);
+						}
 
-				cursor+=2;
-				zSetByte(words[i].length, cursor++);
-				zSetByte(position, cursor++);
+						cursor+=2;
+						zSetByte(words[i].length, cursor++);
+						zSetByte(position, cursor++);
 		
-				position += words[i].length+1;
-				zSetByte(zGetByte(words_count)+1, words_count);
-			}
+						position += words[i].length+1;
+						zSetByte(zGetByte(words_count)+1, words_count);
+				}
 		}
 }
 
@@ -1723,7 +1725,7 @@ function get_prop(object, property) {
 
 		if (object==0) return 0; // Kill that V0EFH before it starts.
 
-		var temp = property_search(object, property, -1);
+    var temp = property_search(object, property, -1);
 
 		if (temp[1]==2) {
 				return zGetWord(temp[0]);
@@ -1735,7 +1737,7 @@ function get_prop(object, property) {
 				return zGetWord(temp[0]);
 		}
 
-		gnusto_error(174); // impossible
+    gnusto_error(174); // impossible
 }
 
 // This is the function which does all searching of property lists.
@@ -1799,12 +1801,12 @@ function property_search(object, property, previous_property) {
 						if (property>0)
 								// Yes, because it's a real property.
 								return [objs_start + (property-1)*2,
-											 2, 0, property, 0];
+												2, 0, property, 0];
 						else
 								// No: they didn't specify a particular
 								// property.
 								return [-1, -1, 0, property,
-											 previous_prop==property];
+												previous_prop==property];
 				}
 
 				props_address += len;
@@ -1918,7 +1920,7 @@ function remove_obj(mover, new_parent) {
 
 function get_family(from, relationship) {
 		return zGetUnsignedWord(
-														 objs_start + 112 + relationship + from*14);
+														objs_start + 112 + relationship + from*14);
 }
 
 function get_parent(from)  { return get_family(from, PARENT_REC); }
@@ -1927,7 +1929,7 @@ function get_sibling(from) { return get_family(from, SIBLING_REC); }
 
 function set_family(from, to, relationship) {
 		zSetWord(to,
-						objs_start + 112 + relationship + from*14);
+						 objs_start + 112 + relationship + from*14);
 }
 
 function set_parent(from, to)  { return set_family(from, to, PARENT_REC); }
@@ -2021,36 +2023,36 @@ function copy_table(first, second, size) {
 // Implements @scan_table, as in the Z-spec.
 function scan_table(target_word, target_table, table_length, table_form) {
 	                         
-	burin('Actually scanning table','');
-        var jumpby = table_form & 0x7F;
-	var usewords = ((table_form & 0x80) == 0x80);
+		burin('Actually scanning table','');
+		var jumpby = table_form & 0x7F;
+		var usewords = ((table_form & 0x80) == 0x80);
 				
-	if (usewords) 
-	{ //if the table is in the form of word values
-		var lastlocation = target_table + (table_length << 1);
-		while (target_table < lastlocation) 
-		{
-			if (((zGetByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
-			((zGetByte(target_table+1)&0xFF) == (target_word&0xFF))) 
-			{
-			    return target_table;
-			}
-			target_table += jumpby;
-		}
-	}
-	else 
-	{ //if the table is in the form of byte values
-	    	var lastlocation = target_table + table_length;
-	    	while (target_table < lastlocation) 
-		{
-			if ((zGetByte(target_table)&0xFF) == (target_word&0xFFFF)) 
-			{
-				return target_table;
-			}
-			target_table += jumpby;
-		}
-	}
-	return 0;	
+		if (usewords) 
+				{ //if the table is in the form of word values
+						var lastlocation = target_table + (table_length << 1);
+						while (target_table < lastlocation) 
+								{
+										if (((zGetByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
+												((zGetByte(target_table+1)&0xFF) == (target_word&0xFF))) 
+												{
+														return target_table;
+												}
+										target_table += jumpby;
+								}
+				}
+		else 
+				{ //if the table is in the form of byte values
+						var lastlocation = target_table + table_length;
+						while (target_table < lastlocation) 
+								{
+										if ((zGetByte(target_table)&0xFF) == (target_word&0xFFFF)) 
+												{
+														return target_table;
+												}
+										target_table += jumpby;
+								}
+				}
+		return 0;	
 }
 
 ////////////////////////////////////////////////////////////////
@@ -2084,8 +2086,8 @@ function engine__print_table(address, width, height, skip) {
 
 				var s='';
 
-				for (var x=0; x<width; x++) {
-						s=s+zscii_char_to_ascii(zGetByte(address++));
+        for (var x=0; x<width; x++) {
+		        s=s+zscii_char_to_ascii(zGetByte(address++));
 				}
 
 				lines.push(s);
@@ -2128,16 +2130,16 @@ function engine_start_game(memory) {
 	
 		separator_count = zGetByte(dict_start);
 		for (var i=0; i<separator_count; i++) {		  
-		  separators[i]=zscii_char_to_ascii(zGetByte(dict_start + i+1));
+				separators[i]=zscii_char_to_ascii(zGetByte(dict_start + i+1));
 		}	
 	
 		// If there is a header extension...
 		if (hext_start > 0) {
-		  unicode_start = zGetUnsignedWord(hext_start+6);  // get start of custom unicode table, if any
-		  if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-		    custom_unicode_charcount = zGetByte(unicode_start);
-		    unicode_start += 1;
-		  }
+				unicode_start = zGetUnsignedWord(hext_start+6);  // get start of custom unicode table, if any
+				if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
+						custom_unicode_charcount = zGetByte(unicode_start);
+						unicode_start += 1;
+				}
 		}		
 
 		rebound = 0;
@@ -2158,28 +2160,28 @@ function engine_start_game(memory) {
 		var newchar;
 		var newcharcode;		
 		if (alpha_start > 0) { // If there's a custom alphabet...
-		  for (var alpharow=0; alpharow<3; alpharow++){
-		    var alphaholder = '';
-		    for (var alphacol=0; alphacol<26; alphacol++) {	
-		      newcharcode = zGetByte(alpha_start + (alpharow*26) + alphacol);
-                      if ((newcharcode >=155) && (newcharcode <=251)) {		     
-                      	        // Yes, custom alphabets can refer to custom unicode tables.  Whee...
-                                if (unicode_start == 0) {
-				  alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
-				} else {
-				  if ((newcharcode-154)<= custom_unicode_charcount)
-                                    alphaholder += String.fromCharCode(zGetUnsignedWord(unicode_start + ((newcharcode-155)*2)));					
-                                  else
-                                    alphaholder += ' ';
+				for (var alpharow=0; alpharow<3; alpharow++){
+						var alphaholder = '';
+						for (var alphacol=0; alphacol<26; alphacol++) {	
+								newcharcode = zGetByte(alpha_start + (alpharow*26) + alphacol);
+								if ((newcharcode >=155) && (newcharcode <=251)) {		     
+										// Yes, custom alphabets can refer to custom unicode tables.  Whee...
+										if (unicode_start == 0) {
+												alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
+										} else {
+												if ((newcharcode-154)<= custom_unicode_charcount)
+														alphaholder += String.fromCharCode(zGetUnsignedWord(unicode_start + ((newcharcode-155)*2)));					
+												else
+														alphaholder += ' ';
+										}
+								} else {
+										newchar = String.fromCharCode(newcharcode);
+										if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
+										alphaholder += newchar;
+								}
+						}		    
+						zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
 				}
-		      } else {
-		        newchar = String.fromCharCode(newcharcode);
-		        if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
-		        alphaholder += newchar;
-		      }
-		    }		    
-		    zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
-		  }
 		}
 		
 
@@ -2312,7 +2314,7 @@ var default_unicode_translation_table = {
 function zscii_from(address, max_length, tell_length) {
 
 		if (address in jit) {
-		                //VERBOSE burin('zscii_from ' + address,'already in JIT');
+				//VERBOSE burin('zscii_from ' + address,'already in JIT');
 				// Already seen this one.
 
 				if (tell_length)
@@ -2376,9 +2378,9 @@ function zscii_from(address, max_length, tell_length) {
 				}
 		}
 
-		jit[start_address] = [temp, address];
+    jit[start_address] = [temp, address];
 
-				//VERBOSE burin('zscii_from ' + address,temp);
+		//VERBOSE burin('zscii_from ' + address,temp);
 		if (tell_length) {
 				return [temp, address];
 		} else {
@@ -2398,11 +2400,10 @@ function zscii_from(address, max_length, tell_length) {
 function engine__encode_text(zscii_text, length, from, coded_text) {
 
 		zscii_text += from;
+    var source = '';
 
-		var source = '';
-
-		while (length>0) {
-				var b = zGetByte(zscii_text);
+    while (length>0) {
+		    var b = zGetByte(zscii_text);
 
 				if (b==0) break;
 
@@ -2411,10 +2412,11 @@ function engine__encode_text(zscii_text, length, from, coded_text) {
 				length--;
 		}
 
-		var result = into_zscii(source);
+    var result = into_zscii(source);
 
-		for (var i=0; i<result.length; i++) {
-				zSetByte(result[i], coded_text++)
+    for (var i=0; i<result.length; i++) {
+    		alert('Setting 0x'+coded_text.toString(16)+' := 0x'+result[i].toString(16));
+		    zSetByte(result[i], coded_text++);
 		}
 }
 
@@ -2609,10 +2611,10 @@ function zSetWord(value, addr) {
 }
 
 function IsSeparator(value) {
-	for (var sepindex=0; sepindex < separator_count; sepindex++) {
-		if (value == separators[sepindex]) return 1;	
-	}
-	return 0;	
+		for (var sepindex=0; sepindex < separator_count; sepindex++) {
+				if (value == separators[sepindex]) return 1;	
+		}
+		return 0;	
 }
 ////////////////////////////////////////////////////////////////
 GNUSTO_LIB_HAPPY = 1;
