@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.72 2003/12/12 03:11:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.73 2003/12/17 07:12:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/12 03:11:10 $';
+const CVS_VERSION = '$Date: 2003/12/17 07:12:37 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -691,25 +691,67 @@ function handleZ_sound_effect(engine, a) {
     return "m_pc="+engine.m_pc+';m_effects=['+GNUSTO_EFFECT_SOUND+','+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return 1';
   }
 		
+// Maybe factor out "read" and this?
 function handleZ_read_char(engine, a) {
-    // Maybe factor out "read" and this?
-    //VERBOSE burin('read_char','');
-    // a[0] is always 1; probably not worth checking for this
+
+		// JS representing number of deciseconds to wait before a
+		// timeout should occur, or 0 if there shouldn't be one.
+		var timeout_deciseconds;
+
+		// JS to set m_rebound_args to show where to jump if there's
+		// a timeout. If there's not going to be a timeout, this should
+		// be blank.
+		var rebound_args_setter;
+
+		// JS for a function to handle the answer to this effect.
+		// The answer will be one integer; if the integer is zero,
+		// it's a request for a timeout; if it's nonzero, it's a
+		// keycode to be stored as the present instruction dictates.
+    var rebound_setter;
+
+		// Stop the engine! We want to get off!
+		engine.m_compilation_running = 0;
+
+    // a[0] is always 1; probably not worth checking for this.
+
+    if (a[1] && a[2]) {
+				// This is a timed routine.
+				// a[2] is the routine to call after a[1] deciseconds.
+				timeout_deciseconds = a[1];
 				
-    if (a[3]) {
-      // ...then we should do something with a[2] and a[3],
-      // which are timed input parameters. For now, though,
-      // we'll just ignore them.
-      //VERBOSE burin('read_char','should have been timed-- not yet supported');
-    }
+				rebound_args_setter = "m_rebound_args=["+
+						engine.m_pc_translate_for_routine(a[2])+'];';
+						
+				rebound_setter = "m_rebound=function(){"+
+						"var t=1*m_answers[0];" +
+						"dump(t);"+
+						"if(t){"+
+						engine._storer("t") + // nonzero: a key
+						"}else{"+
+						"_func_interrupt(m_rebound_args[0]);}"+ // zero: timeout
+						"};";
+
+		} else {
+
+				// No timeout.
+				timeout_deciseconds = '0';
+
+				// We only set m_rebound_args when there's a timeout.
+				rebound_args_setter = '';
+
+				// A much simpler rebound function, since zero isn't
+				// a magic answer.
+				rebound_setter = "m_rebound=function(){"+
+						engine._storer("1*m_answers[0]") +
+						"};";
+		}
+		
 				
-    engine.m_compilation_running = 0;
-				
-    var setter = "m_rebound=function() { " +
-      engine._storer("m_answers[0]") +
-      "};";
-				
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_INPUT_CHAR+"];return 1";
+    return "m_pc="+engine.m_pc+";"+
+				rebound_args_setter +
+				rebound_setter +
+				"m_effects=["+GNUSTO_EFFECT_INPUT_CHAR+
+				","+timeout_deciseconds+"];return 1";
   }
 		
 function handleZ_scan_table(engine, a) { 
@@ -2196,6 +2238,12 @@ GnustoEngine.prototype = {
 					// Rare special case.
 					this._func_return(0);
 			}
+	},
+
+	// Like _func_gosub, except that it's used to break into a
+	// running routine.
+	_func_interrupt: function ge_interrupt(to_address) {
+			throw '(fi '+to_address.toString(16)+')';
 	},
 
 	////////////////////////////////////////////////////////////////
