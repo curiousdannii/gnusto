@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.24 2003/07/26 04:21:39 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.25 2003/08/29 02:21:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -219,9 +219,9 @@ function dealWith(content) {
 		// Okay. Our task now is to find what kind of file we've been handed,
 		// and to deal with it accordingly.
 
-		if (content[0]==5) {
+		if (content[0]==5 || content[0]==7 || content[0]==8) {
 				
-				// Looks like a .z5 file, so let's go ahead.
+				// Looks like a Z-code file that we can play, so let's go ahead.
 				glue_play(datisi__set_up_header(content));
 
 				return 1;
@@ -300,9 +300,9 @@ function command_open(a) {
 						createInstance(ifp);
 
 				picker.init(window, "Select a story file", ifp.modeOpen);
-				picker.appendFilter("Z-code version 5", "*.z5");
+				picker.appendFilter("Z-code versions 5, 7, 8", "*.z5; *.z7; *.z8");
 				picker.appendFilter("Blorb", "*.blb");
-				picker.appendFilter("Saved game", "*.sav");
+				picker.appendFilter("Saved game", "*.sav; *.qtz");
 				
 				if (picker.show()==ifp.returnOK) {
 						
