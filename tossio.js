@@ -1,8 +1,6 @@
 // tossio.js || -*- Mode: Java; tab-width: 2; -*-
 // The debugger in Gnusto.
 
-var TOSSIO_HAPPY = 0;
-
 //================================================================
 //
 // List of opcodes

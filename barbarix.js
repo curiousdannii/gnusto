@@ -5,7 +5,7 @@
 //
 // FIXME: Mostly redundant now. Prune.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/barbarix.js,v 1.1 2003/04/10 20:38:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/barbarix.js,v 1.2 2003/04/18 22:50:42 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -24,8 +24,6 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-////////////////////////////////////////////////////////////////
-var BARBARIX_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
 
 var BARBARIX_OUTPUT = 1;

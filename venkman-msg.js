@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/venkman-msg.js,v 1.2 2003/03/27 07:35:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/venkman-msg.js,v 1.3 2003/04/18 22:50:42 marnanel Exp $
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -31,8 +31,6 @@
  *
  */
 
-////////////////////////////////////////////////////////////////
-var VENKMAN_MSG_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
 
 function initMsgs ()

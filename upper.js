@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.24 2003/04/11 22:50:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.25 2003/04/18 22:50:42 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,8 +20,6 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-////////////////////////////////////////////////////////////////
-var UPPER_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
 
 var win__screen_doc = 0;

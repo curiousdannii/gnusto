@@ -4,8 +4,6 @@
 // one half will handle Baf's Guide access, and the other
 // will handle updating the screen.
 
-var BAF_HAPPY = 0;
-
 ////////////////////////////////////////////////////////////////
 
 var baf__genres_list = 0;
