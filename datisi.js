@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.23 2003/07/25 23:37:18 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.24 2003/07/26 04:21:39 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -248,11 +248,17 @@ function dealWith(content) {
 						// OK, so go digging for it.
 						for (var j=1; j<iff_details.length; j++) {
 								if (iff_details[j][0]=='ZCOD') {
-										alert("Should be able to read this... still need to implement scooping the middle out.");
+										// This will work better once we have an
+										// example to test it against.
+										gnusto_error(101, "Should be able to read this... "+
+																 "still need to implement "+
+																 "scooping the middle out.");
 										return 0;
 								}
 						}
-						alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
+
+						gnusto_error(310, "Sorry, that Blorb file doesn't contain "+
+												 "any Z-code, so Gnusto can't deal with it yet.");
 						return 0;
 				} else {
 						
@@ -261,9 +267,19 @@ function dealWith(content) {
 						gnusto_error(309,'IFF '+iff_details[0]);
 						return 0;
 				}
+		} else if (content[0]<9) {
+				// Assume this is Z-code.
+				//
+				// (Icky test, but the only obvious one. Linux's /etc/magic
+				// has the test for Z-code commented out because it's just
+				// the same as this, and it's unacceptably weak. We should
+				// find a better one.)
+
+				gnusto_error(310, 'z'+content[0])
+
 		} else {
 				// Don't know. Complain.
-				gnusto_error(309, 'V '+content[0]);
+				gnusto_error(309);
 				return 0;
 		}
 }
