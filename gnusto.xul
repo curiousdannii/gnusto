@@ -16,6 +16,9 @@
 <!-- Upper window. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/upper.js"/>
 
+<!-- Hard-coded Z-code -->
+<script type="application/x-javascript" src="chrome://gnusto/content/troll.js"/>
+
 <!-- The main Gnusto library. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
 
