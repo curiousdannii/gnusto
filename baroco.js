@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.12 2003/05/15 20:19:55 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.13 2003/05/21 04:46:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -82,7 +82,8 @@ function win_resize() {
 		win__dimensions = [window.innerWidth,
 											window.innerHeight-fudge,
 											];
-		document.title = win__dimensions[0]+'x'+win__dimensions[1];
+
+		burin('resize',win__dimensions);
 
 		// Reset explicit widths and heights in the XUL
 
@@ -101,7 +102,6 @@ function win_resize() {
 		glue_store_screen_size(width_in_chars, height_in_chars);
 
 		// Re-scroll Barbara, as needed
-		// FIXME: think how this pans out with [MORE]
 		barbara_relax();
 }
 
@@ -118,9 +118,7 @@ function win_chalk(win, text) {
 ////////////////////////////////////////////////////////////////
 
 function win_gotoxy(win, x, y) {
-
 		return bocardo_gotoxy(win, x, y);
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -284,9 +282,7 @@ function win_set_text_style(style, foreground, background) {
 ////////////////////////////////////////////////////////////////
 
 function win_force_monospace(whether) {
-
 		win__forcing_monospace = whether;
-
 		win_set_text_style(-1, 0, 0);
 }
 
