@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.7 2003/02/25 00:27:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.8 2003/02/25 09:49:55 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -187,12 +187,28 @@ function gnustoglue_set_window(w) {
 }
 
 function gnustoglue_erase_window(w) {
-    if (w==1)
+		switch (w) {
+
+		case 1: // clear upper window
 				u_setup(u_width, u_height);
-    else if (w==1)
-				throw "Can't handle clearing lower window yet";
-    else
-				throw "erase_window's argument must be 0 or 1";
+				break;
+
+		case 0: // clear lower window
+				// can't handle clearing lower window yet
+				break;
+
+		case -2: // clear both
+				// implement me
+				break;
+
+		case -1: // clear both and unsplit
+				gnustoglue_split_window(0);
+				// implement me
+				break;
+
+		default: // weird
+				throw "weird erase_window argument";
+		}
 }
 
 function gnustoglue_set_cursor(y, x) {
@@ -269,27 +285,15 @@ function play() {
     go_wrapper(0);
 }
 
-function catcher(code) {
+function deal_with_exception(e) {
 
-		var result = 0;
+		// -1 is thrown by gnusto_error when it wants to kill everything
+		// back down to this level.
 
-    // note: we may want to setTimeout(eval(code),10) or something similar
-    // instead later, to give Moz a chance to catch up with displaying
-
-    try {
-				result = eval(code);
-    } catch(e) {
-
-				// -1 is thrown by gnusto_error when it wants to kill everything
-				// back down to this level.
-
-				if (e!=-1) {
-						alert('-- gnusto error --\n'+code+'\n'+e);
-						throw e;
-				}
-    }
-
-		return result;
+		if (e!=-1) {
+				alert('-- gnusto error --\n'+code+'\n'+e);
+				throw e;
+		}
 }
 
 function gotInput(event) {
