@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.58 2003/04/22 21:13:35 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.59 2003/05/04 22:30:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -870,27 +870,6 @@ var handlers = {
 		1012: function Z_check_unicode(a) {
 				return storer('gnustoglue_check_unicode('+a[0]+')');
 		},
-}
-
-function getword(addr) {
-		return unsigned2signed(get_unsigned_word(addr));
-}
-
-function unsigned2signed(value) {
-		return ((value & 0x8000)?~0xFFFF:0)|value;
-}
-
-function signed2unsigned(value) {
-		return value & 0xFFFF;
-}
-
-function get_unsigned_word(addr) {
-		return getbyte(addr)*256+getbyte(addr+1);
-}
-
-function setword(value, addr) {
-		setbyte((value>>8) & 0xFF, addr);
-		setbyte((value) & 0xFF, addr+1);
 }
 
 function log_shift(value, shiftbits) {

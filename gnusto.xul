@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.37 2003/05/03 17:32:47 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.38 2003/05/04 22:30:46 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -149,7 +149,7 @@ function ensureHappiness() {
 
 <scrollbox top="0" left="0" width="640" height="480" orient="vertical" id="barbarabox">
 
-<bulletinboard>
+<bulletinboard id="screen">
 
 <!-- Lower window; ordinary HTML. -->
 <html:div top="0" left="0" width="640" id="barbara">
@@ -157,7 +157,21 @@ function ensureHappiness() {
 
 <!-- Top window; all fixed width. -->
 <html:div top="0" left="0" width="640" height="480" id="bocardobox">
-<vbox id="bocardo">
+<vbox id="bocardo" class="bocardoid">
+</vbox>
+</html:div>
+
+<!-- Usually invisible: detection of font sizes. -->
+<html:div top="0" left="0" width="640" height="480">
+<vbox class="bocardoid" id="fontsize" hidden="true">
+<hbox>
+<description value="012"/>
+<description value="34" class="sb"/>
+<description value="56" class="si"/>
+<description value="789"/>
+</hbox>
+<hbox><description value="?Font_Size"/></hbox>
+<hbox><description value="abcdefghij"/></hbox>
 </vbox>
 </html:div>
 

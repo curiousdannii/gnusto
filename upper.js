@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.37 2003/05/03 18:39:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.38 2003/05/04 22:30:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -31,11 +31,15 @@ var bocardo__top_window_height = 0;
 var bocardo__screen_width = 80; //  a good default size
 var bocardo__screen_height = 25; // a good default size
 
+// Cached result of bocardo_get_font_metrics(); we assume that
+// the sizes of monospace characters don't change during a run.
+var bocardo__font_metrics = null;
+
 ////////////////////////////////////////////////////////////////
 
 // Called on startup.
 function bocardo_init() {
-		// Does nothing at present.
+		bocardo_get_font_metrics();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -51,48 +55,32 @@ function bocardo_start_game() {
     bocardo__current_x[1] = bocardo__current_y[1] = 0;
 
 		bocardo_set_top_window_size(0);
-
-		// too complicated for now!
-		//bocardo_resize();
-		//// Do that every time the size changes, actually.
-		//window.addEventListener('resize', bocardo_resize, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
-function bocardo_resize() {
+function bocardo_get_font_metrics() {
 
-		// for now:
-		return;
-		/****************************************************************/
+		if (!bocardo__font_metrics) {
 
-		/*		bocardo__screen_width = width;
-					bocardo__screen_height = height; */
+				var charsAcross = 10;
+				var charsDown = 3;
 
-		// FIXME: Is this guaranteed to be pixels?
-
-		var bocardoHeight = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(bocardo__screen_window,null).getPropertyValue('height'));
-		var bocardoWidth = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(bocardo__screen_window,null).getPropertyValue('width'));
-
-		var totalLinesHeight = 0;
-		var maxLineWidth = 0;
-
-		var lines = bocardo__screen_window.childNodes;
-
-		for (var i=0; i<lines.length; i++) {
-
-				// Need to base calculations on spans, and only spans with text in.
-				// Or perhaps only on textnodes.
-
-				var lineWidth = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('width'));
-				var lineHeight = parseInt(bocardo__screen_doc.defaultView.getComputedStyle(lines[i],null).getPropertyValue('height'));
-
-				if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
-				totalLinesHeight += lineHeight;
+				var b = document.getElementById('fontsize');
+				b.setAttribute('hidden','false');
+				bocardo__font_metrics = [b.boxObject.width / charsAcross,
+																b.boxObject.height / charsDown];
+				b.setAttribute('hidden','true');
 		}
 
+		return bocardo__font_metrics;
+}
 
-		// window.title = 'Bocardo resize: '+bocardoWidth+'x'+bocardoHeight+' max '+maxLineWidth+','+totalLinesHeight;
+////////////////////////////////////////////////////////////////
+
+function bocardo_set_screen_size(width, height) {
+		bocardo__screen_width = width;
+		bocardo__screen_height = height;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -451,48 +439,6 @@ function bocardo_collapse() {
 		}
 }
 
-////////////////////////////////////////////////////////////////
-
-/*
-
-// FIXME: In transition from mozilla-glue.
-function bocardo__store_screen_size() {
-
-		var screen_width = 80;
-		var screen_height = 25;
-
-		if (window.innerHeight!=1 && window.innerWidth!=1) {
-
-				// FIXME: work something out about getting font metrics
-				screen_width  = Math.floor(window.innerWidth/glue__font_width)-1;
-				screen_height = Math.floor(window.innerHeight/glue__font_height)-1;
-
-				// Why -1? Check whether we're off-by-one anywhere.
-
-				// Screen minima (s8.4): 60x14.
-				if (screen_width<60) screen_width=60;
-				if (screen_height<14) screen_height=14;
-
-				// Maxima: we can't have a screen > 255 in either direction
-				// (which is really possible these days).
-
-				if (screen_width>255) screen_width=255;
-				if (screen_height>255) screen_height=255;
-		}
-
-		//	FIXME: Figure out how to signal this to the environment
-		setbyte(screen_height,                   0x20); // screen h, chars
-		setbyte(screen_width,                    0x21); // screen w, chars
-		setword(screen_width *glue__font_width,  0x22); // screen w, units
-		setword(screen_height*glue__font_height, 0x24); // screen h, units
-		setbyte(glue__font_width,                0x26); // font w, units
-		setbyte(glue__font_height,               0x27); // font h, units
-
-		// Tell the window drivers about it
-		bocardo_resize(screen_width, screen_height);
-}
-
-*/
 
 ////////////////////////////////////////////////////////////////
 UPPER_HAPPY = 1;

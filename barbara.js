@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.7 2003/05/03 18:39:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.8 2003/05/04 22:30:45 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -64,10 +64,12 @@ function barbara_scroll_to_end() {
 
 		var scrollable = document.getElementById('barbarabox').boxObject;
 		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
- 		i.scrollTo(0, h*999);
+		i.scrollTo(0, h*999);
 
-		if (h>480) {
-				document.getElementById('bocardobox').setAttribute('top', h - 480);
+		var window_height = win_get_dimensions()[1];
+
+		if (h>window_height) {
+				document.getElementById('bocardobox').setAttribute('top', h - window_height);
 		} else {
 				document.getElementById('bocardobox').setAttribute('top', 0);
 		}

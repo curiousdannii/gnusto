@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.70 2003/05/03 18:39:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.71 2003/05/04 22:30:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -39,6 +39,27 @@ var ignore_errors = {
 function glue_receive_zcode(content) { zbytes = content; }
 function getbyte(address) { return zbytes[address]; }
 function setbyte(value, address) { zbytes[address] = value; }
+
+function getword(addr) {
+		return unsigned2signed(get_unsigned_word(addr));
+}
+
+function unsigned2signed(value) {
+		return ((value & 0x8000)?~0xFFFF:0)|value;
+}
+
+function signed2unsigned(value) {
+		return value & 0xFFFF;
+}
+
+function get_unsigned_word(addr) {
+		return getbyte(addr)*256+getbyte(addr+1);
+}
+
+function setword(value, addr) {
+		setbyte((value>>8) & 0xFF, addr);
+		setbyte((value) & 0xFF, addr+1);
+}
 
 ////////////////////////////////////////////////////////////////
 
@@ -97,8 +118,6 @@ function go_wrapper(answer, no_first_call) {
 								' [ Press space for more ]';
 						return;
 				}*/
-
-				document.title = reasonForStopping.toString(16);
 
 				switch (reasonForStopping) {
 
@@ -269,6 +288,35 @@ function glue_init() {
 
 ////////////////////////////////////////////////////////////////
 
+// Writes the screen height and width (in characters) out to
+// the story header.
+function glue_store_screen_size(width_in_chars,
+																height_in_chars) {
+
+		// Screen minima (s8.4): 60x14.
+
+		if (width_in_chars<60) width_in_chars=60;
+		if (height_in_chars<14) height_in_chars=14;
+
+		// Maxima: we can't have a screen > 255 in either direction
+		// (which is really possible these days).
+
+		if (width_in_chars>255) width_in_chars=255;
+		if (height_in_chars>255) height_in_chars=255;
+
+		var font_dimensions = bocardo_get_font_metrics();
+
+		setbyte(height_in_chars,                    0x20); // screen h, chars
+		setbyte(width_in_chars,                     0x21); // screen w, chars
+		setword(width_in_chars *font_dimensions[0], 0x22); // screen w, units
+		setword(height_in_chars*font_dimensions[1], 0x24); // screen h, units
+		setbyte(font_dimensions[0],                 0x26); // font w, units
+		setbyte(font_dimensions[1],                 0x27); // font h, units
+
+}
+
+////////////////////////////////////////////////////////////////
+
 function start_up() {
 
 		glue_init();
@@ -282,7 +330,6 @@ function start_up() {
 function play() {
 		win_start_game();
     setup();
-		/* FIXME: later... glue_store_screen_size(); */
 
 		if (!single_step) {
 				go_wrapper(0);

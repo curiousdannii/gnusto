@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.7 2003/05/03 18:39:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.8 2003/05/04 22:30:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -41,16 +41,58 @@ function win_start_game() {
 		bocardo_start_game();
 
 		win_set_text_style(-1, 0, 0);
+
+		win_resize();
+		// Do that every time the size changes, actually.
+		window.addEventListener('resize', win_resize, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
+var win__dimensions = null;
+
+function win_get_dimensions() {
+		return win__dimensions;
+}
+
+// This is called once at the start of play, and after that
+// automatically called when the window resizes.
+// (FIXME: We should handle exceptions ourselves, really, since we're
+// called by events.)
 function win_resize() {
 
-		// empty for now.
-		// Possibly not needed at all; Bocardo can do this
-		// all on its own.
+		function reset_width_and_height_of(something, set_height) {
+				var e = document.getElementById(something);
+				e.setAttribute('width',  win__dimensions[0]);
+				if (set_height) {
+						e.setAttribute('height', win__dimensions[1]);
+				}
+		}
 
+		win__dimensions = [window.innerWidth,
+											window.innerHeight-30, // horrid fudge
+											];
+		document.title = win__dimensions[0]+'x'+win__dimensions[1];
+
+		// Reset explicit widths and heights in the XUL
+
+		reset_width_and_height_of('bocardobox', 1);
+		reset_width_and_height_of('barbarabox', 1);
+		reset_width_and_height_of('barbara',    0);
+
+		// Write to the the story file to tell it the correct width
+		// and height.
+
+		var char_sizes = bocardo_get_font_metrics();
+		var width_in_chars = Math.floor(win__dimensions[0]/char_sizes[0]);
+		var height_in_chars = Math.floor(win__dimensions[1]/char_sizes[1]);
+
+		bocardo_set_screen_size(width_in_chars, height_in_chars);
+		glue_store_screen_size(width_in_chars, height_in_chars);
+
+		// Re-scroll Barbara, as needed
+
+		barbara_scroll_to_end();
 }
 
 ////////////////////////////////////////////////////////////////
