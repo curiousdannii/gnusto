@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.30 2003/04/27 19:04:23 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.31 2003/04/27 19:25:23 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -147,16 +147,32 @@ function ensureHappiness() {
 
 <stack flex="1">
 
-<!-- Top window; all fixed width. -->
-
-<vbox id="baroco" flex="1">
-<description value="TOP"/>
-</vbox>
-
 <!-- Lower window; ordinary HTML. -->
 
 <vbox id="barbara" flex="1">
-<iframe type="content-primary" src="output.html" flex="1"/>
+
+<html:div>
+Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.<html:br/><html:br/>
+
+<html:b>Lorem Ipsum</html:b><html:br/>
+An Interactive Dolor Sit Amet<html:br/><html:br/>
+
+consectetaur adipisicing elit,<html:br/>
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.<html:br/><html:br/>
+
+Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Lorem ipsum dolor sit amet, consectetaur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+</html:div>
+</vbox>
+
+<!-- Top window; all fixed width. -->
+
+<vbox id="baroco" flex="1">
+<description value="TOP TOP TOP"/>
+<description value="TOP TOP TOP 2"/>
+<description value="TOP TOP TOP 3"/>
 </vbox>
 
 </stack>
