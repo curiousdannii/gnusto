@@ -19,6 +19,10 @@ window {
 	font-family: monospace;
 }
 
+#beforecursor {
+	border-right: 1px solid #000000;
+}
+
 /****************************************************************
 *
 * http://mozdev.org/bugs/show_bug.cgi?id=3657 has the original

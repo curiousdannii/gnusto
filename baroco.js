@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.5 2003/05/02 22:14:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.6 2003/05/03 17:32:47 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -30,7 +30,7 @@ var baroco__enable_barbara = true;
 
 // Called on startup.
 function win_init() {
-		// Does nothing at present.
+		barbara_init();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -81,6 +81,24 @@ function win_gotoxy(win, x, y) {
 
 function win_set_top_window_size(lines) {
 		bocardo_set_top_window_size(lines);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_set_input(textlist) {
+		barbara_set_input(textlist);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_get_input() {
+		return barbara_get_input();
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_destroy_input() {
+		return barbara_destroy_input();
 }
 
 ////////////////////////////////////////////////////////////////

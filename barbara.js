@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.5 2003/05/02 22:14:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.6 2003/05/03 17:32:47 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -24,6 +24,15 @@ var barbara__holder = 0;
 var barbara__HTML = "http://www.w3.org/1999/xhtml";
 var barbara__current_css = '';
 
+var barbara__before_cursor = null;
+var barbara__after_cursor = null;
+
+////////////////////////////////////////////////////////////////
+
+function barbara_init() {
+		// Nothing yet
+}
+
 ////////////////////////////////////////////////////////////////
 
 function barbara_start_game() {
@@ -44,6 +53,56 @@ function barbara_clear() {
 function barbara_set_text_style(css_class) {
 		barbara__holder = 0;
 		barbara__current_css = css_class;
+}
+
+////////////////////////////////////////////////////////////////
+
+function barbara_set_input(textlist) {
+
+    var tty = document.getElementById('barbara');
+
+		if (!barbara__before_cursor) {
+				barbara__before_cursor =
+						document.createElementNS(barbara__HTML,
+																		 'html:span');
+				barbara__before_cursor.
+						setAttribute('id','beforecursor');
+				barbara__before_cursor.
+								appendChild(document.createTextNode(''));
+
+				tty.appendChild(barbara__before_cursor);
+		}
+
+		if (!barbara__after_cursor) {
+				barbara__after_cursor =
+						document.createElementNS(barbara__HTML,
+																		 'html:span');
+				barbara__after_cursor.
+						setAttribute('id','aftercursor');
+				barbara__after_cursor.
+								appendChild(document.createTextNode(''));
+
+				tty.appendChild(barbara__after_cursor);
+		}
+
+		barbara__before_cursor.childNodes[0].data = textlist[0];
+		barbara__after_cursor .childNodes[0].data = textlist[1];
+}
+
+function barbara_get_input() {
+		return [
+						barbara__before_cursor.childNodes[0].data,
+						barbara__after_cursor.childNodes[0].data,
+						];
+}
+
+function barbara_destroy_input() {
+    var tty = document.getElementById('barbara');
+		tty.removeChild(barbara__before_cursor);
+		tty.removeChild(barbara__after_cursor);
+
+		barbara__before_cursor = 0;
+		barbara__after_cursor = 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -89,9 +148,9 @@ function barbara_chalk(text) {
 		document.title = h;
 
 		if (h>480) {
-				document.getElementById('bocardo').setAttribute('top', h - 480);
+				document.getElementById('bocardobox').setAttribute('top', h - 480);
 		} else {
-				document.getElementById('bocardo').setAttribute('top', 0);
+				document.getElementById('bocardobox').setAttribute('top', 0);
 		}
 
 		return '';

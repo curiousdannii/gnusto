@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.68 2003/05/02 22:14:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.69 2003/05/03 17:32:47 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -104,11 +104,15 @@ function go_wrapper(answer, no_first_call) {
 						}
 						break;
 
-				case GNUSTO_EFFECT_INPUT:
 				case GNUSTO_EFFECT_INPUT_CHAR:
-						// we know how to do these.
+						// we know how to do this.
 						// Just bail out of here.
 						win_reset_scroll_count();
+						break;
+
+				case GNUSTO_EFFECT_INPUT:
+						win_reset_scroll_count();
+						win_set_input(['','']);
 						break;
 
 				case GNUSTO_EFFECT_SAVE:
@@ -251,10 +255,7 @@ function camenesbounce_catch(e) {
 ////////////////////////////////////////////////////////////////
 
 function glue_init() {
-		var inputBox = document.getElementById('input');
-
-		inputBox.onkeypress=gotInput;
-		inputBox.focus();
+		document.onkeypress=gotInput;
 
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);
@@ -273,7 +274,6 @@ function start_up() {
 }
 
 function play() {
-		document.getElementById('input').focus();
 		win_start_game();
     setup();
 		/* FIXME: later... glue_store_screen_size(); */
@@ -285,30 +285,55 @@ function play() {
 
 function gotInput(e) {
 
-		var inputBox = document.getElementById("input");
-		var value = inputBox.value;
+		if (reasonForStopping==GNUSTO_EFFECT_INPUT) {
 
-		if (glue__chalk_overflow!='') {
+				var current = win_get_input();
 
-				// We're at a [MORE] prompt. Only carry on for certain keys
-				// (otherwise it'll trigger on Alt and things like that).
+				if (e.keyCode==13) {
 
-				if (e.charCode==32) {
-						inputBox.value = '';
+						var result = current[0]+current[1];
 
-						// So go back for more...
-						go_wrapper(0, 1);
+						result = result.replace('\u00A0', ' ');
+
+						win_destroy_input();
+						glue_print(result+'\n');
+						go_wrapper(result);
+
+				} else if (e.keyCode==0) {
+
+						// Just an ordinary character. Insert it.
+
+						if (e.charCode==32) {
+								// Special case for space: use a non-breaking space.
+								current[0] = current[0] + '\u00A0';
+						} else {
+								current[0] = current[0] + String.fromCharCode(e.charCode);
+						}
+						win_set_input(current);
+				} else if (e.keyCode==8) {
+						// backspace
+						if (current[0].length>0) {
+								current[0] = current[0].substring(0, current[0].length-1);
+						}
+						win_set_input(current);
+
+				} else if (e.keyCode==37) {
+						// cursor left
+						if (current[0].length>0) {
+								current[1] = current[0].substring(current[0].length-1)+current[1];
+								current[0] = current[0].substring(0, current[0].length-1);
+						}
+						win_set_input(current);
+
+				} else if (e.keyCode==39) {
+						// cursor right
+						if (current[1].length>0) {
+								current[0] = current[0]+current[1].substring(0, 1);
+								current[1] = current[1].substring(1);
+						}
+						win_set_input(current);
+
 				}
-
-				// Stop the event; we've handled
-				// this successfully ourselves.
-				return false;
-
-		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && e.keyCode==13) {
-				inputBox.value = '';
-
-				glue_print(value+'\n');
-				go_wrapper(value);
 
 				return false;
 
@@ -361,7 +386,6 @@ function gotInput(e) {
 						}
 				}
 
-				inputBox.value = '';
 				return false;
 		}
 }

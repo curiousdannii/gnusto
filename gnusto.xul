@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.36 2003/05/03 04:56:49 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.37 2003/05/03 17:32:47 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -147,18 +147,16 @@ function ensureHappiness() {
 
 </menubar>
 
-<vbox>
-
 <scrollbox top="0" left="0" width="640" height="480" orient="vertical" id="barbarabox">
 
 <bulletinboard>
 
 <!-- Lower window; ordinary HTML. -->
-<html:div id="barbara" top="0" left="0" width="640">
+<html:div top="0" left="0" width="640" id="barbara">
 </html:div>
 
 <!-- Top window; all fixed width. -->
-<html:div top="0" left="0" width="640" height="480">
+<html:div top="0" left="0" width="640" height="480" id="bocardobox">
 <vbox id="bocardo">
 </vbox>
 </html:div>
@@ -166,8 +164,5 @@ function ensureHappiness() {
 </bulletinboard>
 
 </scrollbox>
-
-<textbox flex="0" id="input" />
-</vbox>
 
 </window>
