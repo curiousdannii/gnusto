@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.76 2003/05/15 21:34:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.77 2003/05/16 04:52:25 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -559,6 +559,7 @@ function gnusto_error(n) {
 }
 
 var glue__transcription_file = 0;
+var glue__transcription_filename = 0;
 
 // Here we ask for a filename if |whether|, and we don't
 // already have a filename. Returns 0 if transcription
@@ -568,25 +569,41 @@ function glue__set_transcription(whether) {
 		if (whether) {
 				if (!glue__transcription_file) {
 
-						var target_filename;
+						if (!glue__transcription_filename) {
+								var ifp = Components.interfaces.nsIFilePicker;
+								var picker = Components.classes["@mozilla.org/filepicker;1"].
+										createInstance(ifp);
 
-						var ifp = Components.interfaces.nsIFilePicker;
-						var picker = Components.classes["@mozilla.org/filepicker;1"].
-								createInstance(ifp);
-
-						picker.init(window, "Create a transcript", ifp.modeSave);
-						picker.appendFilter("Transcripts", "*.txt");
-
-						if (picker.show()==ifp.returnOK) {
-						
-								target_filename = picker.file.path;
-								target_filename = target_filename.replace('\\','\\\\', 'g');
-
-						} else {
-								return 0;
+								picker.init(window, "Create a transcript", ifp.modeSave);
+								picker.appendFilter("Transcripts", "*.txt");
+								
+								if (picker.show()==ifp.returnOK) {
+								
+										glue__transcription_filename = picker.file.path;
+										glue__transcription_filename = glue__transcription_filename.replace('\\','\\\\', 'g');
+										
+								} else {
+										return 0;
+								}
 						}
 
-						glue__transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")(target_filename), 0xA, 0600, 0);
+						// permissions (gleaned from prio.h)
+						var APPEND_CREATE_AND_WRITE_ONLY = 0x1A;
+						var PERMISSIONS = 0600;
+
+						glue__transcription_file =
+								new Components.
+										Constructor("@mozilla.org/network/file-output-stream;1",
+																"nsIFileOutputStream",
+																"init")
+										(new Components.
+												Constructor("@mozilla.org/file/local;1",
+																		"nsILocalFile",
+																		"initWithPath")
+												(glue__transcription_filename),
+										 APPEND_CREATE_AND_WRITE_ONLY,
+										 PERMISSIONS,
+										 0);
 
 						if (!glue__transcription_file) {
 								return 0;
@@ -594,20 +611,40 @@ function glue__set_transcription(whether) {
 								return 1;
 						}
 				}
+
+		} else {
+
+				if (glue__transcription_file) {
+						glue__transcription_file.close();
+						glue__transcription_file = 0;
+				}
 		}
+
 		return 1;
 }
 
-function doTranscript() {
+function command_transcript() {
 
     var menuItem = document.getElementById("transcript");
 
-		if (is_transcribing()) {
-				set_transcribing(0);
-				//				menuItem.setProperty('label', 'Stop transcript');
+		var flags = getbyte(0x11);
+
+		if (flags & 1) {
+
+				// Transcription's on; turn it off.
+
+				alert('Turning transcription off now.');
+				setbyte(flags & ~0x1, 0x11);
+				glue__set_transcription(0);
+
 		} else {
-				set_transcribing(1);
-				//				menuItem.setProperty('label', 'Start transcript...');
+
+				if (glue__transcription_filename) {
+						alert('Turning transcription on again.');
+				}
+
+				setbyte(flags | 0x1, 0x11);
+				glue__set_transcription(1);
 		}
 }
 

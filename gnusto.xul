@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.40 2003/05/08 07:02:47 naltrexone42 Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.41 2003/05/16 04:52:25 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -120,7 +120,7 @@ function ensureHappiness() {
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
-<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="problematic('frond frond frond');"/>
+<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="dispatch('transcript');"/>
 <menuseparator/>
 <menuitem label="Uninstall Gnusto" oncommand="confirmUninstall();"/>
 <menuitem label="Exit" accesskey="X" oncommand="dispatch('shutdown');"/> 
