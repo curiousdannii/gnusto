@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.81 2003/05/26 00:04:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.82 2003/05/26 23:50:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -180,11 +180,8 @@ function go_wrapper(answer) {
             break;
 
 				case GNUSTO_EFFECT_QUIT:
-						alert("End of game.");
-						// not really the best plan in the long term to close
-						// the main window when the game asks for it, but
-						// for now...
-						window.close();
+						win_relax();
+						win_show_status("Game over.");
             break;
 
 				case GNUSTO_EFFECT_PIRACY:
