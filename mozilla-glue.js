@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.33 2003/03/28 20:40:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.34 2003/03/31 05:09:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -272,23 +272,31 @@ function gnustoglue_set_window(w) {
 }
 
 function gnustoglue_erase_window(w) {
+
 		switch (w) {
 
 		case 1: // clear upper window
-				u_setup(u_width, u_height);
+				// FIXME: was: u_setup(u_width, u_height);
+				// this may come in useful when we put height-fixing back
+
+				clear_window(1);
 				break;
 
 		case 0: // clear lower window
 				// can't handle clearing lower window yet
+
+				clear_window(0);
 				break;
 
 		case -2: // clear both
-				// implement me
+				clear_window(0);
+				clear_window(1);
 				break;
 
 		case -1: // clear both and unsplit
 				gnustoglue_split_window(0);
-				// implement me
+				clear_window(0);
+				clear_window(1);
 				break;
 
 		default: // weird
@@ -297,7 +305,7 @@ function gnustoglue_erase_window(w) {
 }
 
 function gnustoglue_set_cursor(y, x) {
-    if (current_window == 1) u_gotoxy(x, y);
+    gotoxy(current_window, x, y);
 }
 
 // The reason that go_wrapper stopped last time. This is

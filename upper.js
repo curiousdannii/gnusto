@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.8 2003/03/30 22:41:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.9 2003/03/31 05:09:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -44,6 +44,8 @@ function window_setup() {
 ////////////////////////////////////////////////////////////////
 
 function chalk(win, fg, bg, style, text) {
+
+		alert('chalk '+win+' '+fg+' '+bg+' '+style+' '+text);
 
     // This function is written in terms of subchalk(). All *we*
     // have to do is split up |text| so that it never goes
@@ -124,9 +126,7 @@ function subchalk(win, fg, bg, style, text) {
 
     // Fourthly, if the line doesn't yet exist we must create it.
     while (lines.length <= window_current_y[win]) {
-				var newLine = window_documents[win].createElement('span');
-				newLine.appendChild(window_documents[win].createTextNode('\n'));
-				windows[win].appendChild(newLine);
+				windows[win].appendChild(window_documents[win].createElement('div'));
     }
 
     // Fifthly, we delete any bits of that line we're going to overwrite,
@@ -141,7 +141,7 @@ function subchalk(win, fg, bg, style, text) {
 
 		// Go past all the spans before us.
 
-		while (cursor<spans.length-1 && charactersSeen+spans[cursor].childNodes[0].data.length <= window_current_x[win]) {
+		while (cursor<spans.length && charactersSeen+spans[cursor].childNodes[0].data.length <= window_current_x[win]) {
 				charactersSeen += spans[cursor].childNodes[0].data.length;
 				cursor++;
 		} 
@@ -153,7 +153,7 @@ function subchalk(win, fg, bg, style, text) {
 		var charactersTrimmed = 0;
 		var doppelganger = 0;
 
-		if (cursor+1==spans.length) {
+		if (cursor==spans.length) {
 
 				if (charactersSeen < window_current_x[win]) {
 						// There aren't enough characters to go round. We
@@ -166,7 +166,7 @@ function subchalk(win, fg, bg, style, text) {
 
 				// Just append the text.
 
-				appendPoint = spans.length-1;
+				appendPoint = -1;
 
 		} else {
 				if (charactersSeen < window_current_x[win]) {
@@ -179,7 +179,6 @@ function subchalk(win, fg, bg, style, text) {
 						if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
 								// The whole of the new text fits within this node. Let's keep this
 								// node before the new text, and create another node to go after it.
-								alert('q');
 								doppelganger = spans[cursor].cloneNode(1);
 								doppelganger.childNodes[0].data = doppelganger.childNodes[0].data.substring(amountToKeep+text.length);
 						}
@@ -222,16 +221,32 @@ function subchalk(win, fg, bg, style, text) {
 						current_line.insertBefore(doppelganger, spans[cursor]);
 				}
 
-				/*		// ...add some spaces, if needs be...
-							if (cursor==spans.length-1) {
-							alert('Well: '+window_current_x[win]+' '+charactersSeen+' '+text.length);
-							}*/
-
 		}
 		// ..and append our text.
 		var newSpan = window_documents[win].createElement('span');
 		newSpan.appendChild(window_documents[win].createTextNode(text));
-		current_line.insertBefore(newSpan, spans[appendPoint]);
+
+		if (appendPoint = -1) {
+				current_line.appendChild(newSpan);
+		} else {
+				current_line.insertBefore(newSpan, spans[appendPoint]);
+		}
+}
+
+////////////////////////////////////////////////////////////////
+
+// Clears a window. |win| must be a valid window ID.
+function clear_window(win) {
+		// FIXME: not tested! test this!
+		windows[win].parentNode.replaceChild(windows[win].cloneNode(0),
+					windows[win]);
+}
+
+////////////////////////////////////////////////////////////////
+
+function gotoxy(win, x, y) {
+		window_current_x[win] = x;
+		window_current_y[win] = y;
 }
 
 ////////////////////////////////////////////////////////////////
