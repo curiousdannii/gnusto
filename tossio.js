@@ -1,4 +1,4 @@
-// tossio.js || -*- Mode: Java; tab-width: 2; -*-
+// tossio.js || -*- Mode: fundamental; tab-width: 2; -*-
 // The debugger in Gnusto.
 
 //================================================================
@@ -14,134 +14,547 @@
 //  [2] : Branch?
 //  [3] : Text inline?
 //  [4] : Indirect addressing?
-//  [5] : Treats constant argument as a variable identifier
+//  [5] : *** not used *** (remove later)
 //  [6] : Execution can never continue on from this opcode
-
-alert('tossio start');
+//  [7] : A list of what to do with the arguments
+//           5 = procedure call
+//          10 = indirect referencing
+//          11 = a ZSCII character
 tossio_opcodes = {
 //////////////////////////////////////////// 2-OPs ////////////////////////////
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
-   1: [ 'je'                ,  0,   1,   0,   0,   0,   0],
-   2: [ 'jl'                ,  0,   1,   0,   0,   0,   0],
-   3: [ 'jg'                ,  0,   1,   0,   0,   0,   0],
-   4: [ 'dec_chk'           ,  0,   1,   0,   0,   1,   0],
-   5: [ 'inc_chk'           ,  0,   1,   0,   0,   1,   0],
-   6: [ 'jin'               ,  0,   1,   0,   0,   0,   0],
-   7: [ 'test'              ,  0,   1,   0,   0,   0,   0],
-   8: [ 'or'                ,  1,   0,   0,   0,   0,   0],
-   9: [ 'and'               ,  1,   0,   0,   0,   0,   0],
-  10: [ 'test_attr'         ,  0,   1,   0,   0,   0,   0],
+   1: [ 'je'                ,  0,   1,   0,   0,   0,   0,  [] ],
+   2: [ 'jl'                ,  0,   1,   0,   0,   0,   0,  [] ],
+   3: [ 'jg'                ,  0,   1,   0,   0,   0,   0,  [] ],
+   4: [ 'dec_chk'           ,  0,   1,   0,   0,   0,   0,  [10] ],
+   5: [ 'inc_chk'           ,  0,   1,   0,   0,   0,   0,  [10] ],
+   6: [ 'jin'               ,  0,   1,   0,   0,   0,   0,  [] ],
+   7: [ 'test'              ,  0,   1,   0,   0,   0,   0,  [] ],
+   8: [ 'or'                ,  1,   0,   0,   0,   0,   0,  [] ],
+   9: [ 'and'               ,  1,   0,   0,   0,   0,   0,  [] ],
+  10: [ 'test_attr'         ,  0,   1,   0,   0,   0,   0,  [] ],
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
-  11: [ 'set_attr'          ,  0,   0,   0,   0,   0,   0],
-  12: [ 'clear_attr'        ,  0,   0,   0,   0,   0,   0],
-  13: [ 'store'             ,  0,   0,   0,   0,   1,   0],
-  14: [ 'insert_obj'        ,  0,   0,   0,   0,   0,   0],
-  15: [ 'loadw'             ,  1,   0,   0,   0,   0,   0],
-  16: [ 'loadb'             ,  1,   0,   0,   0,   0,   0],
-  17: [ 'get_prop'          ,  1,   0,   0,   0,   0,   0],
-  18: [ 'get_prop_addr'     ,  1,   0,   0,   0,   0,   0],
-  19: [ 'get_next_prop'     ,  1,   0,   0,   0,   0,   0],
-  20: [ 'add'               ,  1,   0,   0,   0,   0,   0],
+  11: [ 'set_attr'          ,  0,   0,   0,   0,   0,   0,  [] ],
+  12: [ 'clear_attr'        ,  0,   0,   0,   0,   0,   0,  [] ],
+  13: [ 'store'             ,  0,   0,   0,   0,   0,   0,  [10] ],
+  14: [ 'insert_obj'        ,  0,   0,   0,   0,   0,   0,  [] ],
+  15: [ 'loadw'             ,  1,   0,   0,   0,   0,   0,  [] ],
+  16: [ 'loadb'             ,  1,   0,   0,   0,   0,   0,  [] ],
+  17: [ 'get_prop'          ,  1,   0,   0,   0,   0,   0,  [] ],
+  18: [ 'get_prop_addr'     ,  1,   0,   0,   0,   0,   0,  [] ],
+  19: [ 'get_next_prop'     ,  1,   0,   0,   0,   0,   0,  [] ],
+  20: [ 'add'               ,  1,   0,   0,   0,   0,   0,  [] ],
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
-  21: [ 'sub'               ,  1,   0,   0,   0,   0,   0],
-  22: [ 'mul'               ,  1,   0,   0,   0,   0,   0],
-  23: [ 'div'               ,  1,   0,   0,   0,   0,   0],
-  24: [ 'mod'               ,  1,   0,   0,   0,   0,   0],
-  25: [ 'call_2s'           ,  1,   0,   0,   1,   0,   0],
-  26: [ 'call_2n'           ,  0,   0,   0,   1,   0,   0],
-  27: [ 'set_colour'        ,  0,   0,   0,   0,   0,   0],
+  21: [ 'sub'               ,  1,   0,   0,   0,   0,   0,  [] ],
+  22: [ 'mul'               ,  1,   0,   0,   0,   0,   0,  [] ],
+  23: [ 'div'               ,  1,   0,   0,   0,   0,   0,  [] ],
+  24: [ 'mod'               ,  1,   0,   0,   0,   0,   0,  [] ],
+  25: [ 'call_2s'           ,  1,   0,   0,   1,   0,   0,  [5] ],
+  26: [ 'call_2n'           ,  0,   0,   0,   1,   0,   0,  [5] ],
+  27: [ 'set_colour'        ,  0,   0,   0,   0,   0,   0,  [] ],
 // mm, if the skin is en-us, maybe we should change that :)
-  28: [ 'throw'             ,  0,   0,   0,   0,   0,   1],
+  28: [ 'throw'             ,  0,   0,   0,   0,   0,   1,  [] ],
 
 //////////////////////////////////////////// 1-OPs ////////////////////////////
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
- 128: [ 'jz'                ,  0,   1,   0,   0,   0,   0],
- 129: [ 'get_sibling'       ,  1,   1,   0,   0,   0,   0],
- 130: [ 'get_child'         ,  1,   1,   0,   0,   0,   0],
- 131: [ 'get_parent'        ,  1,   0,   0,   0,   0,   0],
- 132: [ 'get_prop_len'      ,  1,   0,   0,   0,   0,   0],
- 133: [ 'inc'               ,  0,   0,   0,   0,   1,   0],
- 134: [ 'dec'               ,  0,   0,   0,   0,   1,   0],
- 135: [ 'print_addr'        ,  0,   0,   0,   0,   0,   0],
- 136: [ 'call_1s'           ,  1,   0,   0,   1,   0,   0],
- 137: [ 'remove_obj'        ,  0,   0,   0,   0,   0,   0],
- 138: [ 'print_obj'         ,  0,   0,   0,   0,   0,   0],
- 139: [ 'ret'               ,  0,   0,   0,   0,   0,   1],
- 140: [ 'jump'              ,  0,   0,   0,   0,   0,   1],
- 141: [ 'print_paddr'       ,  0,   0,   0,   0,   0,   0],
- 142: [ 'load'              ,  1,   0,   0,   0,   1,   0],
- 143: [ 'call_1n'           ,  1,   0,   0,   1,   0,   0],
+ 128: [ 'jz'                ,  0,   1,   0,   0,   0,   0,  [] ],
+ 129: [ 'get_sibling'       ,  1,   1,   0,   0,   0,   0,  [] ],
+ 130: [ 'get_child'         ,  1,   1,   0,   0,   0,   0,  [] ],
+ 131: [ 'get_parent'        ,  1,   0,   0,   0,   0,   0,  [] ],
+ 132: [ 'get_prop_len'      ,  1,   0,   0,   0,   0,   0,  [] ],
+ 133: [ 'inc'               ,  0,   0,   0,   0,   0,   0,  [10] ],
+ 134: [ 'dec'               ,  0,   0,   0,   0,   0,   0,  [10] ],
+ 135: [ 'print_addr'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 136: [ 'call_1s'           ,  1,   0,   0,   1,   0,   0,  [5] ],
+ 137: [ 'remove_obj'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 138: [ 'print_obj'         ,  0,   0,   0,   0,   0,   0,  [] ],
+ 139: [ 'ret'               ,  0,   0,   0,   0,   0,   1,  [] ],
+ 140: [ 'jump'              ,  0,   0,   0,   0,   0,   1,  [] ],
+ 141: [ 'print_paddr'       ,  0,   0,   0,   0,   0,   0,  [] ],
+ 142: [ 'load'              ,  1,   0,   0,   0,   0,   0,  [10] ],
+ 143: [ 'call_1n'           ,  0,   0,   0,   1,   0,   0,  [5] ],
 
 //////////////////////////////////////////// 0-OPs ////////////////////////////
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
- 176: [ 'rtrue'             ,  0,   0,   0,   0,   0,   1],
- 177: [ 'rfalse'            ,  0,   0,   0,   0,   0,   1],
- 178: [ 'print'             ,  0,   0,   1,   0,   0,   0],
- 179: [ 'print_ret'         ,  0,   0,   1,   0,   0,   1],
- 180: [ 'nop'               ,  0,   0,   0,   0,   0,   0],
+ 176: [ 'rtrue'             ,  0,   0,   0,   0,   0,   1,  [] ],
+ 177: [ 'rfalse'            ,  0,   0,   0,   0,   0,   1,  [] ],
+ 178: [ 'print'             ,  0,   0,   1,   0,   0,   0,  [] ],
+ 179: [ 'print_ret'         ,  0,   0,   1,   0,   0,   1,  [] ],
+ 180: [ 'nop'               ,  0,   0,   0,   0,   0,   0,  [] ],
 // 181 and 182 don't exist in v5
- 183: [ 'restart'           ,  0,   0,   0,   0,   0,   1],
- 184: [ 'ret_popped'        ,  0,   0,   0,   0,   0,   1],
- 185: [ 'catch'             ,  0,   1,   0,   0,   0,   0],
- 186: [ 'quit'              ,  0,   0,   0,   0,   0,   1],
- 187: [ 'new_line'          ,  0,   0,   0,   0,   0,   0],
+ 183: [ 'restart'           ,  0,   0,   0,   0,   0,   1,  [] ],
+ 184: [ 'ret_popped'        ,  0,   0,   0,   0,   0,   1,  [] ],
+ 185: [ 'catch'             ,  0,   1,   0,   0,   0,   0,  [] ],
+ 186: [ 'quit'              ,  0,   0,   0,   0,   0,   1,  [] ],
+ 187: [ 'new_line'          ,  0,   0,   0,   0,   0,   0,  [] ],
 // 188 doesn't exist in v5
- 189: [ 'verify'            ,  0,   1,   0,   0,   0,   0],
+ 189: [ 'verify'            ,  0,   1,   0,   0,   0,   0,  [] ],
 // 190 is the start of an extended opcode
- 191: [ 'piracy'            ,  0,   1,   0,   0,   0,   0],
+ 191: [ 'piracy'            ,  0,   1,   0,   0,   0,   0,  [] ],
 
 /////////////////////////////////////////// VAR-OPs ///////////////////////////
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
 
- 224: [ 'call'              ,  1,   0,   0,   1,   0,   0],
- 225: [ 'storew'            ,  0,   0,   0,   0,   0,   0],
- 226: [ 'storeb'            ,  0,   0,   0,   0,   0,   0],
- 227: [ 'put_prop'          ,  0,   0,   0,   0,   0,   0],
- 228: [ 'read'              ,  1,   0,   0,   0,   0,   0],
- 229: [ 'print_char'        ,  0,   0,   0,   0,   0,   0],
+ 224: [ 'call_vs'           ,  1,   0,   0,   1,   0,   0,  [5] ],
+ 225: [ 'storew'            ,  0,   0,   0,   0,   0,   0,  [] ],
+ 226: [ 'storeb'            ,  0,   0,   0,   0,   0,   0,  [] ],
+ 227: [ 'put_prop'          ,  0,   0,   0,   0,   0,   0,  [] ],
+ 228: [ 'read'              ,  1,   0,   0,   0,   0,   0,  [] ],
+ 229: [ 'print_char'        ,  0,   0,   0,   0,   0,   0,  [11] ],
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
- 230: [ 'print_num'         ,  0,   0,   0,   0,   0,   0],
- 231: [ 'random'            ,  1,   0,   0,   0,   0,   0],
- 232: [ 'push'              ,  0,   0,   0,   0,   0,   0],
- 233: [ 'pull'              ,  0,   0,   0,   0,   1,   0],
- 234: [ 'split_window'      ,  0,   0,   0,   0,   0,   0],
- 235: [ 'set_window'        ,  0,   0,   0,   0,   0,   0],
- 236: [ 'call_vs2'          ,  1,   0,   0,   1,   0,   0],
- 237: [ 'erase_window'      ,  0,   0,   0,   0,   0,   0],
- 238: [ 'erase_line'        ,  0,   0,   0,   0,   0,   0],
- 239: [ 'set_cursor'        ,  0,   0,   0,   0,   0,   0],
+ 230: [ 'print_num'         ,  0,   0,   0,   0,   0,   0,  [] ],
+ 231: [ 'random'            ,  1,   0,   0,   0,   0,   0,  [] ],
+ 232: [ 'push'              ,  0,   0,   0,   0,   0,   0,  [] ],
+ 233: [ 'pull'              ,  0,   0,   0,   0,   0,   0,  [10] ],
+ 234: [ 'split_window'      ,  0,   0,   0,   0,   0,   0,  [] ],
+ 235: [ 'set_window'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 236: [ 'call_vs2'          ,  1,   0,   0,   1,   0,   0,  [5] ],
+ 237: [ 'erase_window'      ,  0,   0,   0,   0,   0,   0,  [] ],
+ 238: [ 'erase_line'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 239: [ 'set_cursor'        ,  0,   0,   0,   0,   0,   0,  [] ],
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
- 240: [ 'get_cursor'        ,  0,   0,   0,   0,   0,   0],
- 241: [ 'set_text_style'    ,  0,   0,   0,   0,   0,   0],
- 242: [ 'buffer_mode'       ,  0,   0,   0,   0,   0,   0],
- 243: [ 'output_stream'     ,  0,   0,   0,   0,   0,   0],
- 244: [ 'input_stream'      ,  0,   0,   0,   0,   0,   0],
- 245: [ 'sound_effect'      ,  0,   0,   0,   0,   0,   0],
- 246: [ 'read_char'         ,  1,   0,   0,   0,   0,   0],
- 247: [ 'scan_table'        ,  1,   1,   0,   0,   0,   0],
- 248: [ 'not'               ,  1,   0,   0,   0,   0,   0],
- 249: [ 'call_vn'           ,  0,   0,   0,   1,   0,   0],
+ 240: [ 'get_cursor'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 241: [ 'set_text_style'    ,  0,   0,   0,   0,   0,   0,  [] ],
+ 242: [ 'buffer_mode'       ,  0,   0,   0,   0,   0,   0,  [] ],
+ 243: [ 'output_stream'     ,  0,   0,   0,   0,   0,   0,  [] ],
+ 244: [ 'input_stream'      ,  0,   0,   0,   0,   0,   0,  [] ],
+ 245: [ 'sound_effect'      ,  0,   0,   0,   0,   0,   0,  [] ],
+ 246: [ 'read_char'         ,  1,   0,   0,   0,   0,   0,  [] ],
+ 247: [ 'scan_table'        ,  1,   1,   0,   0,   0,   0,  [] ],
+ 248: [ 'not'               ,  1,   0,   0,   0,   0,   0,  [] ],
+ 249: [ 'call_vn'           ,  0,   0,   0,   1,   0,   0,  [5] ],
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
- 250: [ 'call_vn2'          ,  0,   0,   0,   1,   0,   0],
- 251: [ 'tokenise'          ,  0,   0,   0,   0,   0,   0],
- 252: [ 'encode_text'       ,  0,   0,   0,   0,   0,   0],
- 253: [ 'copy_table'        ,  0,   0,   0,   0,   0,   0],
- 254: [ 'print_table'       ,  0,   0,   0,   0,   0,   0],
- 255: [ 'check_arg_count'   ,  0,   1,   0,   0,   0,   0],
+ 250: [ 'call_vn2'          ,  0,   0,   0,   1,   0,   0,  [5] ],
+ 251: [ 'tokenise'          ,  0,   0,   0,   0,   0,   0,  [] ],
+ 252: [ 'encode_text'       ,  0,   0,   0,   0,   0,   0,  [] ],
+ 253: [ 'copy_table'        ,  0,   0,   0,   0,   0,   0,  [] ],
+ 254: [ 'print_table'       ,  0,   0,   0,   0,   0,   0,  [] ],
+ 255: [ 'check_arg_count'   ,  0,   1,   0,   0,   0,   0,  [] ],
 
 ///////////////////////////////////////////// EXTs ////////////////////////////
 //      Name                 St?  Br? Txt? Ind? Con? Stp?
 
-1000: [ 'save'              ,  1,   0,   0,   0,   0,   0],
-1001: [ 'restore'           ,  1,   0,   0,   0,   0,   0],
-1002: [ 'log_shift'         ,  1,   0,   0,   0,   0,   0],
-1003: [ 'art_shift'         ,  1,   0,   0,   0,   0,   0],
-1004: [ 'set_font'          ,  1,   0,   0,   0,   0,   0],
+1000: [ 'save'              ,  1,   0,   0,   0,   0,   0,  [] ],
+1001: [ 'restore'           ,  1,   0,   0,   0,   0,   0,  [] ],
+1002: [ 'log_shift'         ,  1,   0,   0,   0,   0,   0,  [] ],
+1003: [ 'art_shift'         ,  1,   0,   0,   0,   0,   0,  [] ],
+1004: [ 'set_font'          ,  1,   0,   0,   0,   0,   0,  [] ],
 // ... no more in v5 until ...
-1009: [ 'save_undo'         ,  1,   0,   0,   0,   0,   0],
-1010: [ 'restore_undo'      ,  1,   0,   0,   0,   0,   0],
-1011: [ 'print_unicode'     ,  0,   0,   0,   0,   0,   0],
-1012: [ 'check_unicode'     ,  0,   0,   0,   0,   0]
-	};
+1009: [ 'save_undo'         ,  1,   0,   0,   0,   0,   0,  [] ],
+1010: [ 'restore_undo'      ,  1,   0,   0,   0,   0,   0,  [] ],
+1011: [ 'print_unicode'     ,  0,   0,   0,   0,   0,   0,  [] ],
+1012: [ 'check_unicode'     ,  0,   0,   0,   0,   0,   0,  [] ],
+};
 
-alert('tossio end');
+// c&p from gnusto-lib. use their version when tossio is linked in
+// This should probably be done programmatically...
+var zalphabet = {
+		0: 'abcdefghijklmnopqrstuvwxyz',
+		1: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+		2: 'T\n0123456789.,!?_#\'"/\\-:()', // T = magic ten bit flag
+}
+
+function zscii_char_to_ascii(zscii_code) {
+		if (zscii_code<0 || zscii_code>1023) {
+				gnusto_error(702, zscii_code); // illegal zscii code
+		}
+
+		var result;
+
+		if (zscii_code==13)
+				result = 10;
+		else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
+				result = zscii_code;
+		else {
+				gnusto_error(703, zscii_code); // unknown zscii code
+		}
+
+		return String.fromCharCode(result);
+}
+
+function zscii_from(address, max_length, tell_length) {
+		var temp = '';
+		var alph = 0;
+		var running = 1;
+
+		// Should be:
+		//   -2 if we're not expecting a ten-bit character
+		//   -1 if we are, but we haven't seen any of it
+		//   n  if we've seen half of one, where n is what we've seen
+		var tenbit = -2;
+
+		// Should be:
+		//    0 if we're not expecting an abbreviation
+		//    z if we are, where z is the prefix
+		var abbreviation = 0;
+
+		if (!max_length) max_length = 65535;
+		var stopping_place = address + max_length;
+
+		while (running) {
+				var word = get_unsigned_word(address);
+				address += 2;
+
+				running = !(word & 0x8000) && address<stopping_place;
+
+				for (var j=2; j>=0; j--) {
+						var code = ((word>>(j*5))&0x1f)
+
+								if (abbreviation) {
+										temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
+										abbreviation = 0;
+								} else if (tenbit==-2) {
+										if (code<1) { temp = temp + ' '; alph=0; }
+										else if (code<4) { abbreviation = code; }
+										else if (code<6) { alph = code-3; }
+										else {
+												if (alph==2 && code==6)
+														tenbit = -1;
+												else
+														temp = temp +
+																zalphabet[alph][code-6];
+												alph = 0;
+										}
+								} else if (tenbit==-1) {
+										tenbit = code;
+								} else {
+										temp = temp + zscii_char_to_ascii(
+																											(tenbit<<5) + code);
+										tenbit = -2;
+								}
+				}
+		}
+		if (tell_length) {
+				return [temp, address];
+		} else {
+				return temp;
+		}
+}
+
+
+function loadI0() {
+
+    var zcode = new Components.Constructor(
+																					 "@mozilla.org/file/local;1",
+																					 "nsILocalFile",
+																					 "initWithPath")("/tmp/I-0.mz5");
+    if (!zcode.exists())
+				throw "Mangled Zcode file doesn't exist.";
+
+    var fc = new Components.Constructor("@mozilla.org/network/local-file-channel;1",
+																				"nsIFileChannel")();
+
+    var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
+																				 "nsIScriptableInputStream")();
+
+    fixups = zcode.fileSize / 2;
+
+    fc.init(zcode, 1, 0);
+    sis.init(fc.open());
+
+    mangled = sis.read(zcode.fileSize);
+    zbytes = [];
+}
+
+function getbyte(address) {
+    // Convoluted to work around the null byte problem.
+    // See http://gnusto.mozdev.org/nullbytes.html
+
+    var result = zbytes[address];
+
+    if (isNaN(result)) {
+				// it's not in the lookup table, so find it in the original
+				result = 0;
+				if (mangled.charCodeAt(fixups+address)!=89)
+						result = mangled.charCodeAt(address);
+				
+				zbytes[address] = result;
+    }
+
+    return result;
+}
+
+
+function unsigned2signed(value) {
+		return ((value & 0x8000)?~0xFFFF:0)|value;
+}
+
+function get_unsigned_word(addr) {
+    return getbyte(addr)*256+getbyte(addr+1);
+}
+
+function string_for_varcode(varcode) {
+		if (varcode==0)
+				return 'SP';
+		else if (varcode < 0x10)
+				return 'L'+(varcode-1);
+		else
+				return 'G'+(varcode-16).toString(16);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Dictionary of points of interest in memory (related to Inform's
+// concept of "sequence points").
+// Types of point:
+//    1 = You can get here from a previous instruction.
+//    2 = You can get here by branching.
+//    3 = This is a string (not implemented, but easily could be)
+//    4 = not used (store-target?)
+//    5 = start of procedure header
+var points = {};
+
+// A dictionary of dissembled instructions.
+var asm = {};
+
+// Function which sets up |points| based on the contents of memory.
+// |addr| is the address to start at. Set |is_func| if |addr| is the
+// address of the start of a function; clear it if |addr| is the
+// address of an instruction (e.g. the beginning of the bootstrap).
+// This function will recur as necessary to document as much memory
+// as possible.
+function tossio_scan(addr, is_func) {
+
+		if (is_func) {
+				// We're inside a function; mark the header as such:
+				points[addr] = 5;
+				// and move on past the header (it's only one byte in v5).
+				addr++;
+		}
+
+		do {
+				// If where we are isn't marked as a point, it should be.
+				// Mark it as type "1" (you can get there by sequence).
+				if (isNaN(points[addr])) points[addr] = 1;
+
+				// The following is mostly duplicated from gnusto-lib.
+				// We need to think of ways of factoring this out without
+				// losing efficiency.
+
+				// List of arguments to the opcode.
+				var args = [];
+
+				// Where we are now.
+				var orig_addr = addr;
+
+				// Inelegant function to load parameters according to a VAR byte.
+				function handle_variable_parameters() {
+						var types = getbyte(addr++);
+						var argcursor = 0;
+
+						while (1) {
+								var current = types & 0xC0;
+								if (current==0xC0) {
+										break;
+								} else if (current==0x00) {
+										args[argcursor++] = get_unsigned_word(addr);
+										addr+=2;
+								} else if (current==0x40) {
+										args[argcursor++] = getbyte(addr++);
+								} else if (current==0x80) {
+										args[argcursor++] =
+												string_for_varcode(getbyte(addr++));
+								} else {
+										throw "impossible";
+								}
+								
+								types = (types << 2) | 0x3;
+						}
+				}
+				
+				// So here we go...
+				// what's the opcode?
+				var instr = getbyte(addr++);
+
+				if (instr==0) {
+						// If we just get a zero, we've probably
+						// been directed off into deep space somewhere.
+						
+						throw "lost in space";
+				} else if (instr==190) { // Extended opcode.
+						
+						instr = 1000+getbyte(addr++);
+						handle_variable_parameters();
+						
+				} else if (instr & 0x80) {
+						if (instr & 0x40) { // Variable params
+								
+								if (!(instr & 0x20))
+										// This is a 2-op, despite having
+										// variable parameters; reassign it.
+										instr &= 0x1F;
+								
+								handle_variable_parameters();
+
+								if (instr==250 || instr==236)
+										// We get more of them!
+										handle_variable_parameters();
+								
+						} else { // Short. All 1-OPs except for one 0-OP.
+
+								switch(instr & 0x30) {
+								case 0x00:
+								    args[0] = get_unsigned_word(addr);
+										addr+=2;
+										instr = (instr & 0x0F) | 0x80;
+										break;
+										
+								case 0x10:
+										args[0] = getbyte(addr++);
+										instr = (instr & 0x0F) | 0x80;
+										break;
+										
+								case 0x20:
+										args[0] =
+												string_for_varcode(getbyte(addr++));
+										instr = (instr & 0x0F) | 0x80;
+										break;
+
+								case 0x30:
+										// 0-OP. We don't need to get parameters, but we
+										// *do* need to translate the opcode.
+										instr = (instr & 0x0F) | 0xB0;
+										break;
+								}
+						}
+				} else { // Long
+						
+						if (instr & 0x40)
+								args[0] =
+										string_for_varcode(getbyte(addr++));
+						else
+								args[0] = getbyte(addr++);
+						
+						if (instr & 0x20)
+								args[1] =
+										string_for_varcode(getbyte(addr++));
+						else
+								args[1] = getbyte(addr++);
+
+						instr &= 0x1F;
+				}
+
+				// Pull out the relevant row from the opcode table.
+				var details = tossio_opcodes[instr];
+
+				if (!details)
+						throw "Hit something odd here: "+instr.toString(16)+" at "+addr.toString(16);
+
+				// Okay, so let's build ourselves some assembly language.
+				var zass = details[0];
+
+				for (var i=0; i<args.length; i++) {
+						zass += ' ';
+						var param = args[i];
+
+						// So, how should we handle this parameter?
+
+						switch (details[7][i]) {
+						case 5: // procedure call
+								if (isNaN(param)) {
+										// indirect procedure call. weird
+										zass += '['+param+']';
+								} else {
+										param *= 4;
+										zass += '@'+param.toString(16);
+										if (points[param]!=5)
+												// We haven't seen this one before;
+												// better go and look at it now.
+												tossio_scan(param, 1);
+								}
+								break;
+
+						case 10: // an indirect variable reference
+								if (isNaN(args[i]))
+										// someone's actually *using* indirection! Eek!
+										zass += '['+param+']';
+								else
+										// constant indirection; we'll dereference it here
+										zass += string_for_varcode(param);
+								break;
+
+						case 11: // zscii
+								if (isNaN(args[i]))
+										zass += args[i];
+								else if (args[i]<32 || args[i]>126)
+										zass += '#'+args[i];
+								else
+										zass += "'"+String.fromCharCode(args[i])+"'";
+								break;
+
+						default:
+								// just an ordinary number.
+								if (isNaN(args[i]))
+										zass += args[i];
+								else
+										zass += '#'+args[i].toString(16);
+						}
+				}
+
+				if (details[1]) // store
+						zass += ' -> '+string_for_varcode(getbyte(addr++));
+		 
+				if (details[2]) { // branch
+						var whither = getbyte(addr++);
+						var distance;
+
+						zass += ' ';
+						if (!(whither & 0x80)) zass += '~'; // jump if not...
+
+						if (whither & 0x40) {
+								distance = whither & 0x3F;
+						} else {
+								distance = ((whither & 0x3F)<<8) |
+										getbyte(addr++);
+								// And do sign extension:
+								if (distance & 0x2000) distance |= (~0x3FFF);
+						}
+
+						if (distance==0)
+								zass += '[RFALSE]';
+						else if (distance==1)
+								zass += '[RTRUE]';
+						else {
+								var referent = addr + (distance-2);
+
+								zass += '('+referent.toString(16)+')';
+								points[referent] = 2;
+						}
+				}
+
+				if (details[3]) { // a string
+						var temp = zscii_from(addr, 65535, 1);
+						temp[0] = temp[0].replace('"','~').replace(String.fromCharCode(10),'^');
+						if (temp[0].length > 40)
+								zass += ' "' + temp[0].substring(0,36)+' ...';
+						else
+								zass += ' "' + temp[0]+'"';
+						addr = temp[1];
+				}
+				
+				asm[orig_addr] = zass;
+
+				// We stop only when:
+				//   details[6] is set (i.e. control can't continue)
+				//   points[addr] is not set to 2
+				//     (i.e. this function has not attempted to branch
+				//      to this point yet.)
+		} while (!(details[6] && points[addr]!=2));
+}
+
+function tossio_dump(start, end) {
+		dump('tossio dump\n');
+
+		for (var i=start; i<end; i++) {
+				if (points[i]) {
+						dump(points[i]+'     '+i.toString(16));
+						if (asm[i])
+								dump('     '+asm[i]);
+						dump('\n');
+				}
+		}
+}
+
+// load('tossio.js');
+// loadI0();
+// tossio_scan(get_unsigned_word(0x6),0);
