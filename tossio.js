@@ -640,6 +640,12 @@ var tossio_verbs = {
 							function(a) {
 									show_js = 1;
 							}],
+		'parser': ['show parser debug information',
+							'...',
+							function(a) {
+									parser_debugging = 1;
+									tossio_print('Parser debugging on.');
+							}],
 		'dis': ['calculate dissembly information',
 					 '...',
 					 function(a) {

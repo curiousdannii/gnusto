@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.25 2003/03/15 13:59:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.26 2003/03/20 06:29:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -151,6 +151,7 @@ var output_to_script;
 // If this is 1, go() will "wimp out" after every opcode.
 var single_step = 0;
 var debug_mode = 0;
+var parser_debugging = 0;
 
 // Hash of breakpoints. If dissemble() reaches one of these, it will stop
 // before executing that instruction with GNUSTO_EFFECT_BREAKPOINT, and the
@@ -433,10 +434,10 @@ var handlers = {
 				return "insert_obj("+a[0]+','+a[1]+")";
 		},
 		15: function(a) { // loadw
-				return storer("getword(1*"+a[0]+"+2*"+a[1]+")");
+				return storer("getword((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
 		},
 		16: function(a) { // loadb
-				return storer("getbyte(1*"+a[0]+"+1*"+a[1]+")");
+				return storer("getbyte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
 		},
 		17: function(a) { // get_prop
 				return storer("get_prop("+a[0]+','+a[1]+')');
@@ -776,6 +777,30 @@ function is_valid_breakpoint(addr) {
 				return 0; // Well, duh.
 }
 
+function silver_print(text) {
+		transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
+		transcription_file.write(text, text.length);
+		transcription_file.close();
+}
+
+function golden_trail(addr) {
+		var text = 'p='+addr.toString(16);
+		var v = 0;
+
+		for (var jj=0; jj<16; jj++) {
+				v = locals[jj] & 65535;
+				text = text + ' '+jj.toString(16)+'='+v.toString(16);
+		}
+
+		if (gamestack.length!=0) {
+				v = gamestack[gamestack.length-1] & 65535;
+				text = text + ' s='+v.toString(16);
+		}
+		text = text + '\n';
+
+		silver_print(text);
+}
+
 // dissemble() returns a string of JavaScript code representing the
 // instruction at the program counter (and possibly the next few
 // instructions, too). It will change the PC to point to the end of the
@@ -823,6 +848,9 @@ function dissemble() {
 				if (pc in breakpoints) {
 						code = code + 'if(is_valid_breakpoint('+pc+'))return 0x510;';
 				}
+
+				// Golden Trail code. Usually commented out for efficiency.
+				// code = code + 'golden_trail('+pc+');';
 				
 				// So here we go...
 				// what's the opcode?
@@ -1027,11 +1055,11 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		for (var i=0;i<getbyte(text_buffer + 1);i++)
 				result += String.fromCharCode(getbyte(text_buffer + 2 + i));
 
-		var ZZPB = parse_buffer;
-
 		var words_count = parse_buffer + 1;
 		setbyte(0, words_count);
-		parse_buffer+=2;
+		var cursor = parse_buffer+2;
+
+		if (parser_debugging) { gnustoglue_output('[Text is: '+result+']\n'); }
 
 		var words = result.split(' ');
 		var position = 2;
@@ -1039,13 +1067,23 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		for (var i in words) {
 				var lexical = look_up(words[i]);
 
-				setword(lexical, parse_buffer);
-				parse_buffer+=2;
-				setbyte(words[i].length, parse_buffer++);
-				setbyte(position, parse_buffer++);
+				if (parser_debugging) { gnustoglue_output('[Word '+i+' is number '+lexical+']\n'); }
+
+				setword(lexical, cursor);
+				cursor+=2;
+				setbyte(words[i].length, cursor++);
+				setbyte(position, cursor++);
 		
 				position += words[i].length+1;
 				setbyte(getbyte(words_count)+1, words_count);
+		}
+
+		if (parser_debugging) {
+				gnustoglue_output('[Parse buffer dump:');
+				for (var j=parse_buffer; j<cursor; j++) {
+						gnustoglue_output(' '+getbyte(j).toString(16));
+				}
+				gnustoglue_output(']\n');
 		}
 
 		// Return the ASCII value for the Enter key. tokenise() is supposed
