@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.16 2003/03/02 18:08:22 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.17 2003/03/02 18:13:36 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1098,9 +1098,11 @@ function get_prop(object, property) {
 				return getword(temp[0]);
 		} else if (temp[1]==1) {
 				return getbyte(temp[0]); // should this be treated as signed?
-		} else
+		} else {
 				// get_prop used on a property of the wrong length
 				gnusto_error(706, object, property);
+				return 0;
+		}
 
 		gnusto_error(174); // impossible
 }
