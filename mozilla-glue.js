@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.5 2003/02/24 22:18:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.6 2003/02/24 22:34:46 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -213,7 +213,6 @@ function go_wrapper(answer) {
 						// Just bail out of here.
 				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT_CHAR) {
 						// similar
-						alert('(warning: zmachine wants a character; not fully implemented)');
 				} else if (reasonForStopping == GNUSTO_EFFECT_SAVE) {
 						// nope
 						alert("Saving of games isn't implemented yet.");
@@ -279,16 +278,20 @@ function catcher(code) {
 }
 
 function gotInput(keycode) {
-    if (keycode==13 && reasonForStopping==GNUSTO_EFFECT_INPUT) {
+    if (keycode==13) {
 				var inputBox = document.getElementById("input");
 				var value = inputBox.value;
 
-				inputBox.value = '';
-		
-				gnustoglue_output(value+'\n');
-				
-				go_wrapper(value);
-    }
+				if (reasonForStopping==GNUSTO_EFFECT_INPUT) {
+						inputBox.value = '';
+						gnustoglue_output(value+'\n');
+						go_wrapper(value);
+				} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR && value!='') {
+						inputBox.value = '';
+						gnustoglue_output(value.substring(0, 1)+'\n');
+						go_wrapper(value.charCodeAt(0));
+				}
+		}
 }
 
 function aboutBox() {
