@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.82 2003/05/26 23:50:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.83 2003/05/27 05:03:33 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -409,6 +409,12 @@ function start_up() {
 		baf_init();
 		sys_init();
 
+}
+
+function win_generally_start_game() {
+		win_start_game();
+		barbara_start_game();
+		bocardo_start_game();
 }
 
 function play() {
