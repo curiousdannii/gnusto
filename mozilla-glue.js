@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.46 2003/04/07 17:05:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.47 2003/04/10 20:48:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -47,6 +47,7 @@ function ensureHappiness() {
 		ensureOneFile('UPPER_HAPPY');
 		ensureOneFile('VENKMAN_MSG_HAPPY');
 		ensureOneFile('BAF_HAPPY');
+		ensureOneFile('BARBARIX_HAPPY');
 }
 
 var current_text_holder = 0;
@@ -614,25 +615,40 @@ function glue_store_screen_size() {
 
 ////////////////////////////////////////////////////////////////
 
+function camenesbounce_catch(e) {
+		eval(e.target.toString().substring(13));
+}
+
+////////////////////////////////////////////////////////////////
+
+// Temporarily here while I make somewhere better to put it.
+function verb(what) {
+		tossio_debug_instruction(what.split(' '));
+}
+
+////////////////////////////////////////////////////////////////
+
 function start_up() {
 		document.getElementById('input').focus();
 
     gnustoglue_set_text_style(0, 1, 1);
 
 		glue__get_font_metrics();
-		win_setup(80, 25);
-
 		glue_store_screen_size();
 
 		// Do that every time the size changes, actually.
 		window.addEventListener('resize',
 														glue_store_screen_size,	0);
 
+		window.addEventListener('camenesbounce',
+														camenesbounce_catch,	0);
+
 		baf_init();
 }
 
 function play() {
-		start_up();
+		document.getElementById('input').focus();
+		win_setup();
     setup();
 
 		if (!single_step) {
