@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://gnusto/skin/gnusto.css" type="text/css"?>
+
+<window
+	title="Gnusto"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns:html="http://www.w3.org/1999/xhtml"
+	persist="width height sizemode"
+	width="640" height="480"
+	onload="setTimeout('play()',10)">
+
+<!-- Glue for Mozilla. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/mozilla-glue.js"/>
+
+<!-- Upper window. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/upper.js"/>
+
+<!-- The main Gnusto library. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/gnusto-lib.js"/>
+
+<menubar>
+
+<menu id="server-menu" label="Game" accesskey="G">
+<menupopup>
+<menuitem label="New (restart)" accesskey="N"/>
+<menuitem label="Open (restore)..." accesskey="O"/>
+<menuitem label="Save" accesskey="S"/>
+<menuitem label="Save as..." accesskey="A"/>
+<menuseparator/>
+<menuitem label="Start transcript..." accesskey="T"/>
+<menuseparator/>
+<menuitem label="Exit" accesskey="X"/>
+</menupopup>
+</menu>
+
+<menu id="item-menu" label="Story" accesskey="S">
+<menupopup>
+<menuitem label="Open..." accesskey="O"/>
+</menupopup>
+</menu>
+
+<menu id="help-menu" label="Resources" accesskey="R">
+<menupopup>
+<menuitem label="Baf's Guide to the IF Archive" oncommand="open('http://www.wurb.com/if/')"  accesskey="B"/>
+<menuitem label="The IF Archive" oncommand="open('http://www.ifarchive.org')" accesskey="A"/>
+<menuitem label="The IF Competition" oncommand="open('http://ifcomp.org')" accesskey="C"/>
+<menuitem label="Brass Lantern" oncommand="open('http://brasslantern.org')" accesskey="L"/>
+<menuitem label="Open Directory: Interactive Fiction" oncommand="open('http://dmoz.org')" accesskey="D"/>
+<menuitem label="rec.games.int-fiction" accesskey="G"/>
+<menuitem label="rec.games.int-fiction FAQ" accesskey="Q"/>
+<menuitem label="rec.arts.int-fiction" accesskey="S"/>
+</menupopup>
+</menu>
+
+<menu id="help-menu" label="Help" accesskey="H">
+<menupopup>
+<menuitem label="About Gnusto..." accesskey="A" oncommand="alert('Gnusto')"/>
+</menupopup>
+</menu>
+
+</menubar>
+
+<vbox flex="1">
+
+<html:pre id="upper"></html:pre>
+<box flex="1" style="overflow: auto">
+<html:div id="tty" flex="1" style="background-color: #000077; color: #FFFFFF; font-size: 14pt;">
+</html:div>
+</box>
+
+<hbox>
+<textbox id="input" flex="10" onkeypress="gotInput(event.keyCode)"/>
+</hbox>
+
+<hbox>
+<description id="status" flex="5" value="You are likely to be eaten by a grue."/>
+<progressmeter id="progress" flex="1" value="100" mode="determined"/>
+</hbox>
+
+</vbox>
+
+</window>
