@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.80 2004/01/11 06:30:01 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.81 2004/01/18 03:15:28 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/01/11 06:30:01 $';
+const CVS_VERSION = '$Date: 2004/01/18 03:15:28 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -852,11 +852,11 @@ function handleZ_check_arg_count(engine, a) {
     return engine._brancher(a[0]+'<=_param_count()');
   }
 
-function handleZ_saveV1234(engine, a) {
+function handleZ_saveV123(engine, a) {
     gnusto_error(101, "v3 feature not yet implemented (save)");
 }
 
-function handleZ_saveV5678(engine, a) {
+function handleZ_saveV45678(engine, a) {
     //VERBOSE burin('save','');
     engine.m_compilation_running=0;
     var setter = "m_rebound=function() { " +
@@ -864,11 +864,11 @@ function handleZ_saveV5678(engine, a) {
     return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return";
 }
 		
-function handleZ_restoreV1234(engine, a) {
+function handleZ_restoreV123(engine, a) {
     gnusto_error(101, "v3 feature not yet implemented (restore)");
 }
 
-function handleZ_restoreV5678(engine, a) {
+function handleZ_restoreV45678(engine, a) {
     //VERBOSE burin('restore','');
     engine.m_compilation_running=0;
     var setter = "m_rebound=function(n) { " +
@@ -1038,8 +1038,8 @@ const handlers_v578 = {
     253: handleZ_copy_table,
     254: handleZ_print_table,
     255: handleZ_check_arg_count,
-    1000: handleZ_saveV5678,
-    1001: handleZ_restoreV5678,
+    1000: handleZ_saveV45678,
+    1001: handleZ_restoreV45678,
     1002: handleZ_log_shift,
     1003: handleZ_art_shift,
     1004: handleZ_set_font,
@@ -1077,8 +1077,8 @@ const handlers_v578 = {
 // doesn't support extended opcodes (below v5), don't worry about
 // zeroing out codes above 999-- they can't be accessed anyway.
 const handlers_fixups = {
-		1: undefined, // not yet implemented
-		2: undefined, // not yet implemented
+		1: undefined, // not yet implemented-- see bug 5547
+		2: undefined, // not yet implemented-- see bug 5547
 		3: {
 				25: 0, // call_2s
 				26: 0, // call_2n
@@ -1086,11 +1086,11 @@ const handlers_fixups = {
 				28: 0, // throw
 				136: 0, // call_1s
 				143: handleZ_not, // replaces call_1n
-				181: handleZ_saveV1234,
-				182: handleZ_restoreV1234,
+				181: handleZ_saveV123,
+				182: handleZ_restoreV123,
 				185: handleZ_pop, // replaces catch
 				188: handleZ_show_status,
-				190: 0, // no extended opcodes
+				190: 0, // extended opcodes
 				191: 0, // piracy
 				// 224 is shown in the ZMSD as being "call" before v4 and
 				// "call_vs" thence; this appears to be simply a name change.
@@ -1102,20 +1102,38 @@ const handlers_fixups = {
 				240: 0, // get_cursor
 				241: 0, // set_text_style
 				242: 0, // buffer_mode
-				246: 0, // read_char,
+				246: 0, // read_char
 				247: 0, // scan_table, 
-				248: 0, // not,
-				249: 0, // call_vn,
-				250: 0, // call_vn, // call_vn2,
-				251: 0, // tokenise,
-				252: 0, // encode_text,
-				253: 0, // copy_table,
-				254: 0, // print_table,
-				255: 0, // check_arg_count,
+				248: 0, // not
+				249: 0, // call_vn
+				250: 0, // call_vn2
+				251: 0, // tokenise
+				252: 0, // encode_text
+				253: 0, // copy_table
+				254: 0, // print_table
+				255: 0, // check_arg_count
 		},
-		4: undefined, // not yet implemented
+		4: { // z4 is fittingly somewhere between z3 and z5
+				26: 0, // call_2n
+				27: 0, // set_colour
+				28: 0, // throw
+				143: handleZ_not, // replaces call_1n
+				181: handleZ_saveV45678,
+				182: handleZ_restoreV45678,
+				185: handleZ_pop, // replaces catch
+				190: 0, // extended opcodes
+				191: 0, // piracy
+				248: 0, // not
+				249: 0, // call_vn
+				250: 0, // call_vn2
+				251: 0, // tokenise
+				252: 0, // encode_text
+				253: 0, // copy_table
+				254: 0, // print_table
+				255: 0, // check_arg_count
+		},
 		5: '', // The base copy *is* v5
-		6: undefined, // very complicated, and not yet implemented
+		6: undefined, // very complicated, and not yet implemented-- see bug 3621
 		7: '', // Defined to be the same as 5
 		8: '', // Defined to be the same as 5
 };
@@ -1789,7 +1807,7 @@ GnustoEngine.prototype = {
       this.m_stat_start  = this.getUnsignedWord(0xE);
       this.m_abbr_start  = this.getUnsignedWord(0x18);
 
-      if (this.m_version>=5) {
+      if (this.m_version>=4) {
 	  this.m_alpha_start = this.getUnsignedWord(0x34);
 	  this.m_object_tree_start = this.m_objs_start + 112;
 	  this.m_property_list_addr_start = this.m_object_tree_start + 12;
