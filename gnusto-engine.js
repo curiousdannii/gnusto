@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.72 2003/05/30 13:32:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.73 2003/06/05 02:33:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -184,6 +184,26 @@ var engine__effect_parameters = 0;
 
 var engine__random_seed = 0;
 var engine__use_seed = 0; 
+
+// Values of the bottom two bits in Flags 2 (address 0x11),
+// used by the zOut function.
+// See <http://mozdev.org/bugs/show_bug.cgi?id=3344>.
+var engine__printing_header_bits = 0;
+
+// Leftover text which should be printed next engine_run(), since
+// we couldn't print it this time because the flags had
+// changed.
+var engine__leftovers = '';
+
+// Should we @rtrue after printing |engine__leftovers|?
+// (This would happen if the flag change effect was triggered
+// by @print_ret.)
+// See <http://mozdev.org/bugs/show_bug.cgi?id=3830>.
+//
+// There's no need to clear this if you *don't* want the return;
+// it's false by default and setting it to true will cause it to
+// be cleared once the return has happened.
+var engine__leftovers_return = 0;
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -422,14 +442,43 @@ function handler_call(target, arguments) {
 				functino;
 }
 
-function handler_zOut(text) {
-		return 'if (zOut('+text+')){pc=0x'+
-				pc.toString(16)+
-				';return '+GNUSTO_EFFECT_FLAGS_CHANGED+
-				'}';
+// Returns a JS string that calls zOut() correctly to print
+// the line of text in |text|. (See zOut() for details of
+// what constitutes "correctly".)
+//
+// If |is_return| is set, the result will set a flag for
+// engine__print_leftovers() to @rtrue next time we run.
+// If it's clear, the result will set the PC to the
+// address immediately after the current function.
+function handler_zOut(text, is_return) {
+
+		var setter;
+
+		if (is_return) {
+				setter = 'engine__leftovers_return=1';
+		} else {
+				setter = 'pc=0x'+pc.toString(16);
+		}
+
+		return 'if(zOut('+text+')){' + setter +
+				';return '+ GNUSTO_EFFECT_FLAGS_CHANGED +	'}';
 }
 
-function handler_print(dummy, suffix) {
+// Returns a JS string which will print the text encoded
+// immediately after the current instruction.
+//
+// |dummy| is a dummy parameter that's never checked. It's
+// here so that this function can be directly used as a handler
+// in its own right (so it'll get passed the argument list,
+// which is always empty for @print and @print_ret).
+//
+// |suffix| is a string to add to the encoded string. It may
+// be null, in which case no string will be added.
+//
+// |is_return| is passed through unchanged to handler_zOut()
+// (this function is written in terms of that function).
+// See the comments for that function for details.
+function handler_print(dummy, suffix, is_return) {
 		var zf = zscii_from(pc,65535,1);
 		var message = zf[0];
 
@@ -440,7 +489,7 @@ function handler_print(dummy, suffix) {
 								 replace('"','\\"','g').
 								 replace('\n','\\n','g'); // not elegant
 		pc=zf[1];
-		return handler_zOut('"'+message+'"');
+		return handler_zOut('"'+message+'"', is_return);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -598,7 +647,7 @@ var handlers = {
 				return store_into(c, c+'-1');
 		},
 		135: function Z_print_addr(a) {
-				return handler_zOut("zscii_from("+pc_translate(a[0])+")");
+				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
 		},
 		136: function Z_call_1s(a) {
 				return handler_call(a[0], '');
@@ -607,7 +656,7 @@ var handlers = {
 				return "remove_obj("+a[0]+','+a[1]+")";
 		},
 		138: function Z_print_obj(a) {
-				return handler_zOut("name_of_object("+a[0]+")");
+				return handler_zOut("name_of_object("+a[0]+")",0);
 		},
 		139: function Z_ret(a) {
 				compiling=0;
@@ -623,7 +672,7 @@ var handlers = {
 				return "pc="+addr+";return";
 		},
 		141: function Z_print_paddr(a) {
-				return handler_zOut("zscii_from("+pc_translate(a[0])+")");
+				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
 		},
 		142: function Z_load(a) {
 
@@ -652,7 +701,7 @@ var handlers = {
 		178: handler_print, // (Z_print)
 		179: function Z_print_ret(a) {
 				compiling = 0;
-				return handler_print(0,'\n')+';gnusto_return(1);return';
+				return handler_print(0,'\n',1)+';gnusto_return(1);return';
 		},
 		180: function Z_nop(a) {
 				return "";
@@ -672,7 +721,7 @@ var handlers = {
 		},
 
 		187: function Z_new_line(a) {
-				return handler_zOut("'\\n'");
+				return handler_zOut("'\\n'",0);
 		},
 
 		189: function Z_verify(a) {
@@ -738,10 +787,10 @@ var handlers = {
 				"return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
-				return handler_zOut('zscii_char_to_ascii('+a[0]+')');
+				return handler_zOut('zscii_char_to_ascii('+a[0]+')',0);
 		},
 		230: function Z_print_num(a) {
-				return handler_zOut(a[0]);
+				return handler_zOut(a[0],0);
 		},
 		231: function Z_random(a) {
 				return storer("gnusto_random("+a[0]+")");
@@ -754,39 +803,48 @@ var handlers = {
 				return store_into(c, 'gamestack.pop()');
 		},
 		234: function Z_split_window(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
 		},
 		235: function Z_set_window(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
 		},
 		236: function Z_call_vs2(a) {
 				return storer(call_vn(a,1));
 		},
 		237: function Z_erase_window(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
 		},
 		238: function Z_erase_line(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
 		},
 		239: function Z_set_cursor(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
 
 		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
 
 		241: function Z_set_text_style(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
 		},
 		
 		242: function Z_buffer_mode(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
 		},
 
 		243: function Z_output_stream(a) {
+				compiling=0;
 				return 'set_output_stream('+a[0]+','+a[1]+')';
 		},
 
 		244: function Z_input_stream(a) {
+				compiling=0;
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
 		},
 
@@ -794,6 +852,7 @@ var handlers = {
 				// We're rather glossing over whether and how we
 				// deal with callbacks at present.
 
+				compiling=0;
 				while (a.length < 5) { a.push(0); }
 				return "pc="+pc+';engine__effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
 		},
@@ -890,7 +949,7 @@ var handlers = {
 		},
 
 		1011: function Z_print_unicode(a) {
-				return handler_zOut("String.fromCharCode(" +a[0]+")");
+				return handler_zOut("String.fromCharCode(" +a[0]+")",0);
 		},
 
 		1012: function Z_check_unicode(a) {
@@ -1019,7 +1078,7 @@ function dissemble() {
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
-				// code = code + 'golden_trail('+pc+');';
+				// code = code + 'burin("golden","'+pc.toString(16)+'");';
 				
 				// So here we go...
 				// what's the opcode?
@@ -1193,10 +1252,6 @@ function gnusto_random(arg) {
                                   return 0;
 		  }
                }
-}
-
-function clear_locals() {
-		for (var i=0; i<16; i++) locals[i]=0;
 }
 
 function func_prologue(actuals) {
@@ -1849,7 +1904,14 @@ function engine_start_game() {
 		// We don't also reset the debugging variables, because
 		// they need to persist across re-creations of this object.
 
-		clear_locals();
+		// Clear the Z-engine's local variables.
+		for (var i=0; i<16; i++) locals[i]=0;
+
+		engine__printing_header_bits = 0;
+
+		engine__leftovers = '';
+
+		engine__leftovers_return = 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1882,6 +1944,9 @@ function engine_run(answer) {
 
 				start_pc = pc;
 				if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
+				// Some useful debugging code:
+				// burin('eng pc', start_pc);
+				// burin('eng jit', jit[start_pc]);
 				stopping = jit[start_pc]();
 		}
 
@@ -2111,26 +2176,15 @@ function name_of_object(object) {
 
 ////////////////////////////////////////////////////////////////
 //
-// Values of the bottom two bits in Flags 2 (address 0x11),
-// used by the zOut function.
-// See <http://mozdev.org/bugs/show_bug.cgi?id=3344>.
-
-var engine__printing_header_bits = 0;
-
-////////////////////////////////////////////////////////////////
-//
-// Leftover text which should be printed next engine_run(), since
-// we couldn't print it this time because the flags had
-// changed.
-
-var engine__leftovers = '';
-
-////////////////////////////////////////////////////////////////
-//
 // Function to print the contents of engine__leftovers.
 
 function engine__print_leftovers() {
 		zOut(engine__leftovers);
+
+		if (engine__leftovers_return) {
+				engine__leftovers_return = 0;
+				gnusto_return(1);
+		}
 
 		// May as well clear it out and save memory,
 		// although we won't be called again until it's
