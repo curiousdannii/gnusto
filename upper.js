@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.7 2003/03/30 22:11:56 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.8 2003/03/30 22:41:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -169,7 +169,7 @@ function subchalk(win, fg, bg, style, text) {
 				appendPoint = spans.length-1;
 
 		} else {
-				if (charactersSeen >= window_current_x[win]) {
+				if (charactersSeen < window_current_x[win]) {
 
 						// We've seen fewer characters than we were expecting, so the
 						// last span is over-long: we must trim it.
