@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.30 2003/03/27 07:35:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.31 2003/03/27 07:49:26 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -530,12 +530,12 @@ function gnusto_error(n) {
 		if (ignore_errors[n])
 				return;
 
-		var m = 'Gnusto error #'+n;
+		var m = getMsg('error.'+n+'.name', arguments, 'Unknown error!')+'\n(#'+n+'; ';
 
 		if (n>=500)
-				m = m + ' transient.';
+				m = m + 'transient)';
 		else
-				m = m + ' FATAL.';
+				m = m + 'FATAL)';
 
 		for (var i=1; i<arguments.length; i++) {
 				m = m + '\nDetail: '+arguments[i].toString();
