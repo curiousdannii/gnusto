@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.97 2003/07/21 05:49:46 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.98 2003/07/21 16:41:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -488,8 +488,13 @@ function gotInput(e) {
 
 				if (e.keyCode==13) {
 
+						// Carriage return. So we've got a line of input.
+
 						var result = current[0]+current[1];
 
+						// We previously replaced alternate spaces with
+						// &nbsp;s so that Gecko wouldn't collapse them.
+						// Now we must put them back.
 						result = result.replace('\u00A0', ' ', 'g');
 
 						win_destroy_input();
