@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.17 2003/07/09 22:53:32 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.18 2003/07/11 01:21:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -591,6 +591,29 @@ function sys_show_story_title(newname) {
 
 function sys_current_filename() {
 		return sys__current_filename;
+}
+
+////////////////////////////////////////////////////////////////
+//
+// command_analysescreen
+//
+// Dumps the contents of the screen to a nominated file.
+// See <http://mozdev.org/bugs/show_bug.cgi?id=4048>.
+//
+function command_analysescreen(a) {
+		var ifp = Components.interfaces.nsIFilePicker;
+		var picker = Components.classes["@mozilla.org/filepicker;1"].
+				createInstance(ifp);
+
+		picker.init(window, "Where do you want the dump?", ifp.modeSave);
+		picker.appendFilter("Text files", "*.txt");
+		picker.defaultString = 'gscreen.txt';
+				
+		if (picker.show()==ifp.returnOK) {
+						localfile = picker.file;
+						filename = localfile.path;
+						alert(filename);
+		}
 }
 
 ////////////////////////////////////////////////////////////////
