@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.77 2003/12/18 04:39:56 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.78 2003/12/29 02:47:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/18 04:39:56 $';
+const CVS_VERSION = '$Date: 2003/12/29 02:47:14 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -560,53 +560,104 @@ function handleZ_putprop(engine, a) {
     //VERBOSE burin('putprop',"put_prop("+a[0]+','+a[1]+','+a[2]+')');
     return "_put_prop("+a[0]+','+a[1]+','+a[2]+')';
   }
-function handleZ_read(engine, a) {
-				
-    // read, aread, sread, whatever it's called today.
-    // That's something that we can't deal with within gnusto:
-    // ask the environment to magic something up for us.
 
-    if (a[3] && (engine.m_version>=4)) {
-      // ...then we should do something with a[2] and a[3],
-      // which are timed input parameters. For now, though,
-      // we'll just ignore them.
-      //VERBOSE burin('read',"should have been timed-- not yet supported");
-    }
+// read, aread, sread, whatever it's called today.
+// That's something that we can't deal with within gnusto:
+// ask the environment to magic something up for us.
+function handleZ_read(engine, a) {
+
+		// JS representing number of deciseconds to wait before a
+		// timeout should occur, or 0 if there shouldn't be one.
+		var timeout_deciseconds;
+
+		// JS representing the address of the timeout routine,
+		// or 0 if there isn't one.
+		var address_of_timeout_routine;
 
     engine.m_compilation_running = 0;
 
-		var setter;
-		var char_count_getter;
+		// Since a[0] (address of the text buffer) is referenced so often,
+		// we introduce a variable |a0| into JITspace with the same value.
+
+		// A JS string telling us what to do if there isn't a timeout.
+    var rebound_for_no_timeout =
+				"_aread(m_answers[0],m_rebound_args[1],"+
+				"m_rebound_args[2],m_answers[1])";
+
+		// A JS string telling how to get the number of characters to "recap".
 		var recaps_getter;
 
+		// A JS string telling us how to get the number of characters the
+		// text buffer can hold.
+		var char_count_getter;
+
 		if (engine.m_version>=5) {
-				// In z5-z8 it's a store instruction.
-				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
-						engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1],m_answers[1])") +
-						"};";
+				// In z5-z8, @read is a store instruction.
+				rebound_for_no_timeout = engine._storer(rebound_for_no_timeout);
 				recaps_getter = "getByte(a0+1)";
 				char_count_getter = "getByte(a0)";
 		} else {
-				// In z1-z4 it's not a store instruction.
-				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
-						"_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1],m_answers[1])" +
-						"};";
+				// z1-z4.
 				recaps_getter = '0';
 				char_count_getter = "getByte(a0)+1";
 		}
 
+    if (a[2] && a[3] && (engine.m_version>=4)) {
 
-    //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
+				// This is a timed routine.
+				// a[3] is the routine to call after a[2] deciseconds.
+
+				timeout_deciseconds = a[2];
+
+				address_of_timeout_routine = engine.m_pc_translate_for_routine(a[3]);
+
+		} else {
+
+				// No timeout.
+
+				timeout_deciseconds = '0';
+
+				address_of_timeout_routine = '0';
+
+				// Optimisation: In this case we could optimise rebound_setter
+				// so that it doesn't check whether to call the interrupt
+				// service routine. We haven't done this here for simplicity,
+				// but we did it in the simpler @read_char.
+		}
+
+		// JS for a function to handle the answer to this effect.
+		// The answer will be one integer; if the integer is zero,
+		// it's a request for a timeout; if it's nonzero, it's a
+		// keycode to be stored as the present instruction dictates.
+		var rebound_setter = "m_rebound=function(){"+
+				"var t=1*m_answers[0];" +
+				"if(t<0){"+
+				"_func_interrupt(m_rebound_args[0],onISRReturn_for_read);"+ // -ve: timeout
+				"}else{"+
+				rebound_for_no_timeout + ";" +
+				"}};";
+
+		var rebound_args_setter =
+				"m_rebound_args=["+
+				address_of_timeout_routine + "," + // Where to jump on timeout
+				"a0,"+ // Address of text buffer
+				a[1]+","+ // Address of parse buffer
+				"];";
+
+		/****************************************************************/
 
     return "var a0=eval("+ a[0] + ");" +
 				"m_pc=" + engine.m_pc + ";" +
-				setter +
+				rebound_args_setter +
+				rebound_setter +
 				"m_effects=["+
 				GNUSTO_EFFECT_INPUT + "," +
+				timeout_deciseconds + "," +
 				recaps_getter + "," +
 				char_count_getter + "," +
 				"_terminating_characters()];return";
-  }
+}
+
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
     return engine._handler_zOut('_zscii_char_to_ascii('+a[0]+')',0);
@@ -716,7 +767,7 @@ function handleZ_read_char(engine, a) {
 
     // a[0] is always 1; probably not worth checking for this.
 
-    if (a[1] && a[2]) {
+    if (a[1] && a[2] && (engine.m_version>=4)) {
 				// This is a timed routine.
 				// a[2] is the routine to call after a[1] deciseconds.
 				timeout_deciseconds = a[1];
@@ -1184,6 +1235,34 @@ function onISRReturn_for_read_char(interrupt_info, result) {
 		}
 }
 
+function onISRReturn_for_read(interrupt_info, result) {
+
+		var engine = interrupt_info.engine;
+
+		if (result) {
+
+				// If an ISR returns true, we return as from the original
+				// effect. The terminating keypress is given as zero.
+				// The contents of the text buffer are set to zero.
+
+				engine.m_answers[0] = 0;
+				// From this, the rebound will save the text and
+				// parse buffers correctly:
+				engine.m_answers[1] = '';
+
+				interrupt_info.rebound();
+
+		} else {
+
+				// This is the really tricky part:
+				// XXX FIXME:
+				// If the effect has printed anything... what?
+
+				engine.m_effects = interrupt_info.effects;
+
+		}
+}
+
 ////////////////////////////////////////////////////////////////
 //
 // The Engine
@@ -1406,9 +1485,11 @@ GnustoEngine.prototype = {
     var turns_limit = this.m_single_step? 1: 10000;
 
     if (this.m_rebound) {
-				this.m_rebound();
+				var temp = this.m_rebound;
 				this.m_rebound = 0;
-				this.m_rebound_args = [];
+				// We operate on a copy because the rebound might quite reasonably
+				// want to affect this.m_rebound.
+				temp();
 		}
 
 		this.m_effects = [];
@@ -2536,8 +2617,7 @@ GnustoEngine.prototype = {
 	//  * Doesn't handle word separators. (FIXME: Does it yet?)
 	// FIXME: Consider having no parameters; they're always filled in from
 	// the same fields anyway.
-	_aread: function ge_aread(source, text_buffer, parse_buffer,
-														terminating_keypress) {
+	_aread: function ge_aread(terminating_keypress, text_buffer, parse_buffer, entered) {
 
 			text_buffer &= 0xFFFF;
 			parse_buffer &= 0xFFFF;
@@ -2549,8 +2629,8 @@ GnustoEngine.prototype = {
 
 					// In z1-z4, the array is null-terminated.
 			
-					var max_chars = this.getByte(text_buffer)+1;
-					var result = source.substring(0,max_chars);
+					max_chars = this.getByte(text_buffer)+1;
+					result = entered.substring(0,max_chars);
 
 					for (var i=0;i<result.length;i++) {
 							this.setByte(result.charCodeAt(i), text_buffer + 1 + i);
@@ -2562,8 +2642,8 @@ GnustoEngine.prototype = {
 
 					// In z5-z8, the array starts with a size byte.
 
-					var max_chars = this.getByte(text_buffer);
-					var result = source.substring(0,max_chars);
+					max_chars = this.getByte(text_buffer);
+					result = entered.substring(0,max_chars);
 
 					this.setByte(result.length, text_buffer + 1);
 			
@@ -2637,7 +2717,6 @@ GnustoEngine.prototype = {
 					var interrupt_info = this.m_interrupt_information.pop();
 
 					this.m_pc = interrupt_info.pc;
-					dump('--- calling ---\n');
 					interrupt_info.on_return(interrupt_info, value);
 			}
 	},
