@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.27 2003/04/23 23:43:18 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.28 2003/04/24 17:02:35 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -115,7 +115,7 @@ function ensureHappiness() {
 <menuseparator/>
 <menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="alert(sys_get_recent_list());"/>
 <menuseparator/>
-<menuitem label="Exit" accesskey="X" oncommand="try{quitGame()}catch(e){deal_with_exception(e)}"/>
+<menuitem label="Exit" accesskey="X" oncommand="dispatch('shutdown');"/>
 </menupopup>
 </menu>
 
@@ -151,7 +151,7 @@ function ensureHappiness() {
 
 <iframe flex="9" id="screen" type="content-primary" src="output.html"/>
 
-<textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
+<textbox flex="0" id="input"/>
 </vbox>
 
 </window>

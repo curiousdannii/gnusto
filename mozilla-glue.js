@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.61 2003/04/23 12:53:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.62 2003/04/24 17:02:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -115,9 +115,10 @@ function go_wrapper(answer, no_first_call) {
 						glue__chalk_overflow = glue_print(engine_console_text());
 				}
 
-				if (glue__chalk_overflow) {
-						// Perhaps not how we'll always do it, but OK for now.
-						window.title = 'Gnusto (Press space for more...)';
+				if (glue__chalk_overflow != '') {
+						// Not how we'll always do it, but OK for now.
+						document.getElementById("input").value =
+								' [ Press space for more ]';
 						return;
 				}
 
@@ -307,18 +308,27 @@ function camenesbounce_catch(e) {
 
 ////////////////////////////////////////////////////////////////
 
-function start_up() {
-		document.getElementById('input').focus();
+function glue_init() {
+		var inputBox = document.getElementById('input');
 
-		win_init();
+		inputBox.onkeypress=gotInput;
+		inputBox.focus();
 
 		glue__get_font_metrics();
 
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);
+}
 
+////////////////////////////////////////////////////////////////
+
+function start_up() {
+
+		glue_init();
+		win_init();
 		baf_init();
 		sys_init();
+
 }
 
 function play() {
@@ -332,59 +342,47 @@ function play() {
 		}
 }
 
-// Used as the only content of the exception handlers of JS fragments in the XUL.
-function deal_with_exception(e) {
+function gotInput(e) {
 
-		// -1 is thrown by gnusto_error when it wants to kill everything
-		// back down to this level, so we should ignore that.
-
-		if (e!=-1) {
- 				gnusto_error(307, e);
-		}
-}
-
-function gotInput(event) {
 		var inputBox = document.getElementById("input");
 		var value = inputBox.value;
 
-		if (value.length>2 && value[0]=='/' && event.keyCode==13) {
-				// Tossio debug stuff. (There should be a way to
-				// turn this off, too.)
-
-				inputBox.value = '';
-				tossio_debug_instruction(value.substring(1).split(/ +/));
-		} else if (glue__chalk_overflow!='') {
+		if (glue__chalk_overflow!='') {
 
 				// We're at a [MORE] prompt. Only carry on for certain keys
 				// (otherwise it'll trigger on Alt and things like that).
 
-				if (event.charCode==32) {
-						window.title = 'Gnusto';
+				if (e.charCode==32) {
 						inputBox.value = '';
 
 						// So go back for more...
 						go_wrapper(0, 1);
 				}
 
-		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
+				// Stop the event; we've handled
+				// this successfully ourselves.
+				return false;
+
+		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && e.keyCode==13) {
 				inputBox.value = '';
 
 				glue_print(value+'\n');
 				go_wrapper(value);
-		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
-				var useful = 1;
 
-				if (event.keyCode==0) {
-						var code = event.charCode;
+				return false;
+
+		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT_CHAR) {
+
+				if (e.keyCode==0) {
+						var code = e.charCode;
 
 						if (code>=32 && code<=126)
 								// Regular ASCII; just pass it straight through
 								go_wrapper(code);
-						else
-								useful = 0;
-				}
-				else {
-						switch (event.keyCode) {
+
+				}	else {
+
+						switch (e.keyCode) {
 
 								// Arrow keys
 						case  37 : go_wrapper(131); break;
@@ -419,18 +417,11 @@ function gotInput(event) {
 
 								// escape
 						case  27 : go_wrapper(27); break;
-
-						default:
-								useful = 0; // nope, didn't do it for us.
 						}
 				}
 
-				if (useful) {
-						inputBox.value = '';
-						return 0;
-				} else {
-						return 1;
-				}
+				inputBox.value = '';
+				return false;
 		}
 }
 

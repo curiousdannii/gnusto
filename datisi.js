@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.6 2003/04/23 23:43:18 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.7 2003/04/24 17:02:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -289,6 +289,7 @@ function command_open(a) {
 
 		if (filename && result==1) {
 				sys_notify_of_load(filename);
+				sys_show_story_title(filename);
 		}
 }
 
@@ -312,6 +313,8 @@ function sys_init() {
 		sys__recent_list.append('recent.dat');
 
 		sys_update_recent_menu(sys_get_recent_list());
+
+		sys_show_story_title('');
 }
 
 ////////////////////////////////////////////////////////////////
@@ -465,6 +468,22 @@ function sys_update_recent_menu(recent) {
 						element.setAttribute('accesskey', n);
 				else if (n==10)
 						element.setAttribute('accesskey', '0');
+		}
+}
+
+////////////////////////////////////////////////////////////////
+
+var sys__story_name = '';
+
+function sys_show_story_title(newname) {
+
+		if (newname != null)
+				sys__story_name = newname;
+
+		if (sys__story_name == '') {
+				window.title = "Gnusto";
+		} else {
+				window.title = sys__story_name + " - Gnusto";
 		}
 }
 
