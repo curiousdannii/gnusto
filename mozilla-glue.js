@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.99 2003/07/26 04:17:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.100 2003/08/02 00:34:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -437,10 +437,15 @@ function glue_store_screen_size(width_in_chars,
 
 		zSetByte(height_in_chars,                    0x20); // screen h, chars
 		zSetByte(width_in_chars,                     0x21); // screen w, chars
-		zSetWord(width_in_chars *font_dimensions[0], 0x22); // screen w, units
-		zSetWord(height_in_chars*font_dimensions[1], 0x24); // screen h, units
-		zSetByte(font_dimensions[0],                 0x26); // font w, units
-		zSetByte(font_dimensions[1],                 0x27); // font h, units
+                // until we fix set_cursor, we must be 1x1
+		//zSetWord(width_in_chars *font_dimensions[0], 0x22); // screen w, units
+		//zSetWord(height_in_chars*font_dimensions[1], 0x24); // screen h, units
+		//zSetByte(font_dimensions[0],                 0x26); // font w, units
+		//zSetByte(font_dimensions[1],                 0x27); // font h, units
+		zSetWord(width_in_chars,                     0x22); // screen w, units
+		zSetWord(height_in_chars,                    0x24); // screen h, units
+		zSetByte(1,                                  0x26); // font w, units
+		zSetByte(1,                                  0x27); // font h, units
 
 }
 

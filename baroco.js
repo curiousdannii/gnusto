@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.17 2003/07/14 00:46:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.18 2003/08/02 00:34:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -79,7 +79,7 @@ function win_init() {
 function win_start_game() {
 
 		baroco__enable_barbara = true;
-		baroco__forcing_monospace = 0;
+		baroco__forcing_monospace = 1;  //upper window should be monospace
 		baroco__dimensions = null;
 		baroco__current_style = 0;
 		baroco__current_foreground = 1;
