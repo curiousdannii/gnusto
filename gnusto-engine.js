@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.4 2003/09/15 02:56:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.5 2003/09/15 03:12:33 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 02:56:43 $';
+const CVS_VERSION = '$Date: 2003/09/15 03:12:33 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -208,70 +208,6 @@ function brancher(engine, condition) {
   return if_statement + '{this.m_pc='+(target_address)+';return;}';
 }
 
-////////////////////////////////////////////////////////////////
-//
-// code_for_varcode
-//
-// should one day be replaced by varcode_[sg]et, probably.
-//
-function code_for_varcode(varcode) {
-  if (varcode==0)
-    return 'gamestack.pop()';
-  else if (varcode < 0x10)
-    return 'locals['+(varcode-1)+']';
-  else
-    return 'this.getWord('+(vars_start+(varcode-16)*2)+')';
-
-  gnusto_error(170); // impossible
-}
-
-////////////////////////////////////////////////////////////////
-//
-// varcode_get
-//
-// Retrieves the value specified by |varcode|, and returns it.
-// |varcode| is interpreted as in ZSD 4.2.2:
-//    0     = pop from game stack
-//    1-15  = local variables
-//    16 up = global variables
-//
-// TODO: We need a varcode_getcode() which returns a JS string
-// which will perform the same job as this function, to save us
-// the extra call we use when encoding "varcode_get(constant)".
-function varcode_get(engine, varcode) {
-  if (varcode==0)
-    return gamestack.pop();
-  else if (varcode < 0x10)
-    return locals[(varcode-1)];
-  else
-    return engine.getWord(vars_start+(varcode-16)*2);
-
-  gnusto_error(170); // impossible
-}
-
-////////////////////////////////////////////////////////////////
-//
-// varcode_set
-//
-// Retrieves the value specified by |varcode|, and returns it.
-// |varcode| is interpreted as in ZSD 4.2.2.
-//    0     = push to game stack
-//    1-15  = local variables
-//    16 up = global variables
-//
-// TODO: We need a varcode_setcode() which returns a JS string
-// which will perform the same job as this function, to save us
-// the extra call we use when encoding "varcode_set(n, constant)".
-function varcode_set(engine, value, varcode) {
-  if (varcode==0) {
-    gamestack.push(value);
-  } else if (varcode < 0x10) {
-    locals[varcode-1] = value;
-  } else {
-    engine.setWord(value, vars_start+(varcode-16)*2);
-  }
-}
-
 function store_into(engine, lvalue, rvalue) {
   if (rvalue.substring && rvalue.substring(0,5)=='gosub') {
     // Special case: the results of gosubs can't
@@ -306,7 +242,7 @@ function store_into(engine, lvalue, rvalue) {
 
 function storer(engine, rvalue) {
   return store_into(engine,
-										code_for_varcode(engine.getByte(engine.m_pc++)),
+										engine._code_for_varcode(engine.getByte(engine.m_pc++)),
 										rvalue);
 }
 
@@ -567,11 +503,11 @@ function handleZ_jg(engine, a) {
 
 function handleZ_dec_chk(engine, a) {
     //VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
-    return 't='+a[0]+';t2=varcode_get(this,t)-1;varcode_set(this,t2,t);'+brancher('t2<'+a[1]);
+    return 't='+a[0]+';t2=this._varcode_get(t)-1;this._varcode_set(t2,t);'+brancher('t2<'+a[1]);
   }
 function handleZ_inc_chk(engine, a) {
     //VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
-    return 't='+a[0]+';t2=varcode_get(this,t)+1;varcode_set(this,t2,t);'+brancher('t2>'+a[1]);
+    return 't='+a[0]+';t2=this._varcode_get(t)+1;this._varcode_set(t2,t);'+brancher('t2>'+a[1]);
   }
 
 function handleZ_jin(engine, a) {
@@ -604,7 +540,7 @@ function handleZ_clear_attr(engine, a) {
   }
 function handleZ_store(engine, a) {
     //VERBOSE burin('store',a[0] + ',' + a[1]);
-    return "varcode_set(this,"+a[1]+","+a[0]+")";
+    return "this._varcode_set("+a[1]+","+a[0]+")";
   }
 function handleZ_insert_obj(engine, a) {
     //VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
@@ -690,11 +626,11 @@ function handleZ_get_prop_len(engine, a) {
   }
 function handleZ_inc(engine, a) {
     //VERBOSE burin('inc',c + '+1');
-    return "t="+a[0]+';varcode_set(this,varcode_get(this,t)+1, t)';
+    return "t="+a[0]+';this._varcode_set(this._varcode_get(this,t)+1, t)';
   }
 function handleZ_dec(engine, a) {
     //VERBOSE burin('dec',c + '-1');
-    return "t="+a[0]+';varcode_set(this,varcode_get(this,t)-1, t)';
+    return "t="+a[0]+';this._varcode_set(this._varcode_get(this,t)-1, t)';
   }
 function handleZ_print_addr(engine, a) {
     //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
@@ -733,7 +669,7 @@ function handleZ_print_paddr(engine, a) {
   }
 function handleZ_load(engine, a) {
     //VERBOSE burin('load',"store " + c);
-    return storer(engine, 'varcode_get(this,'+a[0]+')');
+    return storer(engine, 'this._varcode_get('+a[0]+')');
   }
 function handleZ_call_1n(engine, a) {
     // can we use handler_call here, too?
@@ -821,7 +757,7 @@ function handleZ_piracy(engine, a) {
 function handleZ_call_vs(engine, a) {
     //VERBOSE burin('call_vs','see call_vn');
     return storer(engine, call_vn(engine, a, 1));
-  }
+}
 
 function handleZ_store_w(engine, a) {
     //VERBOSE burin('storew',"setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")");
@@ -889,7 +825,7 @@ function handleZ_push(engine, a) {
   }
 function handleZ_pull(engine, a) {
     //VERBOSE burin('pull',c +'=gamestack.pop()');
-    return 'varcode_set(this,gamestack.pop(),'+a[0]+')';
+    return 'this._varcode_set(gamestack.pop(),'+a[0]+')';
   }
 function handleZ_split_window(engine, a) {
     engine.m_compilation_running=0;
@@ -1405,7 +1341,7 @@ GnustoEngine.prototype = {
   },
 
   get status() {
-    return 'this is the status, hurrah! '+this.m_memory.length+' bytes.';
+    return 'this is the status, hurrah!';
   },
 
   ////////////////////////////////////////////////////////////////
@@ -1422,51 +1358,51 @@ GnustoEngine.prototype = {
   // Initialises global variables.
   _initial_setup: function ge_initial_setup() {
 
-    this.m_jit = [];
-    this.m_compilation_running = 0;
-    this.m_gamestack = [];
+			this.m_jit = [];
+			this.m_compilation_running = 0;
+			this.m_gamestack = [];
 
-    this.m_call_stack = [];
-    this.m_locals = [];
-    this.m_locals_stack = [];
-    this.m_param_counts = [];
-    this.m_result_eaters = [];
+			this.m_call_stack = [];
+			this.m_locals = [];
+			this.m_locals_stack = [];
+			this.m_param_counts = [];
+			this.m_result_eaters = [];
 
-    this.m_version     = this.getByte(0);
+			this.m_version     = this.getByte(0);
 
-    this.m_himem       = this.getUnsignedWord(0x4);
-    this.m_pc          = this.getUnsignedWord(0x6);
-    this.m_dict_start  = this.getUnsignedWord(0x8);
-    this.m_objs_start  = this.getUnsignedWord(0xA);
-    this.m_vars_start  = this.getUnsignedWord(0xC);
-    this.m_stat_start  = this.getUnsignedWord(0xE);
-    this.m_abbr_start  = this.getUnsignedWord(0x18);
-    this.m_alpha_start = this.getUnsignedWord(0x34);
-    this.m_hext_start  = this.getUnsignedWord(0x36);		
+			this.m_himem       = this.getUnsignedWord(0x4);
+			this.m_pc          = this.getUnsignedWord(0x6);
+			this.m_dict_start  = this.getUnsignedWord(0x8);
+			this.m_objs_start  = this.getUnsignedWord(0xA);
+			this.m_vars_start  = this.getUnsignedWord(0xC);
+			this.m_stat_start  = this.getUnsignedWord(0xE);
+			this.m_abbr_start  = this.getUnsignedWord(0x18);
+			this.m_alpha_start = this.getUnsignedWord(0x34);
+			this.m_hext_start  = this.getUnsignedWord(0x36);		
 	
-		// Use the correct addressing mode for this Z-machine version...
+			// Use the correct addressing mode for this Z-machine version...
 
-    if (this.m_version<=3) {
-				// Versions 1 and 2 (prehistoric)
-				this.m_pc_translate_for_routine = pc_translate_v123;
-				this.m_pc_translate_for_string = pc_translate_v123;
-    } else if (this.m_version<=5) {
-				// Versions 3 ("Standard"), 4 ("Plus") and 5 ("Advanced")
-				this.m_pc_translate_for_routine = pc_translate_v45;
-				this.m_pc_translate_for_string = pc_translate_v45;
-    } else if (this.m_version<=7) {
-				// Versions 6 (the graphical one) and 7 (rare postInfocom extension)
-				this.m_routine_start  = this.getUnsignedWord(0x28)*8;
-				this.m_string_start   = this.getUnsignedWord(0x2a)*8;
-				this.m_pc_translate_for_routine = pc_translate_v67R;
-				this.m_pc_translate_for_string = pc_translate_v67S;
-    } else if (this.m_version==8) {
-				// Version 8 (normal postInfocom extension)
-				this.m_pc_translate_for_routine = pc_translate_v8;
-				this.m_pc_translate_for_string = pc_translate_v8;
-    } else {
-				gnusto_error(170, 'impossible: unknown z-version got this far');
-    }
+			if (this.m_version<=3) {
+					// Versions 1 and 2 (prehistoric)
+					this.m_pc_translate_for_routine = pc_translate_v123;
+					this.m_pc_translate_for_string = pc_translate_v123;
+			} else if (this.m_version<=5) {
+					// Versions 3 ("Standard"), 4 ("Plus") and 5 ("Advanced")
+					this.m_pc_translate_for_routine = pc_translate_v45;
+					this.m_pc_translate_for_string = pc_translate_v45;
+			} else if (this.m_version<=7) {
+					// Versions 6 (the graphical one) and 7 (rare postInfocom extension)
+					this.m_routine_start  = this.getUnsignedWord(0x28)*8;
+					this.m_string_start   = this.getUnsignedWord(0x2a)*8;
+					this.m_pc_translate_for_routine = pc_translate_v67R;
+					this.m_pc_translate_for_string = pc_translate_v67S;
+			} else if (this.m_version==8) {
+					// Version 8 (normal postInfocom extension)
+					this.m_pc_translate_for_routine = pc_translate_v8;
+					this.m_pc_translate_for_string = pc_translate_v8;
+			} else {
+					gnusto_error(170, 'impossible: unknown z-version got this far');
+			}
 
 		// And pick up the relevant instruction set.
 
@@ -1480,7 +1416,7 @@ GnustoEngine.prototype = {
 
     this.m_separator_count = this.getByte(this.m_dict_start);
     for (var i=0; i<this.m_separator_count; i++) {		  
-      this.m_separators[i]=zscii_char_to_ascii(this, this.getByte(this.m_dict_start + i+1));
+      this.m_separators[i]=this._zscii_char_to_ascii(this, this.getByte(this.m_dict_start + i+1));
     }	
 	
     // If there is a header extension...
@@ -1601,8 +1537,7 @@ GnustoEngine.prototype = {
 					} else if (current==0x4000) {
 							args[argcursor++] = this.getByte(this.m_pc++);
 					} else if (current==0x8000) {
-							args[argcursor++] =
-							code_for_varcode(this.getByte(this.m_pc++));
+							args[argcursor++] = this._code_for_varcode(this.getByte(this.m_pc++));
 					} else {
 							gnusto_error(171); // impossible
 					}
@@ -1689,7 +1624,7 @@ GnustoEngine.prototype = {
 									
 									case 0x20:
 											args[0] =
-													code_for_varcode(this.getByte(this.m_pc++));
+													this._code_for_varcode(this.getByte(this.m_pc++));
 											instr = (instr & 0x0F) | 0x80;
 											break;
 									
@@ -1704,13 +1639,13 @@ GnustoEngine.prototype = {
 					
 							if (instr & 0x40)
 									args[0] =
-											code_for_varcode(this.getByte(this.m_pc++));
+											this._code_for_varcode(this.getByte(this.m_pc++));
 							else
 									args[0] = this.getByte(this.m_pc++);
 							
 							if (instr & 0x20)
 									args[1] =
-											code_for_varcode(this.getByte(this.m_pc++));
+											this._code_for_varcode(this.getByte(this.m_pc++));
 							else
 									args[1] = this.getByte(this.m_pc++);
 					
@@ -1718,12 +1653,14 @@ GnustoEngine.prototype = {
 					}
 			
 					if (this.m_handlers[instr]) {
-							code = code + this.m_handlers[instr](args)+';';
+							code = code + this.m_handlers[instr](this, args)+';';
 							//VERBOSE burin(code,'');
 					} else if (instr>=1128 && instr<=1255 &&
 										 "special_instruction_EXT"+(instr-1000) in this) {
 					
 							// ZMSD 14.2: We provide a hook for plug-in instructions.
+							// FIXME: This will no longer work in a component.
+							// Can we do anything else instead?
 							
 							code = code +
 									this["special_instruction_EXT"+(instr-1000)](args)+
@@ -2803,6 +2740,72 @@ GnustoEngine.prototype = {
 					if (value == this.m_separators[sepindex]) return 1;	
 			}
 			return 0;	
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// code_for_varcode
+	//
+	// should one day be replaced by varcode_[sg]et, probably.
+	//
+	_code_for_varcode: function ge_code_for_varcode(varcode) {
+			if (varcode==0) {
+					return 'gamestack.pop()';
+			} else if (varcode < 0x10) {
+					return 'locals['+(varcode-1)+']';
+			} else {
+					return 'this.getWord('+(this.m_vars_start+(varcode-16)*2)+')';
+			}
+
+			gnusto_error(170); // impossible
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// varcode_get
+	//
+	// Retrieves the value specified by |varcode|, and returns it.
+	// |varcode| is interpreted as in ZSD 4.2.2:
+	//    0     = pop from game stack
+	//    1-15  = local variables
+	//    16 up = global variables
+	//
+	// TODO: We need a varcode_getcode() which returns a JS string
+	// which will perform the same job as this function, to save us
+	// the extra call we use when encoding "varcode_get(constant)".
+	_varcode_get: function ge_varcode_get(varcode) {
+			if (varcode==0) {
+					return gamestack.pop();
+			} else if (varcode < 0x10) {
+					return locals[(varcode-1)];
+			} else {
+					return this.getWord(this.m_vars_start+(varcode-16)*2);
+			}
+
+			gnusto_error(170); // impossible
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// varcode_set
+	//
+	// Stores the value |value| in the place specified by |varcode|.
+	// |varcode| is interpreted as in ZSD 4.2.2.
+	//    0     = push to game stack
+	//    1-15  = local variables
+	//    16 up = global variables
+	//
+	// TODO: We need a varcode_setcode() which returns a JS string
+	// which will perform the same job as this function, to save us
+	// the extra call we use when encoding "varcode_set(n, constant)".
+	_varcode_set: function ge_varcode_set(value, varcode) {
+			if (varcode==0) {
+					gamestack.push(value);
+			} else if (varcode < 0x10) {
+					locals[varcode-1] = value;
+			} else {
+					this.setWord(value, this.m_vars_start+(varcode-16)*2);
+			}
 	},
 
   ////////////////////////////////////////////////////////////////
