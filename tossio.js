@@ -231,7 +231,9 @@ function zscii_from(address, max_length, tell_length) {
 		}
 }
 
-
+/* memory inspection functions removed for now,
+because they have outdated expectations of storage formats.
+They will be rewritten when tossio is less experimental. -- marnanel
 function getbyte(address) {
     // Convoluted to work around the null byte problem.
     // See http://gnusto.mozdev.org/nullbytes.html
@@ -250,7 +252,6 @@ function getbyte(address) {
     return result;
 }
 
-
 function unsigned2signed(value) {
 		return ((value & 0x8000)?~0xFFFF:0)|value;
 }
@@ -258,6 +259,7 @@ function unsigned2signed(value) {
 function get_unsigned_word(addr) {
     return getbyte(addr)*256+getbyte(addr+1);
 }
+*/
 
 function string_for_varcode(varcode) {
 		if (varcode==0)
