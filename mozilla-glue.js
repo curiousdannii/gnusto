@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.66 2003/04/27 22:50:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.67 2003/04/30 02:05:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -82,12 +82,13 @@ function go_wrapper(answer, no_first_call) {
 						glue__chalk_overflow = glue_print(engine_console_text());
 				}
 
+				/* Removed for the moment -- tjat2
 				if (glue__chalk_overflow != '') {
 						// Not how we'll always do it, but OK for now.
 						document.getElementById("input").value =
 								' [ Press space for more ]';
 						return;
-				}
+				}*/
 
 				switch (reasonForStopping) {
 

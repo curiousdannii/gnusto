@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.3 2003/04/27 22:48:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.4 2003/04/30 02:05:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -67,14 +67,21 @@ function barbara_chalk(text) {
 
 		for (var i in lines) {
 				if (i!=0) {
-						barbara__holder.
-								appendChild(document.createElementNS(barbara__HTML,
-																										 'html:br'));
+						var temp = document.createElementNS(barbara__HTML,
+																										 'html:br');
+						barbara__holder.appendChild(temp);
 				}
-				
+
 				barbara__holder.
 						appendChild(document.createTextNode(lines[i]));
 		}
+				
+		// And scroll to the end.
+		// (FIXME: Really we want to do this only when we're waiting
+		// for input; it's all tied up with [MORE], too)
+
+		//var scrollable = document.getElementById('barbarabox').boxObject;
+		//var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
 
 		return '';
 }

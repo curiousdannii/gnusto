@@ -1,14 +1,14 @@
 /* CSS for Gnusto */
 
-div {
+div#barbara {
 	font-family: serif;
 	font-size: 12pt;
+	overflow: auto;
 }
 
 window {
         font-family: serif;
 	border: 0;
-	background-color: #FFFFFF;
 }
 
 description {
