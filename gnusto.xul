@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.55 2003/07/11 01:21:37 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.56 2003/07/11 03:03:38 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -151,7 +151,7 @@ function ensureHappiness() {
 <menuitem label="Show DOM inspector" accesskey="D"
 	oncommand="window.open('chrome://inspector/content/');"/>
 <menuitem label="Analyse screen" accesskey="Y"
-	oncommand="dispatch('analysescreen');"/>
+	oncommand="command_analysescreen(0);"/> <!-- dispatch('analysescreen');" -->
 <menuitem label="About Gnusto..." accesskey="A" oncommand="dispatch('about');"/>
 </menupopup>
 </menu>

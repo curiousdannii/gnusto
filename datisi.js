@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.18 2003/07/11 01:21:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.19 2003/07/11 03:03:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -609,12 +609,118 @@ function command_analysescreen(a) {
 		picker.appendFilter("Text files", "*.txt");
 		picker.defaultString = 'gscreen.txt';
 				
-		if (picker.show()==ifp.returnOK) {
-						localfile = picker.file;
-						filename = localfile.path;
-						alert(filename);
+		if (picker.show()==ifp.returnCancel) return;
+
+		localfile = picker.file;
+						
+		var f = new Components.
+				Constructor('@mozilla.org/network/file-output-stream;1',
+										'nsIFileOutputStream',
+										'init')(
+														localfile,
+														10,
+														0600,
+														0);
+
+		function write(file, text) { file.write(text, text.length); }
+
+		write(f, '------------------------\n');
+		write(f, 'Gnusto screen analysis\n');
+		write(f, 'Story: '+sys__current_filename+'\n');
+		write(f, '------------------------\n\n');
+		write(f, ' Window  Line# Span# Width Content\n');
+
+		function pad(str, width) {
+				str = String(str);
+
+				while (str.length < width) {
+						str = ' ' + str;
+				}
+
+				return str;
 		}
+
+		try {
+				function dumpspan(windowname, linenumber, spannumber, element) {
+
+						var text = '';
+						var type = '';
+						var width = '';
+
+						if (element.nodeName=='#text') {
+								type = 'text';
+								var val = element.nodeValue;
+								text = '"'+val+'"';
+								width = val.length;
+						} else if (element.nodeName=='description') {
+							  type = 'desc';
+								var val = element.getAttribute('value');
+								text = '{' +
+										element.getAttribute('class').replace('bocardo ','') +
+										'} "'+val+'"';
+								width = val.length;
+						} else if (element.nodeName=='html:br') {
+								type = ' CR ';
+								text = '';
+						} else {
+								type = ' ?? ';
+								text = element.nodeName;
+						}
+
+						write(f, '  ' + windowname +
+									pad(linenumber, 6) +
+									pad(spannumber, 6) + ' ' +
+									type + ' ' +
+									pad(width, 6) + ' ' +
+									text +
+									'\n');
+				}
+
+				function dumpline(windowname, linenumber, element) {
+						var kids = element.childNodes;
+						var css = element.getAttribute('class');
+						if (!css) {
+								css = '';
+						} else {
+								css = ' {'+css+'}';
+						}
+
+						write(f, '  ' + windowname + pad(linenumber, 6) +
+									' :' + pad(kids.length, 4) + css + '\n');
+
+						for (var i=0; i<kids.length; i++) {
+								dumpspan(windowname, linenumber, i, kids[i]);
+						}
+				}
+
+				function dumpwindow(windowname, element) {
+						if (!element) {
+								write(f, '  ' + windowname + ' -- missing!\n');
+								return;
+						}
+
+						var kids = element.childNodes;
+
+						write(f, '  ' + windowname+' :'+pad(kids.length, 4)+'\n');
+
+						for (var i=0; i<kids.length; i++) {
+								dumpline(windowname, i, kids[i]);
+						}
+				}
+
+				dumpwindow('UPPER', document.getElementById('bocardo'));
+				dumpwindow('lower', document.getElementById('barbara'));
+				
+				write(f, '\nEOF\n');
+				f.close();
+				alert('Analysis written to '+ localfile.path);
+		} catch (e) {
+				alert('bug');
+				alert(e);
+		}
+
 }
+
 
 ////////////////////////////////////////////////////////////////
 var DATISI_HAPPY = 1;
