@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.69 2003/12/04 16:41:17 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.70 2003/12/05 03:00:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/12/04 16:41:17 $';
+const CVS_VERSION = '$Date: 2003/12/05 03:00:23 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -734,8 +734,8 @@ function handleZ_tokenise(engine, a) {
   }
 		
 function handleZ_encode_text(engine, a) {
-    //VERBOSE burin('tokenise',"encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-    return "encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
+    //VERBOSE burin('tokenise',"_encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
+    return "_encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
   }
 
 function handleZ_copy_table(engine, a) {
@@ -856,7 +856,7 @@ function handleZ_check_unicode(engine, a) {
   // somehow, either directly or, for example, via _func_return().
   //
 
-var handlers_v578 = {
+const handlers_v578 = {
     1: handleZ_je,
     2: handleZ_jl,
     3: handleZ_jg,
@@ -980,14 +980,16 @@ var handlers_v578 = {
 };
 
 // Differences between each version and v5.
-// Set a whole version to 0 if it's not implemented.
+// Set a whole version to undefined if it's not implemented.
+// If a version is identical to v5, use '' rather than {} to
+// make the engine work with the original array rather than a copy.
 // When an opcode is illegal in the given version but not in v5,
 // it's marked with a zero. If you're working with a version which
 // doesn't support extended opcodes (below v5), don't worry about
 // zeroing out codes above 999-- they can't be accessed anyway.
-var handlers_fixups = {
-		1: 0, // not yet implemented
-		2: 0, // not yet implemented
+const handlers_fixups = {
+		1: undefined, // not yet implemented
+		2: undefined, // not yet implemented
 		3: {
 				25: 0, // call_2s
 				26: 0, // call_2n
@@ -1022,11 +1024,11 @@ var handlers_fixups = {
 				254: 0, // print_table,
 				255: 0, // check_arg_count,
 		},
-		4: 0, // not yet implemented
-		5: {}, // The base copy *is* v5
-		6: 0, // very complicated, and not yet implemented
-		7: {}, // Defined to be the same as 5
-		8: {}, // Defined to be the same as 5
+		4: undefined, // not yet implemented
+		5: '', // The base copy *is* v5
+		6: undefined, // very complicated, and not yet implemented
+		7: '', // Defined to be the same as 5
+		8: '', // Defined to be the same as 5
 };
 
 ////////////////////////////////////////////////////////////////
@@ -1567,168 +1569,186 @@ GnustoEngine.prototype = {
   // _initial_setup
   //
   // Initialises our variables.
-	//
+  //
   _initial_setup: function ge_initial_setup() {
 
-			this.m_jit = [];
-			this.m_compilation_running = 0;
-			this.m_gamestack = [];
-			this.m_gamestack_callbreaks = [];
+      this.m_jit = [];
+      this.m_compilation_running = 0;
+      this.m_gamestack = [];
+      this.m_gamestack_callbreaks = [];
 
-			this.m_call_stack = [];
-			this.m_locals = [];
-			this.m_locals_stack = [];
-			this.m_param_counts = [];
-			this.m_result_targets = [];
+      this.m_call_stack = [];
+      this.m_locals = [];
+      this.m_locals_stack = [];
+      this.m_param_counts = [];
+      this.m_result_targets = [];
 
-			this.m_goldenTrail = 0;
-			this.m_copperTrail = 0;
+      this.m_goldenTrail = 0;
+      this.m_copperTrail = 0;
 
-			this.m_version     = this.getByte(0);
+      this.m_version     = this.getByte(0);
+      
+      this.m_himem       = this.getUnsignedWord(0x4);
+      this.m_pc          = this.getUnsignedWord(0x6);
+      this.m_dict_start  = this.getUnsignedWord(0x8);
+      this.m_objs_start  = this.getUnsignedWord(0xA);
+      this.m_vars_start  = this.getUnsignedWord(0xC);
+      this.m_stat_start  = this.getUnsignedWord(0xE);
+      this.m_abbr_start  = this.getUnsignedWord(0x18);
 
-			this.m_himem       = this.getUnsignedWord(0x4);
-			this.m_pc          = this.getUnsignedWord(0x6);
-			this.m_dict_start  = this.getUnsignedWord(0x8);
-			this.m_objs_start  = this.getUnsignedWord(0xA);
-			this.m_vars_start  = this.getUnsignedWord(0xC);
-			this.m_stat_start  = this.getUnsignedWord(0xE);
-			this.m_abbr_start  = this.getUnsignedWord(0x18);
-
-			if (this.m_version>=5) {
-					this.m_alpha_start = this.getUnsignedWord(0x34);
-					this.m_object_tree_start = this.m_objs_start + 112;
-					this.m_property_list_addr_start = this.m_object_tree_start + 12;
-					this.m_object_size = 14;
-			} else {
-					this.m_alpha_start = 0;
-					this.m_object_tree_start = this.m_objs_start + 53;
-					this.m_property_list_addr_start = this.m_object_tree_start + 7;
-					this.m_object_size = 9;
-			}
-
-			this.m_hext_start  = this.getUnsignedWord(0x36);		
-	
- 			this.m_original_memory = this.m_memory.slice(); // Make a copy.
-
-			// Use the correct addressing mode for this Z-machine version...
-			
-			if (this.m_version<=3) {
-					// Versions 1 and 2 (prehistoric)
-					this.m_pc_translate_for_routine = pc_translate_v123;
-					this.m_pc_translate_for_string = pc_translate_v123;
-			} else if (this.m_version<=5) {
-					// Versions 3 ("Standard"), 4 ("Plus") and 5 ("Advanced")
-					// XXX FIXME this is wrong for v3! (not that we support that yet)
-					this.m_pc_translate_for_routine = pc_translate_v45;
-					this.m_pc_translate_for_string = pc_translate_v45;
-			} else if (this.m_version<=7) {
-					// Versions 6 (the graphical one) and 7 (rare postInfocom extension)
-					this.m_routine_start  = this.getUnsignedWord(0x28)*8;
-					this.m_string_start   = this.getUnsignedWord(0x2a)*8;
-					this.m_pc_translate_for_routine = pc_translate_v67R;
-					this.m_pc_translate_for_string = pc_translate_v67S;
-			} else if (this.m_version==8) {
-					// Version 8 (normal postInfocom extension)
-					this.m_pc_translate_for_routine = pc_translate_v8;
-					this.m_pc_translate_for_string = pc_translate_v8;
-			} else {
-					gnusto_error(170, 'impossible: unknown z-version got this far');
-			}
-
-			// And pick up the relevant instruction set.
-
-			this.m_handlers = handlers_v578;
-
-			if (!(this.m_version in handlers_fixups)) {
-					gnusto_error(311, 'unknown z-machine version');
-			}
-
-			var fixups = handlers_fixups[this.m_version];
-
-			if (typeof(fixups) != 'object') {
-					gnusto_error(101, 'z-machine version not implemented');
-			}
-
-			for (var opcode in fixups) {
-					// FIXME: if fixups[opcode]==0, delete the key
-					this.m_handlers[opcode] = fixups[opcode];
-			}
-
-			// Set up separators.
-
-			this.m_separator_count = this.getByte(this.m_dict_start);
-			for (var i=0; i<this.m_separator_count; i++) {		  
-					this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
-			}	
-	
-			// If there is a header extension...
-			if (this.m_hext_start > 0) {
-					// get start of custom unicode table, if any
-					this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
-					if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-							this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
-							this.m_unicode_start += 1;
-					}
-			}		
-    
-			this.m_rebound = 0;
-			this.m_rebound_args = [];
-    
-			this.m_output_to_console = 1;
-			this.m_streamthrees = [];
-			this.m_output_to_script = 0;
-    
-			this.m_console_buffer = '';
-			this.m_transcript_buffer = '';
-    
-			// Reset the default alphabet.
-			this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
-			this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-			// T = magic ten bit flag
-			if (this.m_version==1) {
-					this.m_zalphabet[2] = 'T0123456789.,!?_#\'"/\\<-:()';
-			} else {
-					this.m_zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()';
-			}
-    
-    var newchar;
-    var newcharcode;		
-    if (this.m_alpha_start > 0) { // If there's a custom alphabet...
-      for (var alpharow=0; alpharow<3; alpharow++){
-					var alphaholder = '';
-					for (var alphacol=0; alphacol<26; alphacol++) {	
-							newcharcode = this.getByte(this.m_alpha_start + (alpharow*26) + alphacol);
-							if ((newcharcode >=155) && (newcharcode <=251)) {		     
-									// Yes, custom alphabets can refer to custom unicode tables.  Whee...
-									if (this.m_unicode_start == 0) {
-											alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
-									} else {
-											if ((newcharcode-154)<= this.m_custom_unicode_charcount)
-													alphaholder += String.fromCharCode(this.getUnsignedWord(this.m_unicode_start + ((newcharcode-155)*2)));					
-											else
-													alphaholder += ' ';
-									}
-							} else {
-									newchar = String.fromCharCode(newcharcode);
-									if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
-									alphaholder += newchar;
-							}
-					}		    
-					this.m_zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
+      if (this.m_version>=5) {
+	  this.m_alpha_start = this.getUnsignedWord(0x34);
+	  this.m_object_tree_start = this.m_objs_start + 112;
+	  this.m_property_list_addr_start = this.m_object_tree_start + 12;
+	  this.m_object_size = 14;
+      } else {
+	  this.m_alpha_start = 0;
+	  this.m_object_tree_start = this.m_objs_start + 53;
+	  this.m_property_list_addr_start = this.m_object_tree_start + 7;
+	  this.m_object_size = 9;
       }
-    }
+
+      this.m_hext_start  = this.getUnsignedWord(0x36);		
+	
+      this.m_original_memory = this.m_memory.slice(); // Make a copy.
+
+      // Use the correct addressing mode for this Z-machine version...
+			
+      if (this.m_version<=3) {
+	  // Versions 1 and 2 (prehistoric) and 3 ("Standard")
+	  this.m_pc_translate_for_routine = pc_translate_v123;
+	  this.m_pc_translate_for_string = pc_translate_v123;
+      } else if (this.m_version<=5) {
+	  // Versions 4 ("Plus") and 5 ("Advanced")
+	  this.m_pc_translate_for_routine = pc_translate_v45;
+	  this.m_pc_translate_for_string = pc_translate_v45;
+      } else if (this.m_version<=7) {
+	  // Versions 6 (the graphical one) and 7 (rare postInfocom extension)
+	  this.m_routine_start  = this.getUnsignedWord(0x28)*8;
+	  this.m_string_start   = this.getUnsignedWord(0x2a)*8;
+	  this.m_pc_translate_for_routine = pc_translate_v67R;
+	  this.m_pc_translate_for_string = pc_translate_v67S;
+      } else if (this.m_version==8) {
+	  // Version 8 (normal postInfocom extension)
+	  this.m_pc_translate_for_routine = pc_translate_v8;
+	  this.m_pc_translate_for_string = pc_translate_v8;
+      } else {
+	  gnusto_error(170, 'impossible: unknown z-version got this far');
+      }
+      
+      // And pick up the relevant instruction set.
+      
+      if (!(this.m_version in handlers_fixups)) {
+	  gnusto_error(311, 'unknown z-machine version');
+      }
+
+      var fixups = handlers_fixups[this.m_version];
+
+      switch (typeof(fixups)) {
+
+      case 'undefined':
+	  gnusto_error(101, 'z-machine version not implemented');
+	  break;
+
+      case 'string':
+	  this.m_handlers = handlers_v578;
+	  break;
+
+      case 'object':
+	  this.m_handlers = {};
+
+	  for (var original in handlers_v578) {
+	      this.m_handlers[original] = handlers_v578[original];
+	  }
+
+	  for (var changed in fixups) {
+	      if ((typeof fixups[changed])=='function') {
+		  this.m_handlers[changed] = fixups[changed];
+	      } else {
+		  delete this.m_handlers[changed];
+	      }
+	  }
+	  break;
+
+      default:
+	  gnusto_error(170, 'impossible: weird stuff in fixups table');
+      }
+
+      // Set up separators.
+      
+      this.m_separator_count = this.getByte(this.m_dict_start);
+      for (var i=0; i<this.m_separator_count; i++) {		  
+	  this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
+      }	
+      
+      // If there is a header extension...
+      if (this.m_hext_start > 0) {
+	  // get start of custom unicode table, if any
+	  this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
+	  if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
+	      this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
+	      this.m_unicode_start += 1;
+	  }
+      }		
+    
+      this.m_rebound = 0;
+      this.m_rebound_args = [];
+    
+      this.m_output_to_console = 1;
+      this.m_streamthrees = [];
+      this.m_output_to_script = 0;
+    
+      this.m_console_buffer = '';
+      this.m_transcript_buffer = '';
+    
+      // Reset the default alphabet.
+      this.m_zalphabet[0] = 'abcdefghijklmnopqrstuvwxyz';
+      this.m_zalphabet[1] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      // T = magic ten bit flag
+      if (this.m_version==1) {
+	  this.m_zalphabet[2] = 'T0123456789.,!?_#\'"/\\<-:()';
+      } else {
+	  this.m_zalphabet[2] = 'T\n0123456789.,!?_#\'"/\\-:()';
+      }
+    
+      var newchar;
+      var newcharcode;		
+      if (this.m_alpha_start > 0) { // If there's a custom alphabet...
+	  for (var alpharow=0; alpharow<3; alpharow++){
+	      var alphaholder = '';
+	      for (var alphacol=0; alphacol<26; alphacol++) {	
+		  newcharcode = this.getByte(this.m_alpha_start + (alpharow*26) + alphacol);
+		  if ((newcharcode >=155) && (newcharcode <=251)) {		     
+		      // Yes, custom alphabets can refer to custom unicode tables.  Whee...
+		      if (this.m_unicode_start == 0) {
+			  alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
+		      } else {
+			  if ((newcharcode-154)<= this.m_custom_unicode_charcount)
+			      alphaholder += String.fromCharCode(this.getUnsignedWord(this.m_unicode_start + ((newcharcode-155)*2)));					
+			  else
+			      alphaholder += ' ';
+		      }
+		  } else {
+		      newchar = String.fromCharCode(newcharcode);
+		      if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
+		      alphaholder += newchar;
+							}
+	      }		    
+	      this.m_zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
+	  }
+      }
 		
+      
+      // We don't also reset the debugging variables, because
+      // they need to persist across re-creations of this object.
+      // FIXME: Is this still true?
 
-    // We don't also reset the debugging variables, because
-    // they need to persist across re-creations of this object.
-		// FIXME: Is this still true?
-
-    // Clear the Z-engine's local variables.
-    for (var i=0; i<16; i++) this.m_locals[i]=0;
-
-    this.m_printing_header_bits = 0;
-
-    this.m_leftovers = '';
+      // Clear the Z-engine's local variables.
+      for (var i=0; i<16; i++) this.m_locals[i]=0;
+      
+      this.m_printing_header_bits = 0;
+      
+      this.m_leftovers = '';
   },
 
   getByte: function ge_getByte(address) {
@@ -1899,7 +1919,8 @@ GnustoEngine.prototype = {
 							// ZMSD 14.2: We provide a hook for plug-in instructions.
 							// FIXME: This will no longer work in a component.
 							// Can we do anything else instead?
-							
+							// (Maybe a component named @gnusto.org/specialinstr?op=XXX.)
+
 							code = code +
 									this["special_instruction_EXT"+(instr-1000)](args)+
 									';';
