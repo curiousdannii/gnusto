@@ -1,4 +1,7 @@
-/* CSS for Gnusto */
+/* CSS for Gnusto.
+
+I've put this into /content for now, because we're sure that
+always works. It'll be back in /skin for v1.0. --T */
 
 description.bodytext {
 	font-family: serif;
