@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.21 2003/07/21 05:49:46 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.22 2003/07/21 06:45:33 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -31,6 +31,10 @@ function command_about(a) {
     alert('Gnusto v0.4.x\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
 	  'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
 	  'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
+}
+
+function command_shutdown(a) {
+  window.close();  	
 }
 
 ////////////////////////////////////////////////////////////////
