@@ -45,7 +45,7 @@
 
 <menu id="story-menu" label="Story" accesskey="S">
 <menupopup>
-<menuitem label="Open..." accesskey="O" oncommand="try{loadStory()}catch(e){deal_with_exception(e)}"/>
+<menuitem label="Open..." accesskey="O" oncommand="try{tossio_debug_instruction(['open']);}catch(e){deal_with_exception(e)}"/>
 <menuitem label="What's an .mz5, anyway?" accesskey="W"
 	oncommand="open('http://gnusto.mozdev.org/nullbytes.html')"/>
 </menupopup>
@@ -97,8 +97,7 @@
 <vbox flex="1">
 <iframe flex="9" id="screen" type="content-primary" src="lower.html"/>
 
-<textbox flex="0" id="input" onkeypress="return gotInput(event);"/>
-<!-- try{return gotInput(event);}catch(e){deal_with_exception(e)}" -->
+<textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
 </vbox>
 
 <splitter status="open" id="dissembly-split" hidden="true" collapse="before"><grippy/></splitter>
