@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.29 2003/04/25 18:25:59 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.30 2003/04/25 19:04:43 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -236,7 +236,7 @@ function win_clear(win) {
 				// Clearing a window resets its "more" counter.
 				win__screen_scroll_count = 0;
                                 var body = win__screen_doc.getElementsByTagName('body')[0];
-                                body.setAttribute('bgcolor', win__current_background);
+                                body.setAttribute('class', 'b' + win__current_background);
 		}
 }
 
