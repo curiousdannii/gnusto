@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.11 2003/02/28 12:17:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.12 2003/03/02 10:47:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -863,12 +863,7 @@ function rounded_divide(over, under) {
 				return 0;
 		}
 
-		var result = over / under;
-
-		if (result<0)
-				return Math.ceil(result);
-		else
-				return Math.floor(result);
+		return Math.round(over / under);
 }
 
 function zscii_char_to_ascii(zscii_code) {
@@ -891,7 +886,7 @@ function zscii_char_to_ascii(zscii_code) {
 
 function gnusto_random(arg) {
 		if (arg>0) {
-				return 1 + (arg * Math.random());
+				return 1 + Math.round(arg * Math.random());
 		} else {
 				// Else we should reseed the RNG. Um.
 		}
