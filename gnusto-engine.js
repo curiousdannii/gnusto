@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.95 2003/08/11 02:29:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.96 2003/08/12 07:41:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2313,6 +2313,9 @@ var default_unicode_translation_table = {
 
 function zscii_from(address, max_length, tell_length) {
 
+		/* This part has been disabled until bug 3491 has been fixed.
+			 See bug 3472 for why. -- marnanel
+
 		if (address in jit) {
 				//VERBOSE burin('zscii_from ' + address,'already in JIT');
 				// Already seen this one.
@@ -2321,7 +2324,7 @@ function zscii_from(address, max_length, tell_length) {
 						return jit[address];
 				else
 						return jit[address][0];
-		}
+						}*/
 
 		var temp = '';
 		var alph = 0;
@@ -2457,6 +2460,9 @@ function into_zscii(str) {
 				var ch = str.charCodeAt(cursor++);
 
 				if (ch>=65 && ch<=90) { // A to Z
+						// These are NOT mapped to A1. ZSD3.7
+						// explicitly forbids use of upper case
+						// during encoding.
 						emit(ch-59);
 				} else if (ch>=97 && ch<=122) { // a to z
 						emit(ch-91);
@@ -2464,7 +2470,12 @@ function into_zscii(str) {
 						var z2 = zalphabet[2].indexOf(ch);
 
 						if (z2!=-1) {
-								emit(5);
+								emit(5); // shift to weird stuff
+
+								// XXX FIXME. This ought logically to be z2+6
+								// (and Frotz also uses 6 here.) For some reason,
+								// it seems not to work unless it's z2+9.
+								// Find out what's up.
 								emit(z2+6);
 						} else {
 								emit(5);
