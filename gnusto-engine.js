@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.56 2003/11/25 22:27:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.57 2003/11/26 18:46:40 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,14 +19,10 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/25 22:27:06 $';
+const CVS_VERSION = '$Date: 2003/11/26 18:46:40 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
-
-const PARENT_REC = 6;
-const SIBLING_REC = 8;
-const CHILD_REC = 10;
 
 ////////////////////////////////////////////////////////////////
 //
@@ -108,6 +104,9 @@ var default_unicode_translation_table = {
   223:0xbf, // inverted query
 };
 
+const PARENT_REC = 0;
+const SIBLING_REC = 1;
+const CHILD_REC = 2;
 
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from run(). See the explanation below
@@ -2585,8 +2584,22 @@ GnustoEngine.prototype = {
 	},
 
 	_get_family: function ge_get_family(from, relationship) {
-			return this.getUnsignedWord(this.m_objs_start + 112 +
-																	relationship + from*14);
+
+			if (this.m_version < 4) {
+
+					return this.getByte(this.m_object_tree_start +
+															4+relationship +
+															from*this.m_object_size);
+			} else {
+					// v4 and above.
+
+					return this.getUnsignedWord(this.m_object_tree_start +
+																			6+relationship*2 +
+																			from*this.m_object_size);
+
+			}
+
+			gnusto_error(170); // impossible
 	},
 
 	_get_parent:  function ge_get_parent(from)
@@ -2598,17 +2611,32 @@ GnustoEngine.prototype = {
   _get_sibling: function ge_get_sibling(from)
 	{ return this._get_family(from, SIBLING_REC); },
 
-	_set_family: function ge_set_family(from, to, relationship)
-	{ this.setWord(to, this.m_objs_start + 112 + relationship + from*14); },
+	_set_family: function ge_set_family(from, to, relationship) {
+			if (this.m_version < 4) {
+
+					this.setByte(to,
+											 this.m_object_tree_start +
+											 4+relationship +
+											 from*this.m_object_size);
+			} else {
+					// v4 and above.
+
+					this.setWord(to,
+											 this.m_object_tree_start +
+											 6+relationship*2 +
+											 from*this.m_object_size);
+
+			}
+	},
 
 	_set_parent: function ge_set_parent(from, to)
-	{ return this._set_family(from, to, PARENT_REC); },
+	{ this._set_family(from, to, PARENT_REC); },
 
 	_set_child: function ge_set_child(from, to)
-	{ return this._set_family(from, to, CHILD_REC); },
+	{ this._set_family(from, to, CHILD_REC); },
 
 	_set_sibling: function ge_set_sibling(from, to)
-	{ return this._set_family(from, to, SIBLING_REC); },
+	{ this._set_family(from, to, SIBLING_REC); },
 
 	_obj_in: function ge_obj_in(child, parent)
 	{ return this._get_parent(child) == parent; },
@@ -2919,10 +2947,10 @@ GnustoEngine.prototype = {
 
 	_name_of_object: function ge_name_of_object(object) {
 
-			if (object==0)
-			return "<void>";
-			else {
-					var aa = this.m_objs_start + 124 + object*14;
+			if (object==0) {
+					return "<void>";
+			} else {
+					var aa = this.m_property_list_addr_start + object*this.m_object_size;
 					return this._zscii_from(this.getUnsignedWord(aa)+1);
 			}
 	},
@@ -3666,6 +3694,7 @@ GnustoEngine.prototype = {
 
 	// Size of an object in the objects table, in bytes.
 	m_object_size: 14,
+
 };
 
 ////////////////////////////////////////////////////////////////
