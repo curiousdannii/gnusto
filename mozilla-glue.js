@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.34 2003/03/31 05:09:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.35 2003/04/03 16:47:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -120,6 +120,14 @@ function loadMangledZcode(zcode) {
 		setbyte(  1, 0x1E); // uh, let's be a vax.
 		setbyte(103, 0x1F); // little "g" for gnusto
 
+		// For now, units are characters. Later they'll be pixels.
+		setbyte( 25, 0x20); // screen height, characters
+		setbyte( 80, 0x21); // screen width, characters
+		setword( 25, 0x22); // screen width, units
+		setword( 80, 0x24); // screen height, units
+		setbyte(  1, 0x26); // font width, characters
+		setbyte(  1, 0x27); // font height, characters
+
 		return 1;
 }
 
@@ -151,30 +159,18 @@ function setbyte(value, address) {
     zbytes[address] = value;
 }
 
-function print_text(what) {
-    if (what!='')
-				current_text_holder.appendChild(
-																				lowerWindow.createTextNode(what));
-}
-
-function print_newline() {
-    if (current_window==0) {
-				current_text_holder.appendChild(
-																				lowerWindow.createElement('br'));
-    } else if (current_window==1) {
-				// fixme: have a method to do this inside upper
-				u_x = 0;
-				u_y = (u_y + 1) % u_height;
-    } else
-				gnusto_error(303, current_window);
-}
+var window_buffers = ['', ''];
 
 function gnustoglue_output(what) {
+		window_buffers[current_window] = window_buffers[current_window] + what;
+}
 
-		if (!what) return;
-
-		chalk(current_window, 0, 0, 0, what);
-		window.frames[1].scrollTo(0, lowerWindow.height);
+function output_flush() {
+		for (var i=0; i<2; i++) {
+				chalk(i, 0, 0, 0, window_buffers[i]);
+				window_buffers[i] = '';
+		}
+ 		window.frames[1].scrollTo(0, lowerWindow.height);
 }
 
 function gnustoglue_soundeffect(number, effect, volume, callback) {
@@ -255,13 +251,14 @@ function gnustoglue_set_text_style(style, foreground, background) {
 }
 
 function gnustoglue_split_window(lines) {
-    u_setup(80, lines);
-    set_upper_window();
+    /* FIXME: u_setup(80, lines);
+			 set_upper_window(); */
 }
 
 function gnustoglue_set_buffer_mode(whether) {
 		// Not sure this makes much difference to us.
 		// Mozilla handles the printing.
+		// FIXME: not any more!
 }
 
 function gnustoglue_set_window(w) {
@@ -302,10 +299,12 @@ function gnustoglue_erase_window(w) {
 		default: // weird
 				gnusto_error(303, w);
 		}
+
 }
 
 function gnustoglue_set_cursor(y, x) {
-    gotoxy(current_window, x, y);
+		output_flush();
+		gotoxy(current_window, x-1, y-1);
 }
 
 // The reason that go_wrapper stopped last time. This is
@@ -326,6 +325,8 @@ function go_wrapper(answer) {
 				looping = 0; // By default, we stop.
 
 				reasonForStopping = go(answer);
+
+				output_flush();
 		
 				if (reasonForStopping == GNUSTO_EFFECT_WIMP_OUT) {
 						if (!single_step) {
@@ -337,6 +338,7 @@ function go_wrapper(answer) {
 						// we know how to do this.
 						// Just bail out of here.
 				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT_CHAR) {
+						TEMPdumpscreens();
 						// similar
 				} else if (reasonForStopping == GNUSTO_EFFECT_SAVE) {
 						// nope
@@ -385,7 +387,9 @@ function go_wrapper(answer) {
 		}
 }
 
+/*
 function set_upper_window() {
+		 FIXME
     var upper = document.getElementById("upper");
 
     while (upper.hasChildNodes())
@@ -394,6 +398,7 @@ function set_upper_window() {
     upper.appendChild(
 											document.createTextNode(u_preformatted()));
 }
+*/
 
 function start_up() {
 		document.getElementById('input').focus();
@@ -402,8 +407,8 @@ function start_up() {
 		upperWindow = frames[0].document;
     lowerWindow = frames[1].document;
 
-    u_setup(80,0);
-    set_upper_window();
+		/*    u_setup(80,0);
+					set_upper_window();*/
 
     gnustoglue_set_text_style(0, 1, 1);
 }
@@ -622,7 +627,7 @@ function gnustoglue_notify_transcription(whether) {
 }
 
 function gnustoglue_transcribe(text) {
-		if (current_window==0) {
+		/* if (current_window==0) {*/
 				if (!transcription_file) {
 						if (!gnustoglue_notify_transcription(1)) {
 								gnusto_error(308);
@@ -630,7 +635,7 @@ function gnustoglue_transcribe(text) {
 				}
 				transcription_file.write(text, text.length);
 				transcription_file.flush();
-		}
+				/*						}*/
 }
 
 function gnustoglue_input_stream(number) {

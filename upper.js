@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.11 2003/03/31 06:13:51 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.12 2003/04/03 16:47:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -43,6 +43,27 @@ function window_setup() {
 
 ////////////////////////////////////////////////////////////////
 
+function Tds(obj, ind) {
+		var s = '';
+		for (var i=0; i<ind; i++) { s = s + ' : '; }
+
+		gnustoglue_transcribe(s+obj.length+'\n');
+		for (var j=0; j<obj.length; j++) {
+				gnustoglue_transcribe(s+obj[j]+'\n');
+				if (obj[j].data) { gnustoglue_transcribe(s+'::'+obj[j].data+'--'+obj[j].data.length+'\n'); }
+				if (obj[j].childNodes) { Tds(obj[j].childNodes, ind+1); }
+		}
+}
+
+function TEMPdumpscreens() {
+		gnustoglue_transcribe('-- TEMPdumpscreens --\n');
+
+		Tds(windows[0].childNodes, 0);
+		Tds(windows[1].childNodes, 0);
+}
+
+////////////////////////////////////////////////////////////////
+
 function chalk(win, fg, bg, style, text) {
 
     // This function is written in terms of subchalk(). All *we*
@@ -59,7 +80,7 @@ function chalk(win, fg, bg, style, text) {
 
 				var message = text[line];
 
-				while (message!='') {
+				do {
 
 						if (message.length > (80 - window_current_x[win])) {
 								
@@ -93,7 +114,7 @@ function chalk(win, fg, bg, style, text) {
 								window_current_x[win] += message.length;
 								message = '';
 						}
-				}
+				} while (message!='');
 
 				if (line<text.length-1) {
 						window_current_x[win] = 0;
@@ -150,12 +171,15 @@ function subchalk(win, fg, bg, style, text) {
 
 		var charactersTrimmed = 0;
 		var doppelganger = 0;
+		var appendPoint = -1;
 
 		if (cursor==spans.length) {
 
 				if (charactersSeen < window_current_x[win]) {
 						// There aren't enough characters to go round. We
 						// must add extra spaces to the start of the text.
+						// FIXME: this is wrong; we should add them to
+						// the end of the last span.
 
 						for (var i=0; i<(window_current_x[win]-charactersSeen); i++) {
 								text = ' '+text;
@@ -163,8 +187,6 @@ function subchalk(win, fg, bg, style, text) {
 				}
 
 				// Just append the text.
-
-				appendPoint = -1;
 
 		} else {
 				if (charactersSeen < window_current_x[win]) {
@@ -187,25 +209,26 @@ function subchalk(win, fg, bg, style, text) {
 
 						// And push them on one place; they insert *after* us.
 						cursor++;
-
 				}
 
-				var appendPoint = cursor;
+				appendPoint = cursor;
 
-				if (cursor<spans.length-1) {
+				if (cursor<spans.length) {
 						// Delete any spans which are hidden by our span.
 						var charactersDeleted = charactersTrimmed;
 						var spansToDelete = 0;
-						while (charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
+
+						while (cursor<spans.length && charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
 								charactersDeleted += spans[cursor].childNodes[0].data.length;
 								cursor++;
 								spansToDelete++;
 						}
-				
-						// And trim the RHS of the first span after our new span.
-						spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
-				}
 
+						// And trim the RHS of the first span after our new span.
+						if (cursor<spans.length) {
+								spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
+						}
+				}
 
 				// Now we've finished looking at the line, we can start modifying it.
 
@@ -220,26 +243,26 @@ function subchalk(win, fg, bg, style, text) {
 				}
 
 		}
+
 		// ..and append our text.
 		var newSpan = window_documents[win].createElement('span');
 		newSpan.appendChild(window_documents[win].createTextNode(text));
 
-		if (appendPoint = -1) {
+		if (appendPoint == -1) {
 				current_line.appendChild(newSpan);
 		} else {
 				current_line.insertBefore(newSpan, spans[appendPoint]);
 		}
-
-		// FIXME: need extra check for integrity here, temporarily.
 }
 
 ////////////////////////////////////////////////////////////////
 
 // Clears a window. |win| must be a valid window ID.
 function clear_window(win) {
-		// FIXME: not tested! test this!
-		windows[win].parentNode.replaceChild(windows[win].cloneNode(0),
-					windows[win]);
+		// Inefficient, but it works for now:
+		while (windows[win].childNodes.length!=0) {
+				windows[win].removeChild(windows[win].childNodes[0]);
+		}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -247,80 +270,6 @@ function clear_window(win) {
 function gotoxy(win, x, y) {
 		window_current_x[win] = x;
 		window_current_y[win] = y;
-}
-
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-
-//                 OLD STUFF IS BELOW
-
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-
-
-
-var u_width = 80;
-var u_height = 3;
-var u_x = 0;
-var u_y = 0;
-
-// When we can do formatted text:
-//   u_contents should be a list of rows, each of which is a list
-//   of spans, each of which is a pair of style and content.
-
-var u_contents;
-
-function u_setup(w, h) {
-	u_width = w;
-	u_height = h;
-
-	u_contents = [];
-
-	var temp = '';
-
-	for (var i=0; i<u_width; i++)
-		temp = temp + ' ';
-
-	for (var i=0; i<u_height; i++)
-		u_contents.push(temp);
-}
-
-function u_gotoxy(x,y) {
-	u_x = x;
-	u_y = y;
-}
-
-function u_write(message, x, y) {
-
-	if (isNaN(x)) x=u_x;
-	if (isNaN(y)) y=u_y;
-
-	var current = u_contents[y];
-	if (!current) current = '';
-
-	var endpoint = x+message.length;
-
-	u_x = endpoint; u_y = y;
-
-	if (endpoint > current.length) {
-		// Part of it's not our problem...
-		var breaking = current.length-x;
-		u_write(message.substring(breaking), 0, (y+1)%u_height);
-
-		// And part of it is (but only one part).
-		message = message.substring(0, breaking);
-	}
-
-	u_contents[y] =
-		current.substring(0, x) +
-		message +
-		current.substring(endpoint);
-}
-
-function u_preformatted() {
-	return u_contents.join('\n');
 }
 
 ////////////////////////////////////////////////////////////////
