@@ -94,31 +94,13 @@
 
 <vbox flex="1">
 
-<vbox flex="1">
+<hbox flex="0" id="canaryHolder" hidden="true">
+<description flex="0" id="canary" value="X" />
+</hbox>
+
 <iframe flex="9" id="screen" type="content-primary" src="lower.html"/>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
-</vbox>
-
-<splitter status="open" id="dissembly-split" hidden="true" collapse="before"><grippy/></splitter>
-
-<grid flex="1" id="dissembly" hidden="true">
-
-<columns>
-<column flex="1"/>
-<column flex="4"/>
-</columns>
-
-<rows id="details">
-
-<row>
-<label value="0800"/>
-<label value="free telephones"/>
-</row>
-</rows>
-</grid>
-
-
 </vbox>
 
 </window>
