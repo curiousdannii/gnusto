@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.24 2003/04/18 22:54:08 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.25 2003/04/20 12:23:37 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -56,6 +56,8 @@ function ensureHappiness() {
       'VENKMAN_MSG',
       'BAF',
       'BARBARIX',
+      'DARII',
+      'DATISI',
    ];
 
 
@@ -79,6 +81,10 @@ function ensureHappiness() {
 
 <!-- Property handling. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/venkman-msg.js"/>
+
+<!-- Verbs (commands). -->
+<script type="application/x-javascript" src="chrome://gnusto/content/datisi.js"/>
+<script type="application/x-javascript" src="chrome://gnusto/content/darii.js"/>
 
 <!-- Screen switching. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/barbarix.js"/>
@@ -115,7 +121,7 @@ function ensureHappiness() {
 
 <menu id="story-menu" label="Story" accesskey="S">
 <menupopup>
-<menuitem label="Open..." accesskey="O" oncommand="try{tossio_debug_instruction(['open']);}catch(e){deal_with_exception(e)}"/>
+<menuitem label="Open..." accesskey="O" oncommand="dispatch('open');"/>
 <menuitem label="What's an .mz5, anyway?" accesskey="W"
 	oncommand="open('http://gnusto.mozdev.org/nullbytes.html')"/>
 </menupopup>
@@ -139,7 +145,7 @@ function ensureHappiness() {
 
 <menu id="help-menu" label="Help" accesskey="H">
 <menupopup>
-<menuitem label="About Gnusto..." accesskey="A" oncommand="try{tossio_debug_instruction(['about']);}catch(e){deal_with_exception(e)}"/>
+<menuitem label="About Gnusto..." accesskey="A" oncommand="dispatch('about');"/>
 </menupopup>
 </menu>
 
