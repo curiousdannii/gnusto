@@ -571,253 +571,161 @@ function tossio_print(message) {
 var show_js = 0;
 var dissembly_done = 0;
 
-var tossio_verbs = {
-		'help': ['provide brief help on functions',
-						'Provides a brief rundown of what a function does. Use "help" on its own to get information on all functions. "help step" will give you more detailed help on the "step" command, and so on.',
-						function(a) {
-								if (a.length==1) {
-										for (var command in tossio_verbs) {
-												tossio_print(command+': '+tossio_verbs[command][0]+'\n');
-										}
-								}
-						}],
-		'open': ['load a (mangled) story file',
-						'Loads the named story file.',
-						function(a) {
+function command_status(a) {
+		var temp = '';
+		temp = '[PC='+pc.toString(16);
 
-								var localfile = 0;
+		if (asm[pc]) {
+				temp = temp + ' || ' + asm[pc];
+		}
+		temp = temp+']';
 
-								switch (a.length) {
+		if (show_js) {
+				if (!jit[pc]) {
+						var saved_pc = pc;
+						eval('jit[saved_pc]=' + dissemble());
+						pc = saved_pc;
+				}
+				temp = temp + '\n' + jit[pc];
+		}
 
-								case 1: {
-										var ifp = Components.interfaces.nsIFilePicker;
-										var picker = Components.classes["@mozilla.org/filepicker;1"].
-												createInstance(ifp);
+		tossio_print(temp);
+}
 
-										picker.init(window, "Select a story file", ifp.modeOpen);
-										picker.appendFilter("mangled-z5", "*.mz5");
+function command_on(a) {
+		single_step = 1;
+		debug_mode = 1;
+		tossio_print('Debug mode on.');
+}
 
-										if (picker.show()==ifp.returnOK)
-												localfile = picker.file;
-										else
-												return;
+function command_showjs(a) {
+		show_js = 1;
+}
 
-										break;
-								}
+function command_parser(a) {
+		parser_debugging = 1;
+		tossio_print('Parser debugging on.');
+}
 
-								case 2: {
-										localfile= new Components.Constructor("@mozilla.org/file/local;1",
-																													"nsILocalFile",
-																													"initWithPath")(a[1]);
-										break;
-								}
+function command_dis(a) {
+		if (!dissembly_done) {
+				asm = {};
+				points = {};
+				tossio_print('Scanning for dissembly information... ');
+				tossio_scan(get_unsigned_word(0x06), 0);
+				tossio_print('done.');
+				dissembly_done = 1;
+		}
+}
 
-								default:
-										tossio_print('Wrong number of parameters for open.');
-										return;
-								}
+function command_step(a) {
+		single_step = 1;
+		go_wrapper(0);
+}
 
-								if (loadSomeFile(localfile)) {
-										if (single_step) {
-												tossio_print('Loaded OK (use /run or /step now).');
-										}
-										play();
-								} else {
-										tossio_print('Load failed.');
-								}
-						}],
-		'status': ['print status',
-							'...',
-							function(a) {
-									var temp = '';
-									temp = '[PC='+pc.toString(16);
+function command_run(a) {
+		// FIXME: This shouldn't work if we're stopped for, say,
+		// keyboard input.
+		single_step = 0;
+		go_wrapper(0);
+}
 
-									if (asm[pc]) {
-											temp = temp + ' || ' + asm[pc];
-									}
-									temp = temp+']';
+function command_context(a) {
+		for (var i=pc-20; i<pc+20; i++) {
+				if (points[i]==5) {
+						tossio_print('\n=== Routine '+i.toString(16)+' ===\n');
+				}
+				if (asm[i]) {
+						tossio_print(i.toString(16)+'  '+asm[i]);
+						if (points[i]==2) {
+								tossio_print(' (target)');
+						}
+						if (i==pc) {
+								tossio_print(' <---******* PC');
+						}
+						tossio_print('\n');
+				}
+		}
+}
+function command_set(a) {
 
-									if (show_js) {
-											if (!jit[pc]) {
-													var saved_pc = pc;
-													eval('jit[saved_pc]=' + dissemble());
-													pc = saved_pc;
-											}
-											temp = temp + '\n' + jit[pc];
-									}
-
-									tossio_print(temp);
-							}],
-		'on': ['turn on debug mode',
-							'...',
-							function(a) {
-									single_step = 1;
-									debug_mode = 1;
-									tossio_print('Debug mode on.');
-							}],
-		'showjs': ['show JS in status information',
-							'...',
-							function(a) {
-									show_js = 1;
-							}],
-		'parser': ['show parser debug information',
-							'...',
-							function(a) {
-									parser_debugging = 1;
-									tossio_print('Parser debugging on.');
-							}],
-		'dis': ['calculate dissembly information',
-					 '...',
-					 function(a) {
-							 if (!dissembly_done) {
-									 asm = {};
-									 points = {};
-									 tossio_print('Scanning for dissembly information... ');
-									 tossio_scan(get_unsigned_word(0x06), 0);
-									 tossio_print('done.');
-									 dissembly_done = 1;
-							 }
-					 }],
-		'step': ['step one place through',
-						'...',
-						function(a) {
-								single_step = 1;
-								go_wrapper(0);
-						}],
-		'run': ['run through until something happens worth stopping for',
-						'...',
-					 // FIXME: This shouldn't work if we're stopped for, say,
-					 // keyboard input.
-						function(a) {
-								single_step = 0;
-								go_wrapper(0);
-						}],
-		'context': ['show context around program counter',
-							 '...',
-							 function(a) {
-									 for (var i=pc-20; i<pc+20; i++) {
-											 if (points[i]==5) {
-													 tossio_print('\n=== Routine '+i.toString(16)+' ===\n');
-											 }
-											 if (asm[i]) {
-													 tossio_print(i.toString(16)+'  '+asm[i]);
-													 if (points[i]==2) {
-															 tossio_print(' (target)');
-													 }
-													 if (i==pc) {
-															 tossio_print(' <---******* PC');
-													 }
-													 tossio_print('\n');
-											 }
-									 }
-							 }],
-		'set': ['set a breakpoint',
-					 '...',
-					 function (a) {
-
-							 // Make sure we have dissembly information.
-							 tossio_debug_instruction(['dis']);
+		// Make sure we have dissembly information.
+		tossio_debug_instruction(['dis']);
 							 
-							 // Right, now: what kind of instruction is this?
+		// Right, now: what kind of instruction is this?
 
-							 var addr = a[1]*1;
+		var addr = a[1]*1;
 
-							 if (points[addr]==5) { // Start of a routine
-									 tossio_print('[breaking on first instruction of that routine]\n');
-									 addr++; // in v5; adjust for others
-							 }
+		if (points[addr]==5) { // Start of a routine
+				tossio_print('[breaking on first instruction of that routine]\n');
+				addr++; // in v5; adjust for others
+		}
 
-							 if (points[addr]==1 || points[addr]==2) {
-									 breakpoints[addr] = 1;
-									 jit = {}; // trash it, so the version that regrows will have the breakpoint
-									 tossio_print('Breakpoint added OK.\n');
-							 } else {
-									 tossio_print('That\'s not a valid instruction (as far as I can see).\n');
-							 }
-					 }],
-		'clear': ['clear a breakpoint',
-						 '...',
-						 function (a) {
-							 var addr = a[1]*1;
+		if (points[addr]==1 || points[addr]==2) {
+				breakpoints[addr] = 1;
+				jit = {}; // trash it, so the version that regrows will have the breakpoint
+				tossio_print('Breakpoint added OK.\n');
+		} else {
+				tossio_print('That\'s not a valid instruction (as far as I can see).\n');
+		}
+}
 
-							 if (breakpoints[addr]) {
-									 delete breakpoints[addr];
-									 tossio_print('OK, deleted.');
-							 } else {
-									 tossio_print('No breakpoint there!');
-							 }
-						 }],
-		'show': ['show value of a variable',
-						// Bzzt. This should use the new variable syntax ($, #, & and so on).
-						// Call it "get" then.
-						'...',
-						function(a) {
-								var which = a[2];
-								if (a[1]=='local') {
-										if (which>=0 && which<=15) {
-												tossio_print('Value of L'+which+': '+locals[which]+'\n');
-										} else {
-												tossio_print('Unknown local variable.\n');
-										}
-								} else if (a[1]=='global') {
-										if (which>=0 && which<=240) {
-												tossio_print('Value of G'+which+': '+getword(vars_start+which*2)+'\n');
-										} else {
-												tossio_print('Unknown local variable.\n');
-										}
-								} else if (a[1]=='memory') {
-										tossio_print('Value of address '+which+': byte='+getword(which)+'; word='+getword(which)+'\n');
-								} else {
-										tossio_print('Unknown variable.\n');
-								}
-						}],
-		'put': ['set value of a variable',
-					 '...',
-					 function(a) {
-							 //  $xxx = variable named xxx (not yet implemented)
-							 //  #xxx = literal, hex xxx
-							 //  &xxx = memory word xxx
-							 //  *xxx = memory byte xxx
-							 //  %xx  = global variable xx
-							 //  !x   = local variable x
-							 //  otherwise: literal, decimal
+function command_clear(a) {
+		var addr = a[1]*1;
 
-							 var t = a[1][0];
-							 var n = eval('0x'+a[1].substring(1));
-							 var v = a[2];
+		if (breakpoints[addr]) {
+				delete breakpoints[addr];
+				tossio_print('OK, deleted.');
+		} else {
+				tossio_print('No breakpoint there!');
+		}
+}
+function command_show(a) {
+		// Bzzt. This should use the new variable syntax ($, #, & and so on).
+		// Call it "get" then.
+		var which = a[2];
+		if (a[1]=='local') {
+				if (which>=0 && which<=15) {
+						tossio_print('Value of L'+which+': '+locals[which]+'\n');
+				} else {
+						tossio_print('Unknown local variable.\n');
+				}
+		} else if (a[1]=='global') {
+				if (which>=0 && which<=240) {
+						tossio_print('Value of G'+which+': '+getword(vars_start+which*2)+'\n');
+				} else {
+						tossio_print('Unknown local variable.\n');
+				}
+		} else if (a[1]=='memory') {
+				tossio_print('Value of address '+which+': byte='+getword(which)+'; word='+getword(which)+'\n');
+		} else {
+				tossio_print('Unknown variable.\n');
+		}
+}
 
-							 if (t=='%') {
-									 setword(v, vars_start+n*2);
-							 } else {
-									 tossio_print('Unknown type in /put');
-							 }
+function command_put(a) {
+		//  $xxx = variable named xxx (not yet implemented)
+		//  #xxx = literal, hex xxx
+		//  &xxx = memory word xxx
+		//  *xxx = memory byte xxx
+		//  %xx  = global variable xx
+		//  !x   = local variable x
+		//  otherwise: literal, decimal
 
-					 }],
-		'about': ['show the about box',
-						 '...',
-						 function (a) {
-								 // simple JS alert for now.
-								 alert('Gnusto v0.2.0\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
-											 'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
-											 'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
-						 }],
-		'bafgenre': ['show reviews',
-								'...',
-								function (a) {
-										baf_describe_genre(a[1]);
-								}],
-};
+		var t = a[1][0];
+		var n = eval('0x'+a[1].substring(1));
+		var v = a[2];
 
-function tossio_debug_instruction(command) {
+		if (t=='%') {
+				setword(v, vars_start+n*2);
+		} else {
+				tossio_print('Unknown type in /put');
+		}
 
-		// FIXME: these should be equivalences:
-		//   /%2E=177 and /put %2E 177
-		//   /%2E     and /get %2E
+}
 
-		if (tossio_verbs[command[0]])
-				tossio_verbs[command[0]][2](command);
-		else
-				tossio_print('Unknown command: /'+command[0]+'. Try "/help".');
+function command_bafgenre(a) {
+		baf_describe_genre(a[1]);
 }
 
 function tossio_notify_breakpoint_hit() {
