@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.98 2003/07/21 16:41:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.99 2003/07/26 04:17:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -166,13 +166,13 @@ function command_exec(args) {
 
 				case GNUSTO_EFFECT_SAVE:
 						// nope
-						alert("Saving of games isn't implemented yet.");
+						gnusto_error(601, "Saving of games isn't implemented yet.");
 						looping = 1;
 						break;
 
 				case GNUSTO_EFFECT_RESTORE:
 						// nope here, too
-						alert("Loading saved games isn't implemented yet.");
+						gnusto_error(601, "Loading saved games isn't implemented yet.");
 						looping = 1;
 						break;
 
