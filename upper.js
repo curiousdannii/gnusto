@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.6 2003/03/30 06:19:53 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.7 2003/03/30 22:11:56 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -153,57 +153,81 @@ function subchalk(win, fg, bg, style, text) {
 		var charactersTrimmed = 0;
 		var doppelganger = 0;
 
-		if (charactersSeen < window_current_x[win]) {
+		if (cursor+1==spans.length) {
 
-				var amountToKeep = window_current_x[win] - charactersSeen;
+				if (charactersSeen < window_current_x[win]) {
+						// There aren't enough characters to go round. We
+						// must add extra spaces to the start of the text.
 
-				if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
-						// The whole of the new text fits within this node. Let's keep this
-						// node before the new text, and create another node to go after it.
-						doppelganger = spans[cursor].cloneNode(1);
-						doppelganger.childNodes[0].data = doppelganger.childNodes[0].data.substring(amountToKeep+text.length);
+						for (var i=0; i<(window_current_x[win]-charactersSeen); i++) {
+								text = ' '+text;
+						}
 				}
 
-				charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
+				// Just append the text.
 
-				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
+				appendPoint = spans.length-1;
 
-				// And push them on one place; they insert *after* us.
-				cursor++;
+		} else {
+				if (charactersSeen >= window_current_x[win]) {
 
-		}
+						// We've seen fewer characters than we were expecting, so the
+						// last span is over-long: we must trim it.
 
-		var appendPoint = cursor;
+						var amountToKeep = window_current_x[win] - charactersSeen;
 
-		if (cursor<spans.length-1) {
-				// Delete any spans which are hidden by our span.
-				var charactersDeleted = charactersTrimmed;
-				var spansToDelete = 0;
-				while (charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
-						charactersDeleted += spans[cursor].childNodes[0].data.length;
+						if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
+								// The whole of the new text fits within this node. Let's keep this
+								// node before the new text, and create another node to go after it.
+								alert('q');
+								doppelganger = spans[cursor].cloneNode(1);
+								doppelganger.childNodes[0].data = doppelganger.childNodes[0].data.substring(amountToKeep+text.length);
+						}
+
+						charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
+
+						spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
+
+						// And push them on one place; they insert *after* us.
 						cursor++;
-						spansToDelete++;
+
 				}
+
+				var appendPoint = cursor;
+
+				if (cursor<spans.length-1) {
+						// Delete any spans which are hidden by our span.
+						var charactersDeleted = charactersTrimmed;
+						var spansToDelete = 0;
+						while (charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
+								charactersDeleted += spans[cursor].childNodes[0].data.length;
+								cursor++;
+								spansToDelete++;
+						}
 				
-				// And trim the RHS of the first span after our new span.
-				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
+						// And trim the RHS of the first span after our new span.
+						spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
+				}
+
+
+				// Now we've finished looking at the line, we can start modifying it.
+
+				// Delete the spans which are underneath our text...
+				for (var i=appendPoint; i<appendPoint+spansToDelete; i++) {
+						current_line.removeChild(spans[appendPoint]); // the others will slide up.
+				}
+
+				// ...add the broken span, if there was one...
+				if (doppelganger) {
+						current_line.insertBefore(doppelganger, spans[cursor]);
+				}
+
+				/*		// ...add some spaces, if needs be...
+							if (cursor==spans.length-1) {
+							alert('Well: '+window_current_x[win]+' '+charactersSeen+' '+text.length);
+							}*/
+
 		}
-
-
-		// Now we've finished looking at the line, we can start modifying it.
-
-		// FIXME: If we're after the current end of the line, we may need to add spaces.
-
-		// Delete the spans which are underneath our text...
-		for (var i=appendPoint; i<appendPoint+spansToDelete; i++) {
-				current_line.removeChild(spans[appendPoint]); // the others will slide up.
-		}
-
-		// ...add the broken span, if there was one...
-		if (doppelganger) {
-				current_line.insertBefore(doppelganger, spans[cursor]);
-		}
-
 		// ..and append our text.
 		var newSpan = window_documents[win].createElement('span');
 		newSpan.appendChild(window_documents[win].createTextNode(text));
