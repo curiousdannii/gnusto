@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.14 2003/09/20 03:20:22 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.15 2003/09/21 01:24:59 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/20 03:20:22 $';
+const CVS_VERSION = '$Date: 2003/09/21 01:24:59 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -470,7 +470,7 @@ function handleZ_rfalse(engine, a) {
 
 function handleZ_print(engine, a) {
     //VERBOSE burin('printret',"see handler_print");
-    return engine._handler_print('', 1)+';_func_return(1);return';
+    return engine._handler_print('', 0);
 }
 
 function handleZ_print_ret(engine, a) {
@@ -2545,10 +2545,6 @@ GnustoEngine.prototype = {
 			return temp;
 	},
 
-	_effect_parameters: function ge_effect_parameters() {
-			return this.m_effect_parameters;
-	},
-
 	////////////////////////////////////////////////////////////////
 
 	_is_separator: function ge_IsSeparator(value) {
@@ -2745,7 +2741,7 @@ GnustoEngine.prototype = {
 	// address immediately after the current instruction.
 	//
 	// (will possibly soon be redundant)
-	_handler_zOut: function ge_handler_zOut( text, is_return) {
+	_handler_zOut: function ge_handler_zOut(text, is_return) {
 
 			var setter;
 
