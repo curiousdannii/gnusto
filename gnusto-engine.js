@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.101 2003/08/28 21:53:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.102 2003/08/28 22:00:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -651,7 +651,7 @@ var handlers = {
 		},
 		13: function Z_store(a) {
 				//VERBOSE burin('store_into',a[0] + ',' + a[1]);
-				return store_into(code_for_varcode(a[0]), a[1]);
+				return "varcode_set("+a[1]+","+a[0]+")";
 		},
 		14: function Z_insert_obj(a) {
 				//VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
@@ -742,12 +742,11 @@ var handlers = {
 		133: function Z_inc(a) {
 				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('inc',c + '+1');
-				return store_into(c, c+'+1');
+				return "t="+a[0]+';varcode_set(varcode_get(t)+1, t)';
 		},
 		134: function Z_dec(a) {
-				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('dec',c + '-1');
-				return store_into(c, c+'-1');
+				return "t="+a[0]+';varcode_set(varcode_get(t)-1, t)';
 		},
 		135: function Z_print_addr(a) {
 				//VERBOSE burin('print_addr','zscii_from('+a[0]+')');
