@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.63 2003/11/29 20:53:11 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.64 2003/11/30 01:53:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/29 20:53:11 $';
+const CVS_VERSION = '$Date: 2003/11/30 01:53:09 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2241,16 +2241,6 @@ GnustoEngine.prototype = {
 
 					if (!(overwrite && lexical==0)) {
 
-							//dump('(toke3 ');
-							//dump(lexical);
-							//dump(' ');
-							//dump(curword.length);
-							//dump(' ');
-							//dump(wordpos);
-							//dump(' AT ');
-							//dump(cursor.toString(16));
-							//dump(')');
-
 							engine.setWord(lexical, cursor);
 							cursor+=2;
 
@@ -2348,12 +2338,6 @@ GnustoEngine.prototype = {
 					add_to_parse_table(this, dictionary, words[wordindex],
 														 (cpos - words[wordindex].length) + wordpos_increment);
 			}
-		
-			//dump('(toke2 ');
-			//dump(tokenised_word_count);
-			//dump(' AT ');
-			//dump(words_count_addr.toString(16));
-			//dump(')');
 
 			this.setByte(tokenised_word_count, words_count_addr);
 
@@ -2935,8 +2919,8 @@ GnustoEngine.prototype = {
 
 							if (abbreviation) {
 									temp = temp + this._zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+this.m_abbr_start)*2);
-									abbreviation = 0;
-							} else if (tenbit==-2) {
+									abbreviation = 0;	
+						} else if (tenbit==-2) {
 
 									if (code>5) {
 											if (alph==2 && code==6)
@@ -3013,12 +2997,24 @@ GnustoEngine.prototype = {
 			var result = '';
 			var buffer = [];
 			
+			var dictionary_entry_length;
+			if (this.m_version < 4) {
+					dictionary_entry_length = 4;
+			} else {
+					dictionary_entry_length = 6;
+			}
+
 			function emit(value) {
 
 					buffer.push(value);
 
 					if (buffer.length==3) {
 							var temp = (buffer[0]<<10 | buffer[1]<<5 | buffer[2]);
+
+							if (result.length == dictionary_entry_length-2) {
+									// This'll be the last word. We need to set the stop bit.
+									temp |= 0x8000;
+							}
 
 							result = result +
 									String.fromCharCode(temp >> 8) +
@@ -3064,20 +3060,9 @@ GnustoEngine.prototype = {
 					}
 			}
 
-			var dictionary_entry_length;
-			if (this.m_version < 4) {
-					dictionary_entry_length = 4;
-			} else {
-					dictionary_entry_length = 6;
-			}
-
 			while (result.length<dictionary_entry_length) {
 					emit(5);
 			}
-
-			// Set the stop bit.
-			// (Maybe better done automatically from checking string length.)
-			result = result.substring(0, result.length-2) + String.fromCharCode(result.charCodeAt(result.length-2) | 0x80) + result[result.length-1];
 
 			return result.substring(0, dictionary_entry_length);
 	},
