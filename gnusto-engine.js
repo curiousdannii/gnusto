@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.66 2003/05/26 18:24:44 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.67 2003/05/26 18:41:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1224,28 +1224,6 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 		}
 }
 
-function look_up(word) {
-
-		var separator_count = getbyte(dict_start);
-		var entry_length = getbyte(dict_start+separator_count+1);
-		var entries_count = getword(dict_start+separator_count+2);
-		var entries_start = dict_start+separator_count+4;
-
-		word = into_zscii(word);
-
-		for (var i=0; i<entries_count; i++) {
-				var address = entries_start+i*entry_length;
-
-				var j=0;
-				while (j<word.length &&
-							 getbyte(address+j)==word.charCodeAt(j))
-						j++;
-
-				if (j==word.length) return address;
-		}
-		return 0;
-}
-
 ////////////////////////////////////////////////////////////////
 // Tokenises a string.
 //
@@ -1258,7 +1236,28 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		// Some of the more esoteric options aren't yet supported.
 
 		if (dictionary) gnusto_error(101, 'no user dictionaries yet', dictionary);
-		if (overwrite) gnusto_error(101, 'no overwrite yet');
+
+		function look_up(word) {
+
+				var separator_count = getbyte(dict_start);
+				var entry_length = getbyte(dict_start+separator_count+1);
+				var entries_count = getword(dict_start+separator_count+2);
+				var entries_start = dict_start+separator_count+4;
+				
+				word = into_zscii(word);
+		
+				for (var i=0; i<entries_count; i++) {
+						var address = entries_start+i*entry_length;
+						
+						var j=0;
+						while (j<word.length &&
+									 getbyte(address+j)==word.charCodeAt(j))
+								j++;
+
+						if (j==word.length) return address;
+				}
+				return 0;
+		}
 
 		var max_chars = getbyte(text_buffer);
 
@@ -1275,9 +1274,13 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		var position = 2;
 
 		for (var i in words) {
+
 				var lexical = look_up(words[i]);
 
-				setword(lexical, cursor);
+				if (!(overwrite && lexical==0)) {
+						setword(lexical, cursor);
+				}
+
 				cursor+=2;
 				setbyte(words[i].length, cursor++);
 				setbyte(position, cursor++);
