@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.9 2003/02/25 16:58:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.10 2003/02/28 11:14:41 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -724,101 +724,112 @@ function setword(value, addr) {
 // code it's dissembled.
 function dissemble() {
 
-		var args = [];
-		var argcursor = 0;
+		compiling = !debug_mode;
+		// compiling = 0;
+		code = '';
+		var starting_pc = pc;
 
-		function handle_variable_parameters() {
-				var types = getbyte(pc++);
-				types = (types << 2) | 0x3;
+		do {
 
-				while (1) {
-						var current = types & 0xC0;
-						if (current==0xC0) {
-								break;
-						} else if (current==0x00) {
-								args[argcursor++] = getword(pc);
-								pc+=2;
-						} else if (current==0x40) {
-								args[argcursor++] = getbyte(pc++);
-						} else if (current==0x80) {
-								args[argcursor++] =
-										code_for_varcode(getbyte(pc++));
-						} else {
-								gnusto_error(171); // impossible
+				// List of arguments to the opcode.
+				var args = [];
+
+				// Inelegant function to load parameters according to a VAR byte.
+				var args = [];
+
+				function handle_variable_parameters(argcursor) {
+						var types = getbyte(pc++);
+
+						while (1) {
+								var current = types & 0xC0;
+								if (current==0xC0) {
+										return;
+								} else if (current==0x00) {
+										args[argcursor++] = get_unsigned_word(pc);
+										pc+=2;
+								} else if (current==0x40) {
+										args[argcursor++] = getbyte(pc++);
+								} else if (current==0x80) {
+										args[argcursor++] =
+												code_for_varcode(getbyte(pc++));
+								} else {
+										gnusto_error(171); // impossible
+								}
+						
+								types = (types << 2) | 0x3;
 						}
 				}
-		}
-
-		compiling = !debug_mode;
-		code = '';
-
-		while(compiling) {
-
-				args = [];
-				argcursor = 0;
-
+				
+				// So here we go...
+				// what's the opcode?
 				var instr = getbyte(pc++);
 
 				if (instr==0) {
 						// If we just get a zero, we've probably
 						// been directed off into deep space somewhere.
-
+						
 						gnusto_error(201, pc-1); // lost in space
-				} else if (instr==190) {
-
-						// Extended opcode.
-
+				} else if (instr==190) { // Extended opcode.
+						
 						instr = 1000+getbyte(pc++);
-						handle_variable_parameters();
-
+						handle_variable_parameters(0);
+						
 				} else if (instr & 0x80) {
-						if (instr & 0x40) { // Variable
-
-								// if (instr & 0x20)... according to the z-spec.
-								// I haven't seen any evidence of this.
-								// (Ask on the list.)
-
-								handle_variable_parameters();
+						if (instr & 0x40) { // Variable params
+								
+								if (!(instr & 0x20))
+										// This is a 2-op, despite having
+										// variable parameters; reassign it.
+										instr &= 0x1F;
+								
+								handle_variable_parameters(0);
 
 								if (instr==250 || instr==236)
 										// We get more of them!
-										handle_variable_parameters();
-
-								instr = instr & 0x1F;
-
-						} else { // Short
+										handle_variable_parameters(4);
+								
+						} else { // Short. All 1-OPs except for one 0-OP.
 
 								switch(instr & 0x30) {
 								case 0x00:
-										args[0] = getword(pc);
+								    args[0] = getword(pc); // FIXME: unsigned??
 										pc+=2;
+										instr = (instr & 0x0F) | 0x80;
 										break;
-
+										
 								case 0x10:
 										args[0] = getbyte(pc++);
+										instr = (instr & 0x0F) | 0x80;
 										break;
-
-								case 0x11:
+										
+								case 0x20:
 										args[0] =
 												code_for_varcode(getbyte(pc++));
+										instr = (instr & 0x0F) | 0x80;
+										break;
+
+								case 0x30:
+										// 0-OP. We don't need to get parameters, but we
+										// *do* need to translate the opcode.
+										instr = (instr & 0x0F) | 0xB0;
 										break;
 								}
 						}
-				} else {
-						// Long opcodes.
-	
-						if (instr & 0x20)
+				} else { // Long
+						
+						if (instr & 0x40)
 								args[0] =
 										code_for_varcode(getbyte(pc++));
 						else
 								args[0] = getbyte(pc++);
-
-						if (instr & 0x40)
+						
+						if (instr & 0x20)
 								args[1] =
 										code_for_varcode(getbyte(pc++));
 						else
 								args[1] = getbyte(pc++);
-						
+
+						instr &= 0x1F;
 				}
 
 				if (handlers[instr]) {
@@ -827,7 +838,7 @@ function dissemble() {
 						gnusto_error(200, instr, pc.toString(16)); // no handler
 				}
 
-		}
+		} while(compiling);
 
 		// When we're not in debug mode, dissembly only stops at places where
 		// the PC must be reset; but in debug mode it's perfectly possible
