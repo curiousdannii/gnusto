@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.62 2003/11/28 22:40:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.63 2003/11/29 20:53:11 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/28 22:40:10 $';
+const CVS_VERSION = '$Date: 2003/11/29 20:53:11 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2102,9 +2102,9 @@ GnustoEngine.prototype = {
 
 			if (this.m_version<5) {
 					var templocals = [];
-					for (var i3=count; i3>0; i3--) {
-							if (i3<=actuals.length) {
-									this.m_locals.unshift(actuals[i3-1]);
+					for (var i3=0; i3<count; i3++) {
+							if (i3<actuals.length) {
+									templocals.push(actuals[i3]);
 							} else {
 									templocals.push(this.getWord(this.m_pc));
 							}
@@ -2451,29 +2451,34 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_len: function ge_get_prop_len(address) {
-			// The last byte before the data is either the size byte of a 2-byte
-			// field, or the only byte of a 1-byte field. We can tell the
-			// difference using the top bit.
-
-			var value = this.getByte(address-1);
-
-			if (value & 0x80) {
-					// A two-byte field, so we take the bottom five bits.
-					value = value & 0x1F;
-
-					if (value==0)
-							return 64;
-					else
-							return value;
+			if (this.m_version<4) {
+					return 1+(this.getByte(address-1) >> 5);
 			} else {
-					// A one-byte field. Our choice rests on a single bit.
-					if (value & 0x40)
-					return 2;
-					else
-					return 1;
-			}
+					// The last byte before the data is either the size byte of a 2-byte
+					// field, or the only byte of a 1-byte field. We can tell the
+					// difference using the top bit.
 
-			gnusto_error(172); // impossible
+					var value = this.getByte(address-1);
+
+					if (value & 0x80) {
+							// A two-byte field, so we take the bottom five bits.
+							value = value & 0x1F;
+							
+							if (value==0) {
+									return 64;
+							} else {
+									return value;
+							}
+					} else {
+							// A one-byte field. Our choice rests on a single bit.
+							if (value & 0x40) {
+									return 2;
+							} else {
+									return 1;
+							}
+					}
+			}
+			gnusto_error(170); // impossible
 	},
 
 	_get_next_prop: function ge_get_next_prop(object, property) {
