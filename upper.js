@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.10 2003/03/31 05:12:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.11 2003/03/31 06:13:51 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -229,6 +229,8 @@ function subchalk(win, fg, bg, style, text) {
 		} else {
 				current_line.insertBefore(newSpan, spans[appendPoint]);
 		}
+
+		// FIXME: need extra check for integrity here, temporarily.
 }
 
 ////////////////////////////////////////////////////////////////
