@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.49 2003/04/14 16:25:07 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.50 2003/04/14 17:57:57 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -170,6 +170,9 @@ var engine__transcript_buffer = '';
 
 // Effect parameters hold additional information for effect codes.
 var engine__effect_parameters = 0;
+
+var engine__random_seed = 0;
+var engine__use_seed = 0; 
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -1138,13 +1141,24 @@ function zscii_char_to_ascii(zscii_code) {
 }
 
 function gnusto_random(arg) {
-		if (arg>0) {
-				return 1 + Math.round(arg * Math.random());
-		} else {
-				// Else we should reseed the RNG and return 0.
-                                Math.random(arg);
-                                return 0;
-		}
+                if (arg==0) {  //zero returns to true random mode-- seed from system clock
+                    engine__use_seed = 0;
+                    return 0;
+                } else {
+		  if (arg>0) {  //return a random number between 1 and arg.
+                                 if (engine__use_seed == 0) {
+	    			      return 1 + Math.round((arg -1) * Math.random());
+                                  } else {
+                                      engine__random_seed--;
+                                      return Math.round(Math.abs(Math.tan(engine__random_seed))*8.71*arg)%arg;
+                                  }
+	  	  } else {
+				  // Else we should reseed the RNG and return 0.
+                                  engine__random_seed = arg;
+                                  engine__use_seed = 1;
+                                  return 0;
+		  }
+               }
 }
 
 function clear_locals() {
