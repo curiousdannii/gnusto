@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.19 2003/09/29 06:11:26 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.20 2003/10/03 12:54:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/29 06:11:26 $';
+const CVS_VERSION = '$Date: 2003/10/03 12:54:37 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -157,7 +157,8 @@ var GNUSTO_EFFECT_BREAKPOINT = '"BP"';
 // Returned if either of the two header bits which
 // affect printing have changed since last time
 // (or if either of them is set on first printing).
-var GNUSTO_EFFECT_FLAGS_CHANGED = '"XC"'; // obsolescent
+// FIXME: This needs to be moved out of the private use area.
+var GNUSTO_EFFECT_FLAGS_CHANGED = '"XC"';
 
 // Returned if the story wants to verify its own integrity.
 // Answer 1 if its checksum matches, or 0 if it doesn't.
@@ -213,27 +214,6 @@ var GNUSTO_EFFECT_GETCURSOR =      '"GC"';
 //
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_PRINTTABLE     = '"PT"';
-
-////////////////////////////////////////////////////////////////
-//
-// unmz5
-//
-// Routine to undo mz5 encoding.
-
-function unmz5(encoded) {
-  var halfsize = encoded.length/2;
-  var decoded = [];
-
-  for (var i=0; i<halfsize; i++) {
-    if (encoded[halfsize+i]=='Y') {
-      decoded.push(0);
-    } else {
-      decoded.push(encoded.charCodeAt(i));
-    }
-  }
-
-  return decoded;
-}
 
 ////////////////////////////////////////////////////////////////
 //
@@ -767,8 +747,8 @@ function handleZ_save(engine, a) {
     engine.m_compilation_running=0;
     var setter = "m_rebound=function() { " +
       engine._storer('m_answers[0]') + "};";
-    return "m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
-  }
+    return "m_state_to_save=_saveable_state(1);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
+}
 		
 function handleZ_restore(engine, a) {
     //VERBOSE burin('restore','');
@@ -797,9 +777,11 @@ function handleZ_set_font(engine, a) {
   }
 
 function handleZ_save_undo(engine, a) {
-    //VERBOSE burin('save_undo','unsupported');
-    return engine._storer('-1'); // not yet supplied
-  }
+		// 3 is the distance between the PC at the moment we call save_undo
+		// and the varcode which gives the place to store the success code.
+		// This is different for other similar instructions, such as @save.
+    return engine._storer('_save_undo(3)');
+}
 
 function handleZ_restore_undo(engine, a) {
     //VERBOSE burin('restore_undo','unsupported');
@@ -1020,28 +1002,9 @@ GnustoEngine.prototype = {
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
 
-  loadStory: function ge_loadStory(sourceFile, length) {
-
-			try {
-
-					var binis = Components.Constructor("@mozilla.org/binaryinputstream;1",
-																						 "nsIBinaryInputStream",
-																						 "setInputStream")(sourceFile);
-					
-					this.m_memory = binis.readByteArray(length);
-
-			} catch(e) {
-					dump('Failure: ');
-					dump(e);
-					dump('\n');
-			}
-
+  loadStory: function ge_loadStory(len, sourceFile) {
+			this.m_memory = sourceFile;
 			this._initial_setup();
-  },
-
-  loadStoryMZ5: function ge_loadStory(story) {
-    this.m_memory = unmz5(story);
-    this._initial_setup();
   },
 
   loadSavedGame: function ge_loadSavedGame(savedGame) {
@@ -1139,6 +1102,54 @@ GnustoEngine.prototype = {
   walk: function ge_walk(answer) {
     throw "not implemented";
   },
+
+	////////////////////////////////////////////////////////////////
+	//
+	// saveGame
+	//
+	// Saves a game out to a file.
+	// |target| is an nsIBinaryOutputStream.
+	//
+  saveGame: function ge_saveGame() {
+
+			var tag_FORM = [0x46, 0x4f, 0x52, 0x4d];
+			var tag_IFZS = [0x49, 0x46, 0x5a, 0x53];
+			var tag_CMem = [0x43, 0x4d, 0x65, 0x6d];
+			var tag_Stks = [0x53, 0x74, 0x6b, 0x73];
+
+			var IF_header = [0x49, 0x46, 0x68, 0x64, // IFhd
+											 0x00, 0x00, 0x00, 0x0d, // fixed length of 13 bytes
+											 this.m_memory[0x02],    // Release number
+											 this.m_memory[0x03],
+											 this.m_memory[0x12],    // Serial
+											 this.m_memory[0x13],
+											 this.m_memory[0x14],
+											 this.m_memory[0x15],
+											 this.m_memory[0x16],
+											 this.m_memory[0x17],
+											 this.m_memory[0x1C],    // Checksum
+											 this.m_memory[0x1D],
+											 (this.m_pc>>16) & 0xFF,
+											 (this.m_pc>> 8) & 0xFF,
+											 (this.m_pc    ) & 0xFF,
+											 0];
+
+			var quetzal = tag_FORM;
+
+			quetzal = quetzal.concat([0, 0, 0x03, 0x38]); // hacked in; remove
+			quetzal = quetzal.concat(tag_IFZS);
+			quetzal = quetzal.concat(IF_header);
+
+			this.m_quetzal_image = quetzal;
+			return this.m_quetzal_image.length;
+
+	},
+
+  saveGameData: function ge_saveGameData(len, result) {
+			var temp = this.m_quetzal_image;
+			this.m_quetzal_image = 0;
+			return temp;
+	},
 
   get architecture() {
     return 'none';
@@ -2814,6 +2825,32 @@ GnustoEngine.prototype = {
 			this.m_pc = address;
 	},
 
+	_save_undo: function ge_save_undo(varcode_offset) {
+
+			this.m_undo = this._saveable_state(varcode_offset);
+
+			return 1;
+	},
+
+	_restore_undo: function ge_restore_undo() {
+			// ...
+	},
+
+	_saveable_state: function ge_saveable_state(varcode_offset) {
+			var result = {
+					'm_memory': this.m_memory.slice(0, this.m_stat_start),
+					'm_pc': this.m_pc + varcode_offset, // move onto target varcode,
+					'm_call_stack': this.m_call_stack,
+					'm_locals': this.m_locals,
+					'm_locals_stack': this.m_locals_stack,
+					'm_param_counts': this.m_param_counts,
+					'm_result_targets': this.m_result_targets,
+					'm_gamestack': this.m_gamestack,
+			};
+
+			return result;
+	},
+
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
@@ -3044,6 +3081,24 @@ GnustoEngine.prototype = {
   m_pc_translate_for_routine: pc_translate_v45,
   m_pc_translate_for_string: pc_translate_v45,
 
+	// If this is an object, it should contain copies of other
+	// properties of the engine object with the same names,
+	// backed up for @save_undo. These should be the same as
+	// their namesakes at the moment of saving, except that:
+	//    m_memory needs only to hold dynamic memory
+	//    m_pc points at the } address (<z5)  { which receives the
+	//                       } varcode (>=z5) { success result.
+	//
+	// If this is not an object, no undo information is saved.
+	// (Future: It should eventually be an array, for multiple undo.)
+	m_undo: 0,
+
+	// Like m_undo, but only well-defined during a save effect.
+	m_state_to_save: 0,
+
+	// Saved Quetzal image. Only well-defined between a call to saveGame()
+	// and a call to saveGameData().
+	m_quetzal_image: 0,
 };
 
 ////////////////////////////////////////////////////////////////
