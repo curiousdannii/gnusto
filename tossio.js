@@ -1,4 +1,4 @@
-// tossio.js || -*- Mode: fundamental; tab-width: 2; -*-
+// tossio.js || -*- Mode: Java; tab-width: 2; -*-
 // The debugger in Gnusto.
 
 //================================================================
@@ -542,43 +542,44 @@ function tossio_scan(addr, is_func) {
 		} while (!(details[6] && points[addr]!=2));
 }
 
-function tossio_dump(start, end) {
-		dump('tossio dump\n');
-
-		for (var i=start; i<end; i++) {
-				if (points[i]) {
-						dump(points[i]+'     '+i.toString(16));
-						if (asm[i])
-								dump('     '+asm[i]);
-						dump('\n');
-				}
-		}
-}
-
-var dissemblyWindow = 0;
+var scanDone = 0;
 
 function viewDissembly() {
-	if (!dissemblyWindow)
-		dissemblyWindow=open('chrome://gnusto/content/dissembly.xul','dissembly','chrome,all,dialog=no');
-	var doc = dissemblyWindow.document;
-	alert(doc);
 
-	alert(dissemblyWindow);
-	alert(dissemblyWindow.document);
-  alert(dissemblyWindow.document.getElementById('details'));
+		var menu = document.getElementById('view-dissembly');
+		var splitter = document.getElementById('dissembly-split');
+		var pane = document.getElementById('dissembly');
+
+		if (pane.getAttribute('hidden')=='true') {
+				splitter.setAttribute('hidden', 'false');
+				pane.setAttribute('hidden', 'false');
+				menu.setAttribute('label', 'Hide dissembly');
+
+				if (!scanDone) {
+						alert('Scan needed.');
+						tossio_scan(get_unsigned_word(0x06), 0);
+						alert('Scan finished.');
+
+						for (var i in points) {
+								var row = document.createElement('row');
+								var a = document.createElement('label');
+								a.setAttribute('value', i.toString(16));
+								row.appendChild(a);
+
+								if (asm[i]) {
+										var b = document.createElement('label');
+										b.setAttribute('value', asm[i]);
+										row.appendChild(b);
+								}
+								document.getElementById('details').appendChild(row);
+						}
+						alert('Update finished.');
+
+						scanDone = 1;
+				}
+		} else {
+				splitter.setAttribute('hidden', 'true');
+				pane.setAttribute('hidden', 'true');
+				menu.setAttribute('label', 'Show dissembly');
+		}
 }
-
-/*function viewDissembly() {
-	if (!dissemblyWindow)
-		dissemblyWindow=open('chrome://gnusto/content/dissembly.xul','dissembly','chrome,all,dialog=no');
-
-	var row = dissemblyWindow.document.createElement('row');
-	var a = dissemblyWindow.document.createElement('label'); a.setAttribute('value', '420');
-	var b = dissemblyWindow.document.createElement('label');	b.setAttribute('value', 'man');
-
-	row.appendChild(a);
-	row.appendChild(b);
-
-  dissemblyWindow.document.getElementById('details').appendChild(row);
-}
-*/

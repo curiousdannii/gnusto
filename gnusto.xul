@@ -46,14 +46,17 @@
 
 <menu id="resources-menu" label="Explore" accesskey="X">
 <menupopup>
-<menuitem label="Baf's Guide to the IF Archive" oncommand="open('http://www.wurb.com/if/')"  accesskey="B"/>
+<menuitem label="Gnusto's home page" oncommand="open('http://gnusto.mozdev.org/')" accesskey="G"/>
+<menuitem label="Baf's Guide to the IF Archive" oncommand="open('http://www.wurb.com/if/')" accesskey="B"/>
 <menuitem label="The IF Archive" oncommand="open('http://www.ifarchive.org')" accesskey="A"/>
 <menuitem label="The IF Competition" oncommand="open('http://ifcomp.org')" accesskey="C"/>
 <menuitem label="Brass Lantern" oncommand="open('http://brasslantern.org')" accesskey="L"/>
-<menuitem label="Open Directory: Interactive Fiction" disabled="true" oncommand="open('http://dmoz.org')" accesskey="D"/>
-<menuitem label="rec.games.int-fiction" disabled="true" accesskey="G"/>
-<menuitem label="rec.games.int-fiction FAQ" disabled="true" accesskey="Q"/>
-<menuitem label="rec.arts.int-fiction" disabled="true" accesskey="S"/>
+<menuitem label="XYZZYNews" oncommand="open('http://www.xyzzynews.com')" accesskey="X"/>
+<menuitem label="Society for the Promotion of Adventure Games" oncommand="open('http://www.sparkynet.com/spag/')" accesskey="S"/>
+<menuitem label="Feelies.org" oncommand="open('http://www.feelies.org')" accesskey="F"/>
+<menuitem label="rec.arts.int-fiction" oncommand="open('http://groups.google.com/groups?group=rec.arts.int-fiction')" accesskey="R"/>
+<menuitem label="rec.games.int-fiction" oncommand="open('http://groups.google.com/groups?group=rec.games.int-fiction')" accesskey="M"/>
+<menuitem label="rec.games.int-fiction FAQ" oncommand="open('http://bang.dhs.org/faq/1.html')" accesskey="Q"/>
 </menupopup>
 </menu>
 
@@ -65,7 +68,7 @@
 <menuitem label="Run to cursor" accesskey="C" disabled="true"/>
 <menuitem label="Toggle breakpoint" accesskey="B" disabled="true"/>
 <menuseparator/>
-<menuitem label="View dissembly" accesskey="D" disabled="true"/>
+<menuitem label="View dissembly" accesskey="D" id="view-dissembly" oncommand="viewDissembly()" disabled="true"/>
 <menuitem label="View source code" accesskey="U" disabled="true"/>
 <menuitem label="View variables" accesskey="V" disabled="true"/>
 <menuitem label="View eval stack" accesskey="E" disabled="true"/>
@@ -84,11 +87,31 @@
 
 <vbox flex="1">
 
+<vbox flex="1">
 <html:pre id="upper"></html:pre>
-
 <iframe flex="9" id="lower" type="content-primary" src="lower.html"/>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
+</vbox>
+
+<splitter status="open" id="dissembly-split" hidden="true" collapse="before"><grippy/></splitter>
+
+<grid flex="1" id="dissembly" hidden="true">
+
+<columns>
+<column flex="1"/>
+<column flex="4"/>
+</columns>
+
+<rows id="details">
+
+<row>
+<label value="0800"/>
+<label value="free telephones"/>
+</row>
+</rows>
+</grid>
+
 
 </vbox>
 

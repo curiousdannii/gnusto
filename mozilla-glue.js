@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.14 2003/03/02 17:47:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.15 2003/03/08 00:05:03 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -54,7 +54,15 @@ function loadMangledZcode(zcode) {
     fc.init(zcode, 1, 0);
     sis.init(fc.open());
 
-    mangled = sis.read(zcode.fileSize);
+    var tempMangled = sis.read(zcode.fileSize);
+
+		if (tempMangled.length!=zcode.fileSize) {
+				if (confirm('You seem to have opened an ordinary, non-encoded story file. Because of a current problem within Mozilla, Gnusto needs all story files to be encoded in "mz5" format before loading.\n\nWould you like more explanation?'))
+						open('http://gnusto.mozdev.org/nullbytes.html', '_blank');
+				return 0;
+		}
+
+		mangled = tempMangled;
     zbytes = [];
 
 		// We're required to modify some bits according to what we're able to supply.
@@ -67,6 +75,8 @@ function loadMangledZcode(zcode) {
 		// we hope it won't.
 		setbyte(  1, 0x1E); // uh, let's be a vax.
 		setbyte(103, 0x1F); // little "g" for gnusto
+
+		return 1;
 }
 
 function getbyte(address) {
@@ -213,6 +223,11 @@ function gnustoglue_split_window(lines) {
     set_upper_window();
 }
 
+function gnustoglue_set_buffer_mode(whether) {
+		// Not sure this makes much difference to us.
+		// Mozilla handles the printing.
+}
+
 function gnustoglue_set_window(w) {
     if (w==0 || w==1)
 				current_window = w;
@@ -315,6 +330,8 @@ function play() {
 
     gnustoglue_set_text_style(0, 1, 1);
 
+		document.getElementById('input').focus();
+
     setup();
     go_wrapper(0);
 }
@@ -413,8 +430,8 @@ function loadStory() {
     picker.appendFilter("mangled-z5", "*.mz5");
 
     if (picker.show()==ifp.returnOK) {
-				loadMangledZcode(picker.file);
-				play();
+				if (loadMangledZcode(picker.file))
+						play();
     }
 }
 
