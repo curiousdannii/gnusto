@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.11 2003/05/13 09:13:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.12 2003/05/14 23:38:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -190,21 +190,44 @@ function barbara_waiting_for_more() {
 
 ////////////////////////////////////////////////////////////////
 
+// Let's assume that the values used in scrolling are twips.
+function barbara__twips_per_pixel() {
+
+		// There's no way to find the number of twips per pixel as such.
+		// What we can do, though, is get the size of something in pixels
+		// and then in twips (actually, in centimetres), and divide.
+
+		var PIXELS = 5;
+		var CENTIMETRES = 6;
+		var TWIPS_PER_CENTIMETRE = 567;
+
+		var b = window.getComputedStyle(document.getElementById('barbarabox'),
+																		null).
+				getPropertyCSSValue('height');
+
+		var centimetre_height = b.getFloatValue(CENTIMETRES);
+		var pixel_height = b.getFloatValue(PIXELS);
+
+		if (pixel_height==0) {
+				return 15; // complete guess, but better than crashing
+		} else {
+				return (centimetre_height * TWIPS_PER_CENTIMETRE) /
+						pixel_height;
+		}
+}
+
 function barbara__get_viewport_top() {
-		// Let's assume that the values used in scrolling are twips.
-		// Moz's nsUnitConversion.h claims that there are 20 twips per pixel, so
-		// we'll assume that too.
 
 		var cx = new Object();
 		var cy = new Object();
 		barbara__viewport().getPosition(cx, cy);
 
-		return cy.value / 20;
+		return cy.value / barbara__twips_per_pixel();
 }
 
 function barbara__set_viewport_top(y) {
 		barbara__most_seen = y + barbara__get_viewport_height();
-		barbara__viewport().scrollTo(0, y*20);
+		barbara__viewport().scrollTo(0, y*barbara__twips_per_pixel());
 }
 
 function barbara__get_viewport_height() {
