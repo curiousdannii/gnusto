@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.54 2003/11/25 20:11:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.55 2003/11/25 20:27:19 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/25 20:11:10 $';
+const CVS_VERSION = '$Date: 2003/11/25 20:27:19 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2083,10 +2083,13 @@ GnustoEngine.prototype = {
 					} else {
 							if (this.m_version<5) {
 									this.m_locals.unshift(this.getWord(this.m_pc));
-									this.m_pc += 2;
 							} else {
 									this.m_locals.unshift(0);
 							}
+					}
+
+					if (this.m_version<5) {
+							this.m_pc += 2;
 					}
 			}
 			this.m_locals_stack.unshift(count);
