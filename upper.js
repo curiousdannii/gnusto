@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.20 2003/04/10 20:49:34 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.21 2003/04/10 23:37:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -252,7 +252,7 @@ function win__subchalk(win, style, text) {
     // dynamic screen resizing.
     while (lines.length <= y) {
                                 var newdiv = win__screen_doc.createElement('div');
-                                newdiv.setAttribute('style', 'width: 100%; background-color: ' + css_colours[current_background]);
+                                newdiv.setAttribute('style', 'width: 100%; background-color: ' + css_colours[win__current_background[current_window]]);
                                 win__screen_window.appendChild(newdiv);
     }
 

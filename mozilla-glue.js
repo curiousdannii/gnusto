@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.47 2003/04/10 20:48:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.48 2003/04/10 23:37:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -289,9 +289,9 @@ var css_colours = ['', // 0 = current; never used here
 									'#00FFFF', // 8 = cyan
 									'#FFFFFF'];// 9 = white
 
-var current_style = 0;
-var current_foreground = 1; // 1==default
-var current_background = 1;
+var win__current_style = [];
+var win__current_foreground = [];
+var win__current_background = [];
 
 var current_css = '';
 
@@ -300,40 +300,40 @@ function gnustoglue_set_text_style(style, foreground, background) {
 		current_css = '';
 
 		if (style==0)
-				current_style = 0;
+				win__current_style[current_window] = 0;
 		else {
-				if (style!=-1) current_style |= style;
+				if (style!=-1) win__current_style[current_window] |= style;
 
-				if (current_style & 0x1)
+				if (win__current_style[current_window] & 0x1)
 						// "reverse video", whatever that means for us
 						// (FIXME: I think it should really switch FG and BG colours.)
 						current_css = current_css + 'background-color: #777777;color: #FFFFFF;';
 
-				if (current_style & 0x2)
+				if (win__current_style[current_window] & 0x2)
 						// bold
 						current_css = current_css + 'font-weight:bold;';
 
-				if (current_style & 0x4)
+				if (win__current_style[current_window] & 0x4)
 						// italic
 						current_css = current_css + 'font-style: italic;';
 				
-				if (current_style & 0x8)
+				if (win__current_style[current_window] & 0x8)
 						// monospace
 						current_css = current_css + 'font-family: monospace;';
 		}
 
 		if (foreground==0)
-				foreground = current_foreground;
+				foreground = win__current_foreground[current_window];
 		if (foreground!=1) { // Not "default".
 				current_css = current_css + 'color:'+css_colours[foreground]+';';
-				current_foreground = foreground;
+				win__current_foreground[current_window] = foreground;
 		}
 
 		if (background==0)
-				background = current_background;
+				background = win__current_background[current_window];
 		if (background!=1) { // Not "default".
 				current_css = current_css + 'background:'+css_colours[background]+';';
-				current_background = background;
+				win__current_background[current_window] = background;
 		}
 }
 
@@ -495,6 +495,9 @@ function go_wrapper(answer, no_first_call) {
         case GNUSTO_EFFECT_SETWINDOW:
 						current_window = engine_effect_parameters();
 
+                                                //reset the css style variable to reflect the current state of text in the new window
+                                                gnustoglue_set_text_style(win__current_style[current_window], 0, 0);                                                
+
 						if (current_window!=0 && current_window!=1)
 								gnusto_error(303, w);
 
@@ -631,7 +634,12 @@ function verb(what) {
 function start_up() {
 		document.getElementById('input').focus();
 
-    gnustoglue_set_text_style(0, 1, 1);
+                //set defaults for current (lower) window
+                gnustoglue_set_text_style(0, 1, 1);
+                //set defaults for upper window
+                win__current_foreground[1] = 1;
+                win__current_background[1] = 1;
+                win__current_style[1] = 0;
 
 		glue__get_font_metrics();
 		glue_store_screen_size();
