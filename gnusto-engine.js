@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.34 2003/03/26 05:51:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.35 2003/03/26 06:11:05 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -732,12 +732,16 @@ var handlers = {
 
 		250: call_vn, // call_vn2,
 
-		251: function(a) {
+		251: function(a) { // tokenise
 				return "tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
 
 		// not implemented:   VAR:252 1C 5 encode_text zscii-text length from coded-text encode_text'"},
-		// not implemented:   VAR:253 1D 5 copy_table first second size copy_table '"},
+
+		253: function(a) { // copy_table
+				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
+		},
+
 		// not implemented:   VAR:254 1E 5 print_table zscii-text width height skip print_table '"},
 
 		255: function(a) { // check_arg_count
@@ -1528,6 +1532,46 @@ function set_transcribing(whether) {
 
 		// And notify the environment about it.
 		gnustoglue_notify_transcription(output_to_transcript);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Implements @copy_table, as in the Z-spec.
+function copy_table(first, second, size) {
+		if (second==0) {
+
+				// Zero out the first |size| bytes of |first|.
+
+				for (var i=0; i<size; i++) {
+						setbyte(0, i+first);
+				}
+		} else {
+
+				// Copy |size| bytes of |first| into |second|.
+
+				var copy_forwards = 0;
+
+				if (size<0) {
+						size = -size;
+						copy_forwards = 1;
+				} else {
+						if (first > second) {
+								copy_forwards = 1;
+						} else {
+								copy_forwards = 0;
+						}
+				}
+
+				if (copy_forwards) {
+						for (var i=0; i<size; i++) {
+								setbyte(getbyte(first+i), second+i);
+						}
+				} else {
+						for (var i=size-1; i>=0; i--) {
+								setbyte(getbyte(first+i), second+i);
+						}
+				}
+		}
 }
 
 ////////////////////////////////////////////////////////////////
