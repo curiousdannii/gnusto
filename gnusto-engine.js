@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.54 2003/04/18 22:50:42 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.55 2003/04/20 15:06:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1893,12 +1893,7 @@ var default_unicode_translation_table = {
 		223:0xbf, // inverted query
 };
 
-// This should probably be done programmatically...
-var zalphabet = {
-		0: 'abcdefghijklmnopqrstuvwxyz',
-		1: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-		2: 'T\n0123456789.,!?_#\'"/\\-:()', // T = magic ten bit flag
-}
+var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
 
 function zscii_from(address, max_length, tell_length) {
 		var temp = '';
@@ -1932,17 +1927,24 @@ function zscii_from(address, max_length, tell_length) {
 								temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
 								abbreviation = 0;
 						} else if (tenbit==-2) {
-								if (code<1) { temp = temp + ' '; alph=0; }
-								else if (code<4) { abbreviation = code; }
-								else if (code<6) { alph = code-3; }
-								else {
-										if (alph==2 && code==6)
-												tenbit = -1;
-										else
-												temp = temp +
-														zalphabet[alph][code-6];
+
+								if (code>5) {
+										if (alph!=2)
+												temp = temp + String.fromCharCode(code+(alph?59:91));
+										else {
+												// OK, the alphabet is 2, so...
+												if (code==6)
+														tenbit = -1; // Magic ten-bit code
+												else
+														temp = temp +	zalphabet2[code-7];
+										}
 										alph = 0;
+								} else {
+										if (code==0) { temp = temp + ' '; alph=0; }
+										else if (code<4) { abbreviation = code; }
+										else { alph = code-3; }
 								}
+
 						} else if (tenbit==-1) {
 								tenbit = code;
 						} else {
