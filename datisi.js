@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.10 2003/04/25 20:23:41 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.11 2003/05/02 22:14:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -114,7 +114,7 @@ function command_open(a) {
 
 						glue_receive_zcode(content);
 
-                                                dirty_reset();
+						dirty_reset();
 
 						return 1;
 				}
@@ -128,8 +128,9 @@ function command_open(a) {
 						if (loadAsZCode(content)) {
 								play();
 								return 1;
-						} else
+						} else {
 								return 0;
+						}
 
 				} else if (content[0]==70 && content[1]==79 &&
 									 content[2]==82 && content[3]==77) {
@@ -500,19 +501,27 @@ function sys_show_story_title(newname) {
 // soon as we can manage.
 function dirty_reset() {
                 
+				/* hmm, this crashes Gnusto for me; I'm commenting it out pending
+					 fixes to Baroco, which I suspect is what's confusing it
+
         win__current_style = 0;
         win__current_foreground = 1;
         win__current_background = 1;
         win__current_css = ['ff bb','ff bb'];
         win__screen_scroll_count = 0;
+
         if (win__screen_doc != 0) {
             var body = win__screen_doc.getElementsByTagName('body')[0];
             body.setAttribute('class', 'b' + win__current_background);
-        }
+				}
+
         win__current_x[0] = 0;
         win__current_y[0] = 0;
         win__current_x[1] = 0;
         win__current_y[1] = 0;
+
+				*/
+
                                
 }
 

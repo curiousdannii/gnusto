@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.4 2003/04/30 02:05:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.5 2003/05/02 22:14:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -52,6 +52,7 @@ function barbara_chalk(text) {
 
 		if (barbara__holder==0) {
 				// Create a new holder.
+
 				barbara__holder =
 						document.createElementNS(barbara__HTML,
 																		 'html:span');
@@ -59,8 +60,8 @@ function barbara_chalk(text) {
 				barbara__holder.setAttribute('class',
 																		 barbara__current_css);
 
-				document.getElementById('barbara').
-						appendChild(barbara__holder);
+				var temp = document.getElementById('barbara');
+				temp.appendChild(barbara__holder);
 		}
 
 		var lines = text.replace('  ','\u00A0 ','g').split('\n');
@@ -75,13 +76,23 @@ function barbara_chalk(text) {
 				barbara__holder.
 						appendChild(document.createTextNode(lines[i]));
 		}
-				
+
 		// And scroll to the end.
 		// (FIXME: Really we want to do this only when we're waiting
 		// for input; it's all tied up with [MORE], too)
 
-		//var scrollable = document.getElementById('barbarabox').boxObject;
-		//var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+		var scrollable = document.getElementById('barbarabox').boxObject;
+		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+		i.scrollTo(0, 99999);
+
+		var h = parseInt(document.defaultView.getComputedStyle(document.getElementById('barbara'),'').getPropertyValue('height'));
+		document.title = h;
+
+		if (h>480) {
+				document.getElementById('bocardo').setAttribute('top', h - 480);
+		} else {
+				document.getElementById('bocardo').setAttribute('top', 0);
+		}
 
 		return '';
 }

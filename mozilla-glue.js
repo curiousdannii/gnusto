@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.67 2003/04/30 02:05:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.68 2003/05/02 22:14:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -75,10 +75,14 @@ function go_wrapper(answer, no_first_call) {
 				looping = 0; // By default, we stop.
 
 				if (no_first_call) {
+
+						// bah, I'm so going to remove NFC when I get this fixed
+
 						glue__chalk_overflow = glue_print(glue__chalk_overflow);
 						no_first_call = 0;
 				} else {
 						reasonForStopping = go(answer);
+
 						glue__chalk_overflow = glue_print(engine_console_text());
 				}
 

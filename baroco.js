@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.4 2003/04/27 22:49:30 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.5 2003/05/02 22:14:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -62,7 +62,6 @@ function win_reset_scroll_count() {
 ////////////////////////////////////////////////////////////////
 
 function win_chalk(win, text) {
-
 		if (win==0 && baroco__enable_barbara) {
 				return barbara_chalk(text);
 		} else {

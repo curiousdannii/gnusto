@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.35 2003/04/27 22:50:50 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.36 2003/05/02 22:14:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -44,7 +44,7 @@ function bocardo_start_game() {
 
     bocardo__screen_doc = document;
 
-		bocardo__screen_window = bocardo__screen_doc.getElementById('baroco');
+		bocardo__screen_window = bocardo__screen_doc.getElementById('bocardo');
 		barbarix_clear(bocardo__screen_window);
 
     bocardo__current_x[0] = bocardo__current_y[0] = 0;

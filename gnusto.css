@@ -1,8 +1,12 @@
 /* CSS for Gnusto */
 
-div#barbara {
+description.bodytext {
 	font-family: serif;
 	font-size: 12pt;
+	overflow: auto;
+}
+
+scrollbox {
 	overflow: auto;
 }
 
@@ -11,7 +15,7 @@ window {
 	border: 0;
 }
 
-description {
+#bocardo description {
 	font-family: monospace;
 
 	color: #ef8f00;
