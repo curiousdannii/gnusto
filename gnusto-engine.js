@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.89 2004/02/17 06:41:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.90 2004/02/18 00:35:40 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/02/17 06:41:02 $';
+const CVS_VERSION = '$Date: 2004/02/18 00:35:40 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -4261,27 +4261,6 @@ function NSGetModule(compMgr, fileSpec) {
 		return Module;
 }
 
-/*
-marnanel: commented out because it fails to work in components
-          for me at present.
-
-gnustoEngineInit(); // begin initialization
-
-// Initialization and registration
-function gnustoEngineInit() {
-
-        // this should only trigger when this js is being loaded as a subscript from within
-        // the profile... if it's stored in the components directory, the class will already
-        // be registered so this if will come back false
-	if (typeof(Components.classes[ENGINE_CONTRACT_ID]) == 'undefined') {
-	
-		// Component registration
-		var compMgr = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-		var compGnustoEngine = new gnustoEngine;
-		compMgr.registerFactory(ENGINE_COMPONENT_ID, ENGINE_DESCRIPTION, ENGINE_CONTRACT_ID, compGnustoEngine);
-	}
-
-}
-*/
+// Removed bootstrap code.  Should now be callable from profile via newer method.
 
 // EOF gnusto-engine.js //
