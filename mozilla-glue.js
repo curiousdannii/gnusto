@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.29 2003/03/27 06:37:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.30 2003/03/27 07:35:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -45,6 +45,7 @@ function ensureHappiness() {
 		ensureOneFile('GNUSTO_LIB_HAPPY');
 		ensureOneFile('TOSSIO_HAPPY');
 		ensureOneFile('UPPER_HAPPY');
+		ensureOneFile('VENKMAN_MSG_HAPPY');
 }
 
 var lowerWindow = 0;

@@ -10,6 +10,12 @@
 	width="640" height="480"
 	onload="ensureHappiness();start_up();">
 
+<!-- String bundles, for property handling. -->
+<script type="application/x-javascript" src="chrome://global/content/strres.js"/>
+
+<!-- Property handling. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/venkman-msg.js"/>
+
 <!-- Debugger -->
 <script type="application/x-javascript" src="chrome://gnusto/content/tossio.js"/>
 

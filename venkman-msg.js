@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/venkman-msg.js,v 1.1 2003/03/27 07:04:42 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/venkman-msg.js,v 1.2 2003/03/27 07:35:54 marnanel Exp $
 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,12 +23,27 @@
  * Portions created by Netscape are
  * Copyright (C) 1998 Netscape Communications Corporation.
  *
+ * Portions created by Thomas Thurman are copyright (c) Thomas Thurman, 2003.
+ *
  * Contributor(s):
  *  Robert Ginda, <rginda@netscape.com>, original author
- *
- * Some modifications made by Thomas Thurman <marnanel@marnanel.org>
+ *  Thomas Thurman, <marnanel@marnanel.org>, modified to fit Gnusto
  *
  */
+
+////////////////////////////////////////////////////////////////
+var VENKMAN_MSG_HAPPY = 0;
+////////////////////////////////////////////////////////////////
+
+function initMsgs ()
+{
+    console.bundleList = new Array();
+    console.defaultBundle = 
+        initStringBundle("chrome://gnusto/locale/gnusto.properties");
+}
+
+var console = {};
+initMsgs();
 
 function initStringBundle (bundlePath)
 {
@@ -154,3 +169,7 @@ const exceptionMsgNames = ["err.notimplemented",
                            "err.no.debugger",
                            "err.failure",
                            "err.no.stack"];
+
+////////////////////////////////////////////////////////////////
+VENKMAN_MSG_HAPPY = 1;
+////////////////////////////////////////////////////////////////
