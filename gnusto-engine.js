@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.40 2003/11/16 21:42:01 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.41 2003/11/17 22:23:49 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/16 21:42:01 $';
+const CVS_VERSION = '$Date: 2003/11/17 22:23:49 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1831,7 +1831,7 @@ GnustoEngine.prototype = {
 			} else if (target==1) {
 					this.m_output_to_console = 1;
 			} else if (target==2) {
-					this.setByte(this.getByte(0x11) | 0x1);
+					this.setByte(this.getByte(0x10) | 0x1);
 			} else if (target==3) {
 					
 					if (this.m_streamthrees.length>15) {
@@ -1845,7 +1845,7 @@ GnustoEngine.prototype = {
 			} else if (target==-1) {
 					this.m_output_to_console = 0;
 			} else if (target==-2) {
-					this.setByte(this.getByte(0x11) & ~0x1);
+					this.setByte(this.getByte(0x10) & ~0x1);
 			} else if (target==-3) {
 					
 					if (this.m_streamthrees.length<1) {
@@ -1919,26 +1919,26 @@ GnustoEngine.prototype = {
 	},
 
 	_random_number: function ge_random_number(arg) {
-		if (arg==0) {
-				// zero returns to true random mode-- seed from system clock
-				this.m_use_seed = 0;
-				return 0;
-		} else {
-				if (arg>0) {
-						// return a random number between 1 and arg.
-						if (this.m_use_seed == 0) {
-								return 1 + Math.round((arg -1) * Math.random());
-						} else {
-								this.m_random_seed--;
-								return Math.round(Math.abs(Math.tan(this.m_random_seed))*8.71*arg)%arg;
-						}
-				} else {
-						// Else we should reseed the RNG and return 0.
-						this.m_random_seed = arg;
-						this.m_use_seed = 1;
-						return 0;
-				}
-		}
+			if (arg==0) {
+					// zero returns to true random mode-- seed from system clock
+					this.m_use_seed = 0;
+					return 0;
+			} else {
+					if (arg>0) {
+							// return a random number between 1 and arg.
+							if (this.m_use_seed == 0) {
+									return 1 + Math.round((arg -1) * Math.random());
+							} else {
+									this.m_random_seed--;
+									return Math.round(Math.abs(Math.tan(this.m_random_seed))*8.71*arg)%arg;
+							}
+					} else {
+							// Else we should reseed the RNG and return 0.
+							this.m_random_seed = arg;
+							this.m_use_seed = 1;
+							return 0;
+					}
+			}
 	},
 
 	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
@@ -2816,7 +2816,7 @@ GnustoEngine.prototype = {
 					this.m_streamthrees[0][1] = address;
 			} else {
 
-					var bits = this.getByte(0x11) & 0x03;
+					var bits = this.getByte(0x10) & 0x03;
 					var changed = bits != this.m_printing_header_bits;
 					effect_parameters = this.m_printing_header_bits; 
 					this.m_printing_header_bits = bits;
@@ -3430,7 +3430,7 @@ GnustoEngine.prototype = {
   m_random_seed: 0,
   m_use_seed: 0,
   
-  // Values of the bottom two bits in Flags 2 (address 0x11),
+  // Values of the bottom two bits in Flags 2 (address 0x10),
   // used by the zOut function.
   // See <http://mozdev.org/bugs/show_bug.cgi?id=3344>.
   m_printing_header_bits: 0,
