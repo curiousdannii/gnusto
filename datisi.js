@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.13 2003/05/27 05:03:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.14 2003/05/30 13:31:39 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -113,8 +113,6 @@ function command_open(a) {
 						content[0x27] = 1; // font height, units
 
 						glue_receive_zcode(content);
-
-						dirty_reset();
 
 						return 1;
 				}
