@@ -2,6 +2,28 @@
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 <?xml-stylesheet href="chrome://gnusto/skin/gnusto.css" type="text/css"?>
 
+<!--
+
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.20 2003/04/10 20:51:31 marnanel Exp $
+
+Copyright (c) 2003 Thomas Thurman
+thomas@thurman.org.uk
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have be able to view the GNU General Public License at 
+http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+-->
+
 <window
 	title="Gnusto"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -15,6 +37,9 @@
 
 <!-- Property handling. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/venkman-msg.js"/>
+
+<!-- Screen switching. -->
+<script type="application/x-javascript" src="chrome://gnusto/content/barbarix.js"/>
 
 <!-- Reviews and so on. -->
 <script type="application/x-javascript" src="chrome://gnusto/content/baf.js"/>
@@ -35,8 +60,8 @@
 
 <menu id="game-menu" label="Game" accesskey="G">
 <menupopup>
-<menuitem label="New (restart)" disabled="true" accesskey="N"/>
-<menuitem label="Open (restore)..." disabled="true" accesskey="O"/>
+<menuitem label="New (restart)" accesskey="N" disabled="true" />
+<menuitem label="Open (restore)..." accesskey="O" disabled="true"/>
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
@@ -70,23 +95,6 @@
 </menupopup>
 </menu>
 
-<menu id="author-menu" label="Author" accesskey="A">
-<menupopup>
-<menuitem label="Run" accesskey="R" disabled="true"/>
-<menuitem label="Step over" accesskey="O" disabled="true"/>
-<menuitem label="Step into" accesskey="I" disabled="true"/>
-<menuitem label="Run to cursor" accesskey="C" disabled="true"/>
-<menuitem label="Toggle breakpoint" accesskey="B" disabled="true"/>
-<menuseparator/>
-<menuitem label="View dissembly" accesskey="D" id="view-dissembly" oncommand="viewDissembly()" disabled="true"/>
-<menuitem label="View source code" accesskey="U" disabled="true"/>
-<menuitem label="View variables" accesskey="V" disabled="true"/>
-<menuitem label="View eval stack" accesskey="E" disabled="true"/>
-<menuitem label="View call stack" accesskey="S" disabled="true"/>
-<menuitem label="View tree" accesskey="T" disabled="true"/>
-</menupopup>
-</menu>
-
 <menu id="help-menu" label="Help" accesskey="H">
 <menupopup>
 <menuitem label="About Gnusto..." accesskey="A" oncommand="try{tossio_debug_instruction(['about']);}catch(e){deal_with_exception(e)}"/>
@@ -101,10 +109,7 @@
 <description flex="0" id="canary" value="X" />
 </hbox>
 
-<iframe flex="9" id="screen" type="content-primary" src="lower.html"/>
-
-<vbox flex="9" id="infobox" hidden="true">
-</vbox>
+<iframe flex="9" id="screen" type="content-primary" src="output.html"/>
 
 <textbox flex="0" id="input" onkeypress="try{return gotInput(event);}catch(e){deal_with_exception(e)}"/>
 </vbox>
