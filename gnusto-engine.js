@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.2 2003/09/11 05:37:56 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.3 2003/09/15 02:19:16 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,10 +19,18 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/11 05:37:56 $';
+const CVS_VERSION = '$Date: 2003/09/15 02:19:16 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
+
+const PARENT_REC = 6;
+const SIBLING_REC = 8;
+const CHILD_REC = 10;
+
+// FIXME: @@@ is the current extent of Pythonistaring.
+// FIXME: Result eaters now take TWO parameters (engine and value)
+// FIXME: Some of the indep. fns should really be methods (e.g. gosub)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -32,6 +40,79 @@ const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
 //
 ////////////////////////////////////////////////////////////////
 
+var default_unicode_translation_table = {
+  155:0xe4, // a-diaeresis
+  156:0xf6, // o-diaeresis
+  157:0xfc, // u-diaeresis
+  158:0xc4, // A-diaeresis
+  159:0xd6, // O-diaeresis
+  160:0xdc, // U-diaeresis
+  161:0xdf, // German "sz" ligature
+  162:0xbb, // right quotation marks
+  163:0xab, // left quotation marks
+  164:0xeb, // e-diaeresis
+  165:0xef, // i-diaeresis
+  166:0xff, // y-diaeresis
+  167:0xcb, // E-diaeresis
+  168:0xcf, // I-diaeresis
+  169:0xe1, // a-acute
+  170:0xe9, // e-acute
+  171:0xed, // i-acute
+  172:0xf3, // o-acute
+  173:0xfa, // u-acute
+  174:0xfd, // y-acute
+  175:0xc1, // A-acute
+  176:0xc9, // E-acute
+  177:0xcd, // I-acute
+  178:0xd3, // O-acute
+  179:0xda, // U-acute
+  180:0xdd, // Y-acute
+  181:0xe0, // a-grave
+  182:0xe8, // e-grave
+  183:0xec, // i-grave
+  184:0xf2, // o-grave
+  185:0xf9, // u-grave
+  186:0xc0, // A-grave
+  187:0xc8, // E-grave
+  188:0xcc, // I-grave
+  189:0xd2, // O-grave
+  190:0xd9, // U-grave
+  191:0xe2, // a-circumflex
+  192:0xea, // e-circumflex
+  193:0xee, // i-circumflex
+  194:0xf4, // o-circumflex
+  195:0xfb, // u-circumflex
+  196:0xc2, // A-circumflex
+  197:0xca, // E-circumflex
+  198:0xce, // I-circumflex
+  199:0xd4, // O-circumflex
+  200:0xdb, // U-circumflex
+  201:0xe5, // a-ring
+  202:0xc5, // A-ring
+  203:0xf8, // o-slash
+  204:0xd8, // O-slash
+  205:0xe3, // a-tilde
+  206:0xf1, // n-tilde
+  207:0xf5, // o-tilde
+  208:0xc3, // A-tilde
+  209:0xd1, // N-tilde
+  210:0xd5, // O-tilde
+  211:0xe6, // ae-ligature
+  212:0xc6, // AE-ligature
+  213:0xe7, // c-cedilla
+  214:0xc7, // C-cedilla
+  215:0xfe, // thorn
+  216:0xf0, // eth
+  217:0xde, // Thorn
+  218:0xd0, // Eth
+  219:0xa3, // pound sterling sign
+  220:0x153, // oe-ligature
+  221:0x152, // OE-ligature
+  222:0xa1, // inverted pling
+  223:0xbf, // inverted query
+};
+
+
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
 ////////////////////////////////////////////////////////////////
@@ -40,32 +121,32 @@ const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
 // |handlers| array, below.
 //
 
-function call_vn(args, offset) {
+function call_vn(engine, args, offset) {
   //VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
-  compiling = 0;
-  var address = this.m_pc;
+  engine.m_compilation_running = 0;
+  var address = engine.m_pc;
   if (offset) { address += offset; }
 
-  return 'gosub('+
-    this.m_pc_translate_for_routine(args[0])+','+
+  return 'gosub(this,'+
+    engine.m_pc_translate_for_routine(args[0])+','+
     '['+args.slice(1)+'],'+
     (address) + ',0)';
 }
 
-function brancher(condition) {
+function brancher(engine, condition) {
   var inverted = 1;
-  var temp = this.getByte(this.m_pc++);
+  var temp = engine.getByte(engine.m_pc++);
   var target_address = temp & 0x3F;
 
   if (temp & 0x80) inverted = 0;
   if (!(temp & 0x40)) {
-    target_address = (target_address << 8) | this.getByte(this.m_pc++);
+    target_address = (target_address << 8) | engine.getByte(engine.m_pc++);
     // and it's signed...
 
     if (target_address & 0x2000) {
       // sign bit's set; propagate it
-      target_address =
-	(~0x1FFF) | (target_address & 0x1FFF);
+				target_address =
+						(~0x1FFF) | (target_address & 0x1FFF);
     }
   }
 
@@ -81,19 +162,18 @@ function brancher(condition) {
   // those values.
 
   if (target_address == 0)
-    return if_statement + '{gnusto_return(0);return;}';
+    return if_statement + '{func_return(this,0);return;}';
 
   if (target_address == 1)
-    return if_statement + '{gnusto_return(1);return;}';
+    return if_statement + '{func_return(this,1);return;}';
 
-  target_address = (this.m_pc + target_address) - 2;
+  target_address = (engine.m_pc + target_address) - 2;
 
   // This is an optimisation that's currently unimplemented:
   // if there's no code there, we should mark that we want it later.
-  //  [ if (!this.m_jit[target_address]) this.m_jit[target_address]=0; ]
+  //  [ if (!engine.m_jit[target_address]) engine.m_jit[target_address]=0; ]
 
-  return if_statement + '{this.m_pc='+
-    (target_address)+';return;}';
+  return if_statement + '{this.m_pc='+(target_address)+';return;}';
 }
 
 ////////////////////////////////////////////////////////////////
@@ -126,14 +206,13 @@ function code_for_varcode(varcode) {
 // TODO: We need a varcode_getcode() which returns a JS string
 // which will perform the same job as this function, to save us
 // the extra call we use when encoding "varcode_get(constant)".
-
-function varcode_get(varcode) {
+function varcode_get(engine, varcode) {
   if (varcode==0)
     return gamestack.pop();
   else if (varcode < 0x10)
     return locals[(varcode-1)];
   else
-    return this.getWord(vars_start+(varcode-16)*2);
+    return engine.getWord(vars_start+(varcode-16)*2);
 
   gnusto_error(170); // impossible
 }
@@ -151,23 +230,22 @@ function varcode_get(varcode) {
 // TODO: We need a varcode_setcode() which returns a JS string
 // which will perform the same job as this function, to save us
 // the extra call we use when encoding "varcode_set(n, constant)".
-
-function varcode_set(value, varcode) {
+function varcode_set(engine, value, varcode) {
   if (varcode==0) {
     gamestack.push(value);
   } else if (varcode < 0x10) {
     locals[varcode-1] = value;
   } else {
-    setWord(value, vars_start+(varcode-16)*2);
+    engine.setWord(value, vars_start+(varcode-16)*2);
   }
 }
 
-function store_into(lvalue, rvalue) {
+function store_into(engine, lvalue, rvalue) {
   if (rvalue.substring && rvalue.substring(0,5)=='gosub') {
     // Special case: the results of gosubs can't
     // be stored synchronously.
 
-    compiling = 0; // just to be sure we stop here.
+    engine.m_compilation_running = 0; // just to be sure we stop here.
 
     if (rvalue.substring(rvalue.length-3)!=',0)') {
       // You really shouldn't pass us gosubs with
@@ -179,7 +257,7 @@ function store_into(lvalue, rvalue) {
 
     return rvalue.substring(0,rvalue.length-2) +
       'function(r){'+
-      store_into(lvalue,'r')+
+      store_into(engine, lvalue, 'r')+
       '})';
   }
 
@@ -194,8 +272,10 @@ function store_into(lvalue, rvalue) {
   }
 }
 
-function storer(rvalue) {
-  return store_into(code_for_varcode(this.getByte(this.m_pc++)), rvalue);
+function storer(engine, rvalue) {
+  return store_into(engine,
+										code_for_varcode(engine.getByte(engine.m_pc++)),
+										rvalue);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -309,11 +389,11 @@ var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
 //
 // Support functions for the functions within |handlers|
 
-function handler_call(target, arguments) {
-  compiling=0; // Got to stop after this.
-  var functino = "function(r){"+storer("r")+";});";
-  // (get it calculated so's the this.m_pc will be right)
-  return "gosub("+this.m_pc_translate_for_routine(target)+",["+arguments+"],"+this.m_pc+","+
+function handler_call(engine, target, arguments) {
+  engine.m_compilation_running=0; // Got to stop after this.
+  var functino = "function(r){"+storer(engine,"r")+";});";
+  // (get it calculated so's the engine.m_pc will be right)
+  return "gosub(this,"+engine.m_pc_translate_for_routine(target)+",["+arguments+"],"+engine.m_pc+","+
     functino;
 }
 
@@ -325,14 +405,14 @@ function handler_call(target, arguments) {
 // return with a result of 1 (the same result as @rtrue).
 // If it's clear, the result will set the PC to the
 // address immediately after the current instruction.
-function handler_zOut(text, is_return) {
+function handler_zOut(engine, text, is_return) {
 
   var setter;
 
   if (is_return) {
-    setter = 'gnusto_return(1)';
+    setter = 'func_return(this,1)';
   } else {
-    setter = 'this.m_pc=0x'+this.m_pc.toString(16);
+    setter = 'this.m_pc=0x'+engine.m_pc.toString(16);
   }
 
   return 'if(zOut('+text+')){' + setter +
@@ -353,9 +433,9 @@ function handler_zOut(text, is_return) {
 // |is_return| is passed through unchanged to handler_zOut()
 // (this function is written in terms of that function).
 // See the comments for that function for details.
-function handler_print(dummy, suffix, is_return) {
+function handler_print(engine, dummy, suffix, is_return) {
 		
-  var zf = zscii_from(this.m_pc,65535,1);
+  var zf = zscii_from(engine.m_pc,65535,1);
   var message = zf[0];
 
   if (suffix) message = message + suffix;
@@ -364,9 +444,9 @@ function handler_print(dummy, suffix, is_return) {
     replace('\\','\\\\','g').
     replace('"','\\"','g').
     replace('\n','\\n','g'); // not elegant
-  this.m_pc=zf[1];
+  engine.m_pc=zf[1];
   //VERBOSE burin('print',message);
-  return handler_zOut('"'+message+'"', is_return);
+  return handler_zOut(engine,'"'+message+'"', is_return);
 }
 
 function log_shift(value, shiftbits) {
@@ -387,1160 +467,6 @@ function art_shift(value, shiftbits){
   else {
     return (value << shiftbits) &0x7FFF;
   }	
-}
-
-// Called when we reach a possible breakpoint. |addr| is the opcode
-// address. If we should break, sets |pc| to |addr| and returns true;
-// else returns false.
-function is_valid_breakpoint(addr) {
-  if (addr in this.m_breakpoints) {
-    if (this.m_breakpoints[addr]==2) {
-      // A breakpoint we've just reurned from.
-      this.m_breakpoints[addr]=1; // set it ready for next time
-      return 0; // it doesn't trigger again this time.
-    } else if (this.m_breakpoints[addr]==1) {
-      // a genuine breakpoint!
-      this.m_pc = addr;
-      return 1;
-    }
-
-    gnusto_error(170); // not really impossible, though
-    return 0;
-  } else
-    // not listed in the breakpoints table
-    return 0; // Well, duh.
-}
-
-/*
-  function golden_print(text) {
-  var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
-  transcription_file.write(text, text.length);
-  transcription_file.close();
-  }
-*/
-/*function golden_trail(addr) {
-  var text = '\npc : '+addr.toString(16);
-  print(text);*/
-/*burin('gold',text);
-
-// Extra debugging information which may sometimes be useful
-var v = 0;
-
-for (var jj=0; jj<16; jj++) {
-v = locals[jj] & 65535;
-text = text + ' '+jj.toString(16)+'='+v.toString(16);
-}
-
-if (gamestack.length!=0) {
-v = gamestack[gamestack.length-1] & 65535;
-text = text + ' s='+v.toString(16);
-}
-
-text = text + '\n';
-golden_print(text);*/
-/*}*/
-
-////////////////////////////////////////////////////////////////
-// Library functions
-
-
-function trunc_divide(over, under) {
-	
-  var result;
-
-  if (under==0) {
-    gnusto_error(701); // division by zero
-    return 0;
-  }
-
-  result = over / under;
-
-  if (result > 0) {
-    return Math.floor(result);
-  } else {
-    return Math.ceil(result);
-  }			
-		  
-}
-
-function zscii_char_to_ascii(zscii_code) {
-  if (zscii_code<0 || zscii_code>1023) {
-    gnusto_error(702, zscii_code); // illegal zscii code
-  }
-
-  var result;
-
-  if (zscii_code==13 || zscii_code==10)
-    result = 10;
-  else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
-    result = zscii_code;
-  else if (zscii_code>=155 && zscii_code<=251) {
-    // Extra characters.
-
-    if (unicode_start == 0) 
-      return String.fromCharCode(default_unicode_translation_table[zscii_code]);
-    else { // if we're using a custom unicode translation table...
-      if ((zscii_code-154)<= custom_unicode_charcount) 
-	return String.fromCharCode(this.getUnsignedWord(unicode_start + ((zscii_code-155)*2)));					
-      else 
-	gnusto_error(703, zscii_code); // unknown zscii code
-                                  
-    }
-
-
-    // FIXME: It's not clear what to do if they request a character
-    // that's off the end of the table.
-  }	else {  //let's do nothing for the release-- we'll check the spec afterwards.
-    return "*";//gnusto_error(703, zscii_code); // unknown zscii code
-  }
-
-  return String.fromCharCode(result);
-}
-
-function gnusto_random(arg) {
-  if (arg==0) {  //zero returns to true random mode-- seed from system clock
-    use_seed = 0;
-    return 0;
-  } else {
-    if (arg>0) {  //return a random number between 1 and arg.
-      if (use_seed == 0) {
-	return 1 + Math.round((arg -1) * Math.random());
-      } else {
-	random_seed--;
-	return Math.round(Math.abs(Math.tan(random_seed))*8.71*arg)%arg;
-      }
-    } else {
-      // Else we should reseed the RNG and return 0.
-      random_seed = arg;
-      use_seed = 1;
-      return 0;
-    }
-  }
-}
-
-function func_prologue(actuals) {
-  var count = this.getByte(this.m_pc++);
-  for (var i=count; i>=0; i--) {
-    if (i<actuals.length) {
-      locals.unshift(actuals[i]);
-    } else {
-      locals.unshift(0); // except in v.3, but hey
-    }
-  }
-  locals_stack.unshift(count+1);
-}
-
-function gosub(to_address, actuals, ret_address, result_eater) {
-  call_stack.push(ret_address);
-  this.m_pc = to_address;
-  func_prologue(actuals);
-  param_counts.unshift(actuals.length);
-  result_eaters.push(result_eater);
-
-  if (to_address==0) {
-    // Rare special case.
-    gnusto_return(0);
-  }
-}
-
-////////////////////////////////////////////////////////////////
-// Tokenises a string.
-//
-// See aread() for caveats.
-// Maybe we should allow aread() to pass in the correct value stored
-// in text_buffer, since it knows it already. It means we don't have
-// to figure it out ourselves.
-//
-function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
-
-  var cursor = parse_buffer + 2;                	
-  if (isNaN(dictionary)) dictionary = 0;
-  if (isNaN(overwrite)) overwrite = 0;
-
-  // burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
-
-
-  function look_up(word, dict_addr) {
-
-    var entry_length = this.getByte(dict_addr+separator_count+1);
-    var entries_count = this.getWord(dict_addr+separator_count+2);
-    var entries_start = dict_addr+separator_count+4;
-
-    // Whether the dictionary is sorted.
-    // We don't use this at present (it would be a
-    // useful optimisation, though).
-    var is_sorted = 1;
-
-    if (entries_count < 0) {
-
-      // This should actually only happen on user dictionaries,
-      // but the distinction isn't a useful one, and so we don't
-      // bother to check.
-
-      is_sorted = 0;
-      entries_count = -entries_count;
-    }
-
-    var oldword = word;				
-    word = into_zscii(word);
-
-    for (var i=0; i<entries_count; i++) {
-      //really ugly kludge until into_zscii is fixed properly
-      var address = entries_start+i*entry_length;
-      if (zscii_from(address)==oldword) {
-	return address;}
-
-      var j=0;
-      while (j<word.length &&		
-	     this.getByte(address+j)==word.charCodeAt(j))
-	j++;
-
-      if (j==word.length)return address;
-    }
-				
-    return 0;
-  }
-
-    function add_to_parse_table(curword, wordindex, wordpos) {
-                       
-      var lexical = look_up(curword, dictionary);
-
-      //alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
-      if (!(overwrite && lexical==0)) {
-	setWord(lexical, cursor);
-			
-
-	cursor+=2;
-	setByte(curword.length, cursor++);
-	setByte(wordpos+2, cursor++);
-	
-      } else cursor +=4;
-		
-      setByte(this.getByte(words_count)+1, words_count);		
-			
-      return 1;        	
-    } 
-
-
-    if (dictionary==0) {
-      // Use the standard game dictionary.
-      dictionary = dict_start;
-    }
-
-  var max_chars = this.getByte(text_buffer);
-
-  var result = '';
-
-  for (var i=0;i<this.getByte(text_buffer + 1);i++)
-    result += String.fromCharCode(this.getByte(text_buffer + 2 + i));
-
-  var words_count = parse_buffer + 1;
-  setByte(0, words_count);
-		
-  var words = [];
-  var curword = '';
-  var wordindex = 0;
-		
-  for (var cpos=0; cpos < result.length; cpos++) {
-    if (result[cpos]  == ' ') {
-      if (curword != '') {
-	words[wordindex] = curword;
-	add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
-	wordindex++;
-	curword = '';
-      }
-    } else {
-      if (IsSeparator(result[cpos])) {
-	if (curword != '') {
-	  words[wordindex] = curword;
-	  add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
-	  wordindex++;
-	}
-	words[wordindex] = result[cpos];
-	add_to_parse_table(words[wordindex], wordindex, cpos);
-	wordindex++;
-	curword = '';		
-      } else {
-	curword += result[cpos];	
-      }
-    }
-  }
-		
-  if (curword != '') {			
-    words[wordindex] = curword;
-    add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
-  }
-		
-  //display the broken-up text for visual validation 
-  //for (var i=0; i < words.length; i++){
-  //		alert(i + ': ' + words[i] + ' ' + words[i].length);
-  //}
-
-}
-
-// Very very very limited implementation:
-//  * Doesn't properly handle terminating characters (always returns 10).
-//  * Doesn't handle word separators.
-function aread(source, text_buffer, parse_buffer) {
-
-  text_buffer &= 0xFFFF;
-  parse_buffer &= 0xFFFF;
-
-  var max_chars = this.getByte(text_buffer);
-  var result = source.substring(0,max_chars);
-
-  setByte(result.length, text_buffer + 1);
-	
-  for (var i=0;i<result.length;i++)
-    setByte(result.charCodeAt(i), text_buffer + 2 + i);
-
-  if (parse_buffer!=0)
-    tokenise(text_buffer, parse_buffer, 0, 0);
-
-  // Return the ASCII value for the Enter key. aread() is supposed
-  // to return the value of the key which terminated the string, but
-  // at present we only support termination using Enter.
-  return 10;
-}
-
-// Returns from a z-machine routine.
-// |value| is the numeric result of the routine.
-// It can also be null, in which case the remaining results of
-// the current opcode won't be executed (it won't run the "result eater").
-function gnusto_return(value) {
-  for (var i=locals_stack.shift(); i>0; i--) {
-    locals.shift();
-  }
-  param_counts.shift();
-  this.m_pc = call_stack.pop();
-
-  var eater = result_eaters.pop();
-  if (eater && (value!=null)) {
-    eater(value);
-  }
-}
-
-function throw_stack_frame(cookie) {
-  // Not tested. See caveats for @throw, above.
-
-  // The cookie is the value of call_stack.length when @catch was
-  // called. It cannot be less than 1 or greater than the current
-  // value of call_stack.length.
-
-  if (cookie>call_stack.length || cookie<1) {
-    gnusto_error(207, cookie);
-  }
-
-  while (call_stack.length > cookie-1) {
-    gnusto_return(null);
-  }
-}
-
-function get_prop_addr(object, property) {
-  var result = property_search(object, property, -1);
-  if (result[2]) {
-    return result[0];
-  } else {
-    return 0;
-  }
-}
-
-function get_prop_len(address) {
-  // The last byte before the data is either the size byte of a 2-byte
-  // field, or the only byte of a 1-byte field. We can tell the
-  // difference using the top bit.
-
-  var value = this.getByte(address-1);
-
-  if (value & 0x80) {
-    // A two-byte field, so we take the bottom five bits.
-    value = value & 0x1F;
-
-    if (value==0)
-      return 64;
-    else
-      return value;
-  } else {
-    // A one-byte field. Our choice rests on a single bit.
-    if (value & 0x40)
-      return 2;
-    else
-      return 1;
-  }
-
-  gnusto_error(172); // impossible
-}
-
-function get_next_prop(object, property) {
-
-  if (object==0) return 0; // Kill that V0EFH before it starts.
-
-  var result = property_search(object, -1, property);
-
-  if (result[2]) {
-    // There's a real property number in there;
-    // return it.
-    return result[3];
-  } else {
-    // There wasn't a valid property following the one
-    // we wanted. Why not?
-
-    if (result[4]) {
-      // Because the one we wanted was the last one.
-      // Tell them to go back to square one.
-      return 0;
-    } else {
-      // Because the one we wanted didn't exist.
-      // They shouldn't have asked for it: barf.
-      gnusto_error(205, property);
-    }
-  }
-
-  gnusto_error(173); // impossible
-}
-
-function get_prop(object, property) {
-
-  if (object==0) return 0; // Kill that V0EFH before it starts.
-
-  var temp = property_search(object, property, -1);
-
-  if (temp[1]==2) {
-    return this.getWord(temp[0]);
-  } else if (temp[1]==1) {
-    return this.getByte(temp[0]); // should this be treated as signed?
-  } else {
-    // get_prop used on a property of the wrong length
-    gnusto_error(706, object, property);
-    return this.getWord(temp[0]);
-  }
-
-  gnusto_error(174); // impossible
-}
-
-// This is the function which does all searching of property lists.
-// It takes three parameters:
-//    |object| -- the number of the object you're interested in
-//
-// The next parameters allow us to specify the property in two ways.
-// If you use both, it will "or" them together.
-//    |property| -- the number of the property you're interested in,
-//                     or -1 if you don't mind.
-//    |previous_property| -- the number of the property BEFORE the one
-//                     you're interested in, or 0 if you want the first one,
-//                     or -1 if you don't mind.
-//
-// If you specify a valid property, and the property doesn't exist, this
-// function will return the default value instead (and tell you it's done so).
-//
-// The function returns an array with these elements:
-//    [0] = the property address.
-//    [1] = the property length.
-//    [2] = 1 if this property really belongs to the object, or
-//	    0 if it doesn't (and if it doesn't, and you've specified
-//          a valid |property|, then [0] and [1] will be properly
-//          set to defaults.)
-//    [3] = the number of the property.
-//          Equal to |property| if you specified it.
-//          May be -1, if |property| is -1 and [2]==0.
-//    [4] = a piece of state only useful to get_next_prop():
-//          if the object does not contain the property (i.e. if [2]==0)
-//          then this will be 1 if the final property was equal to
-//          |previous_property|, and 0 otherwise. At all other times it will
-//          be 0.
-function property_search(object, property, previous_property) {
-  var props_address = this.getUnsignedWord(objs_start + 124 + object*14);
-
-  props_address = props_address + this.getByte(props_address)*2 + 1;
-
-  var previous_prop = 0;
-
-  while(1) {
-    var len = 1;
-
-    var prop = this.getByte(props_address++);
-
-    if (prop & 0x80) {
-      // Long format.
-      len = this.getByte(props_address++) & 0x3F;
-      if (len==0) len = 64;
-    } else {
-      // Short format.
-      if (prop & 0x40) len = 2;
-    }
-    prop = prop & 0x3F;
-
-    if (prop==property || previous_prop==previous_property) {
-      return [props_address, len, 1, prop, 0];
-    } else if (prop < property) {
-
-      // So it's not there. Can we get it from the defaults?
-
-      if (property>0)
-	// Yes, because it's a real property.
-	return [objs_start + (property-1)*2,
-		2, 0, property, 0];
-      else
-	// No: they didn't specify a particular
-	// property.
-	return [-1, -1, 0, property,
-		previous_prop==property];
-    }
-
-    props_address += len;
-    previous_prop = prop;
-  }
-  gnusto_error(175); // impossible
-}
-
-////////////////////////////////////////////////////////////////
-// Functions that modify the object tree
-
-function set_attr(object, bit) {
-  if (object==0) return; // Kill that V0EFH before it starts.
-
-  var address = objs_start + 112 + object*14 + (bit>>3);
-  var value = this.getByte(address);
-  setByte(value | (128>>(bit%8)), address);
-}
-
-function clear_attr(object, bit) {
-  if (object==0) return; // Kill that V0EFH before it starts.
-
-  var address = objs_start + 112 + object*14 + (bit>>3);
-  var value = this.getByte(address);
-  setByte(value & ~(128>>(bit%8)), address);
-}
-
-function test_attr(object, bit) {
-  if (object==0) return 0; // Kill that V0EFH before it starts.
-
-  if ((this.getByte(objs_start + 112 + object*14 +(bit>>3)) &
-       (128>>(bit%8)))) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-function put_prop(object, property, value) {
-  var address = property_search(object, property, -1);
-
-  if (!address[2]) gnusto_error(704); // undefined property
-  if (address[1]==1) {
-    setByte(value & 0xff, address[0]);
-  } else if (address[1]==2) {
-    setWord(value&0xffff, address[0]);
-  } else
-    gnusto_error(705); // weird length
-}
-
-PARENT_REC = 6;
-SIBLING_REC = 8;
-CHILD_REC = 10;
-
-function object_address(object) {
-  return objs_start + 112 + object*14;
-}
-
-function get_older_sibling(object) {
-  // Start at the eldest child.
-  var candidate = get_child(get_parent(object));
-
-  if (object==candidate) {
-    // evidently nothing doing there.
-    return 0;
-  }
-
-  while (candidate) {
-    next_along = get_sibling(candidate);
-    if (next_along==object) {
-      return candidate; // Yay! Got it!
-    }
-    candidate = next_along;
-  }
-
-  // We ran out, so the answer's 0.
-  return 0;
-}
-
-function insert_obj(mover, new_parent) {
-
-  // First, remove mover from wherever it is in the tree now.
-
-  var old_parent = get_parent(mover);
-  var older_sibling = get_older_sibling(mover);
-  var younger_sibling = get_sibling(mover);
-
-  if (old_parent && get_child(old_parent)==mover) {
-    set_child(old_parent, younger_sibling);
-  }
-
-  if (older_sibling) {
-    set_sibling(older_sibling, younger_sibling);
-  }
-
-  // Now, slip it into the new place.
-
-  set_parent(mover, new_parent);
-
-  if (new_parent) {
-    set_sibling(mover, get_child(new_parent));
-    set_child(new_parent, mover);
-  }
-}
-
-function remove_obj(mover, new_parent) {
-  insert_obj(mover, 0);
-}
-
-////////////////////////////////////////////////////////////////
-
-function get_family(from, relationship) {
-  return this.getUnsignedWord(
-			  objs_start + 112 + relationship + from*14);
-}
-
-function get_parent(from)  { return get_family(from, PARENT_REC); }
-function get_child(from)   { return get_family(from, CHILD_REC); }
-function get_sibling(from) { return get_family(from, SIBLING_REC); }
-
-function set_family(from, to, relationship) {
-  setWord(to,
-	   objs_start + 112 + relationship + from*14);
-}
-
-function set_parent(from, to)  { return set_family(from, to, PARENT_REC); }
-function set_child(from, to)   { return set_family(from, to, CHILD_REC); }
-function set_sibling(from, to) { return set_family(from, to, SIBLING_REC); }
-
-function obj_in(child, parent) {
-  return get_parent(child) == parent;
-}
-
-function param_count() {
-  return param_counts[0];
-}
-
-function set_output_stream(target, address) {
-  if (target==0) {
-    // then it's a no-op.
-  } else if (target==1) {
-    output_to_console = 1;
-  } else if (target==2) {
-    setByte(this.getByte(0x11) | 0x1);
-  } else if (target==3) {
-
-    if (streamthrees.length>15)
-      gnusto_error(202); // too many nested stream-3s
-
-    streamthrees.unshift([address, address+2]);
-
-  } else if (target==4) {
-    output_to_script = 1;
-  } else if (target==-1) {
-    output_to_console = 0;
-  } else if (target==-2) {
-    setByte(this.getByte(0x11) & ~0x1);
-  } else if (target==-3) {
-
-    if (streamthrees.length<1)
-      gnusto_error(203); // not enough nested stream-3s
-
-    var latest = streamthrees.shift();
-    setWord((latest[1]-latest[0])-2, latest[0]);
-
-  } else if (target==-4) {
-    output_to_script = 0;
-  } else
-    gnusto_error(204, target); // weird output stream number
-}
-
-////////////////////////////////////////////////////////////////
-
-// Implements @copy_table, as in the Z-spec.
-function copy_table(first, second, size) {
-  if (second==0) {
-
-    // Zero out the first |size| bytes of |first|.
-
-    for (var i=0; i<size; i++) {
-      setByte(0, i+first);
-    }
-  } else {
-
-    // Copy |size| bytes of |first| into |second|.
-
-    var copy_forwards = 0;
-
-    if (size<0) {
-      size = -size;
-      copy_forwards = 1;
-    } else {
-      if (first > second) {
-	copy_forwards = 1;
-      } else {
-	copy_forwards = 0;
-      }
-    }
-
-    if (copy_forwards) {
-      for (var i=0; i<size; i++) {
-	setByte(this.getByte(first+i), second+i);
-      }
-    } else {
-      for (var i=size-1; i>=0; i--) {
-	setByte(this.getByte(first+i), second+i);
-      }
-    }
-  }
-}
-
-
-////////////////////////////////////////////////////////////////
-// Implements @scan_table, as in the Z-spec.
-function scan_table(target_word, target_table, table_length, table_form) {
-
-  // TODO: Optimise this some.
-	                         
-  var jumpby = table_form & 0x7F;
-  var usewords = ((table_form & 0x80) == 0x80);
-  var lastlocation = target_table + (table_length*jumpby);
-
-  if (usewords) 
-    { //if the table is in the form of word values
-      while (target_table < lastlocation)
-	{
-	  if (((this.getByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
-	      ((this.getByte(target_table+1)&0xFF) == (target_word&0xFF))) 
-	    {
-	      return target_table;
-	    }
-	  target_table += jumpby;
-	}
-    }
-  else 
-    { //if the table is in the form of byte values
-      while (target_table < lastlocation) 
-	{
-	  if ((this.getByte(target_table)&0xFF) == (target_word&0xFFFF)) 
-	    {
-	      return target_table;
-	    }
-	  target_table += jumpby;
-	}
-    }
-  return 0;	
-}
-
-////////////////////////////////////////////////////////////////
-
-// Returns the lines that @print_table should draw, as in
-// the Z-spec.
-//
-// It's rather poorly defined there:
-//   * How is the text in memory encoded?
-//       [Straight ZSCII, not five-bit encoded.]
-//   * What happens to the cursor? Moved?
-//       [We're guessing not.]
-//   * Is the "table" a table in the Z-machine sense, or just
-//     a contiguous block of memory?
-//       [Just a contiguous block.]
-//   * What if the width takes us off the edge of the screen?
-//   * What if the height causes a [MORE] event?
-//
-// It also goes largely un-noted that this is the only possible
-// way to draw on the lower window away from the current
-// cursor position. (If we take the view that v5 windows are
-// roughly the same thing as v6 windows, though, windows don't
-// "own" any part of the screen, so there's no such thing as
-// drawing on the lower window per se.)
-
-function print_table(address, width, height, skip) {
-
-  var lines = [];
-
-  for (var y=0; y<height; y++) {
-
-    var s='';
-
-    for (var x=0; x<width; x++) {
-      s=s+zscii_char_to_ascii(this.getByte(address++));
-    }
-
-    lines.push(s);
-
-    address += skip;
-  }
-
-  return lines;
-}
-
-////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////
-
-
-var default_unicode_translation_table = {
-  155:0xe4, // a-diaeresis
-  156:0xf6, // o-diaeresis
-  157:0xfc, // u-diaeresis
-  158:0xc4, // A-diaeresis
-  159:0xd6, // O-diaeresis
-  160:0xdc, // U-diaeresis
-  161:0xdf, // German "sz" ligature
-  162:0xbb, // right quotation marks
-  163:0xab, // left quotation marks
-  164:0xeb, // e-diaeresis
-  165:0xef, // i-diaeresis
-  166:0xff, // y-diaeresis
-  167:0xcb, // E-diaeresis
-  168:0xcf, // I-diaeresis
-  169:0xe1, // a-acute
-  170:0xe9, // e-acute
-  171:0xed, // i-acute
-  172:0xf3, // o-acute
-  173:0xfa, // u-acute
-  174:0xfd, // y-acute
-  175:0xc1, // A-acute
-  176:0xc9, // E-acute
-  177:0xcd, // I-acute
-  178:0xd3, // O-acute
-  179:0xda, // U-acute
-  180:0xdd, // Y-acute
-  181:0xe0, // a-grave
-  182:0xe8, // e-grave
-  183:0xec, // i-grave
-  184:0xf2, // o-grave
-  185:0xf9, // u-grave
-  186:0xc0, // A-grave
-  187:0xc8, // E-grave
-  188:0xcc, // I-grave
-  189:0xd2, // O-grave
-  190:0xd9, // U-grave
-  191:0xe2, // a-circumflex
-  192:0xea, // e-circumflex
-  193:0xee, // i-circumflex
-  194:0xf4, // o-circumflex
-  195:0xfb, // u-circumflex
-  196:0xc2, // A-circumflex
-  197:0xca, // E-circumflex
-  198:0xce, // I-circumflex
-  199:0xd4, // O-circumflex
-  200:0xdb, // U-circumflex
-  201:0xe5, // a-ring
-  202:0xc5, // A-ring
-  203:0xf8, // o-slash
-  204:0xd8, // O-slash
-  205:0xe3, // a-tilde
-  206:0xf1, // n-tilde
-  207:0xf5, // o-tilde
-  208:0xc3, // A-tilde
-  209:0xd1, // N-tilde
-  210:0xd5, // O-tilde
-  211:0xe6, // ae-ligature
-  212:0xc6, // AE-ligature
-  213:0xe7, // c-cedilla
-  214:0xc7, // C-cedilla
-  215:0xfe, // thorn
-  216:0xf0, // eth
-  217:0xde, // Thorn
-  218:0xd0, // Eth
-  219:0xa3, // pound sterling sign
-  220:0x153, // oe-ligature
-  221:0x152, // OE-ligature
-  222:0xa1, // inverted pling
-  223:0xbf, // inverted query
-};
-
-//var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
-
-function zscii_from(address, max_length, tell_length) {
-
-  if (address in this.m_jit) {
-    //VERBOSE burin('zscii_from ' + address,'already in THIS.M_JIT');
-
-    // Already seen this one.
-
-    if (tell_length)
-      return this.m_jit[address];
-    else
-      return this.m_jit[address][0];
-  }
-
-  var temp = '';
-  var alph = 0;
-  var running = 1;
-  var start_address = address;
-
-  // Should be:
-  //   -2 if we're not expecting a ten-bit character
-  //   -1 if we are, but we haven't seen any of it
-  //   n  if we've seen half of one, where n is what we've seen
-  var tenbit = -2;
-
-  // Should be:
-  //    0 if we're not expecting an abbreviation
-  //    z if we are, where z is the prefix
-  var abbreviation = 0;
-
-  if (!max_length) max_length = 65535;
-  var stopping_place = address + max_length;
-
-  while (running) {
-    var word = this.getUnsignedWord(address);
-    address += 2;
-
-    running = ((word & 0x8000)==0) && address<stopping_place;
-
-    for (var j=2; j>=0; j--) {
-      var code = ((word>>(j*5))&0x1f);
-
-      if (abbreviation) {
-	temp = temp + zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+abbr_start)*2);
-	abbreviation = 0;
-      } else if (tenbit==-2) {
-
-	if (code>5) {
-	  if (alph==2 && code==6)
-	    tenbit = -1;
-	  else
-	    temp = temp + zalphabet[alph][code-6];
-												
-	  alph = 0;
-	} else {
-	  if (code==0) { temp = temp + ' '; alph=0; }
-	  else if (code<4) { abbreviation = code; }
-	  else { alph = code-3; }
-	}
-
-      } else if (tenbit==-1) {
-	tenbit = code;
-      } else {
-	temp = temp + zscii_char_to_ascii((tenbit<<5) + code);
-	tenbit = -2;
-      }
-    }
-  }
-
-  if (start_address >= stat_start) {
-    this.m_jit[start_address] = [temp, address];
-  }
-
-  //VERBOSE burin('zscii_from ' + address,temp);
-  if (tell_length) {
-    return [temp, address];
-  } else {
-    return temp;
-  }
-}
-
-////////////////////////////////////////////////////////////////
-//
-// encode_text
-//
-// Implements the @encode_text opcode.
-//   |zscii_text|+|from| is the address of the unencoded text.
-//   |length|            is its length.
-//                         (It may also be terminated by a zero byte.)
-//   |coded_text|        is where to put the six bytes of encoded text.
-function encode_text(zscii_text, length, from, coded_text) {
-
-  zscii_text += from;
-  var source = '';
-
-  while (length>0) {
-    var b = this.getByte(zscii_text);
-
-    if (b==0) break;
-
-    source = source + zscii_char_to_ascii(b);
-    zscii_text++;
-    length--;
-  }
-
-  var result = into_zscii(source);
-
-  for (var i=0; i<result.length; i++) {
-    var c = result[i].charCodeAt(0);
-    setByte(c, coded_text++);
-  }
-}
-
-////////////////////////////////////////////////////////////////
-//
-// Encodes the ZSCII string |str| to its compressed form,
-// and returns it.
-// 
-function into_zscii(str) {
-  var result = '';
-  var buffer = [];
-  var set_stop_bit = 0;
-
-  function emit(value) {
-
-    buffer.push(value);
-
-    if (buffer.length==3) {
-      var temp = (buffer[0]<<10 | buffer[1]<<5 | buffer[2]);
-
-      // Weird, but it seems to be the rule:
-      if (result.length==4) temp += 0x8000;
-
-      result = result +
-	String.fromCharCode(temp >> 8) +
-	String.fromCharCode(temp &  0xFF);
-      buffer = [];
-    }
-  }
-
-    // Need to handle other alphabets. At present we only
-    // handle alphabetic characters (A0).
-    // Also need to handle ten-bit characters.
-		
-    var cursor = 0;
-
-  while (cursor<str.length && result.length<6) {
-    var ch = str.charCodeAt(cursor++);
-
-    if (ch>=65 && ch<=90) { // A to Z
-      // These are NOT mapped to A1. ZSD3.7
-      // explicitly forbids use of upper case
-      // during encoding.
-      emit(ch-59);
-    } else if (ch>=97 && ch<=122) { // a to z
-      emit(ch-91);
-    } else {
-      var z2 = zalphabet[2].indexOf(ch);
-
-      if (z2!=-1) {
-	emit(5); // shift to weird stuff
-
-	// XXX FIXME. This ought logically to be z2+6
-	// (and Frotz also uses 6 here.) For some reason,
-	// it seems not to work unless it's z2+9.
-	// Find out what's up.
-	emit(z2+6);
-      } else {
-	emit(5);
-	emit(6);
-	emit(ch >> 5);
-	emit(ch &  0x1F);
-      }
-    }
-  }
-
-  cursor = 0;
-
-  while (result.length<6) emit(5);
-
-  return result.substring(0,6);
-}
-
-function name_of_object(object) {
-
-  if (object==0)
-    return "<void>";
-  else {
-    var aa = objs_start + 124 + object*14;
-    return zscii_from(this.getUnsignedWord(aa)+1);
-  }
-}
-
-////////////////////////////////////////////////////////////////
-//
-// Function to print the contents of leftovers.
-
-function print_leftovers() {
-  zOut(leftovers);
-
-  // May as well clear it out and save memory,
-  // although we won't be called again until it's
-  // set otherwise.
-  leftovers = '';
-}
-
-////////////////////////////////////////////////////////////////
-//
-// Prints the text |text| on whatever input streams are
-// currently enabled.
-//
-// If this returns false, the text has been printed.
-// If it returns true, the text hasn't been printed, but
-// you must return the GNUSTO_EFFECT_FLAGS_CHANGED effect
-// to your caller. (There's a function handler_zOut()
-// which does all this for you.)
-
-function zOut(text) {
-  if (streamthrees.length) {
-
-    // Stream threes disable any other stream while they're on.
-    // (And they can't cause flag changes, I suppose.)
-
-    var current = streamthrees[0];
-    var address = streamthrees[0][1];
-
-    for (var i=0; i<text.length; i++) {
-      setByte(text.charCodeAt(i), address++);
-    }
-
-    streamthrees[0][1] = address;
-  } else {
-
-    var bits = this.getByte(0x11) & 0x03;
-    var changed = bits != printing_header_bits;
-    effect_parameters = printing_header_bits; 
-    printing_header_bits = bits;
-
-    // OK, so should we bail?
-
-    if (changed) {
-
-      leftovers = text;
-      rebound = print_leftovers;
-
-      return 1;
-
-    } else {
-
-      if (output_to_console) {
-	console_buffer = console_buffer + text;
-      }
-
-      if (bits & 1) {
-	transcript_buffer = transcript_buffer + text;
-      }
-    }
-  }
-
-  return 0;
-}
-
-////////////////////////////////////////////////////////////////
-
-function console_text() {
-  var temp = console_buffer;
-  console_buffer = '';
-  return temp;
-}
-
-function transcript_text() {
-  var temp = transcript_buffer;
-  transcript_buffer = '';
-  return temp;
-}
-
-function effect_parameters() {
-  return effect_parameters;
-}
-
-////////////////////////////////////////////////////////////////
-
-function IsSeparator(value) {
-  for (var sepindex=0; sepindex < separator_count; sepindex++) {
-    if (value == separators[sepindex]) return 1;	
-  }
-  return 0;	
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1568,11 +494,748 @@ function unmz5(encoded) {
 //
 //                       PART THE SECOND
 //
+// THE HANDLERS AND HANDLER ARRAYS
+//
+////////////////////////////////////////////////////////////////
+
+// JavaScript seems to have a problem with pointers to methods.
+// We solve this in a Pythonesque manner. Each instruction handler
+// is a simple function which takes two parameters: 1) the engine
+// asking the question (i.e. the value which would be "this" if
+// the function was a method), and 2) the list of actual arguments
+// given in the z-code for that function.
+
+
+function handleZ_je(engine, a) { 		
+
+    if (a.length<2) { 
+      //VERBOSE burin('je','noop');
+      return ''; // it's a no-op
+    } else if (a.length==2) { 
+      //VERBOSE burin('je',a[0] + '==' + a[1]);
+      return brancher(a[0]+'=='+a[1]);
+    } else {
+      var condition = '';
+      for (var i=1; i<a.length; i++) {
+	if (i!=1) condition = condition + '||';
+	condition = condition + 't=='+a[i];
+      }
+      //VERBOSE burin('je','t=' + a[0] + ';' + condition);
+      return 't='+a[0]+';'+brancher(condition);
+    }
+  }
+
+function handleZ_jl(engine, a) {
+    //VERBOSE burin('jl',a[0] + '<' + a[1]); 
+    return brancher(a[0]+'<'+a[1]); }
+
+function handleZ_jg(engine, a) { 
+    //VERBOSE burin('jg',a[0] + '>'+a[1]);
+    return brancher(a[0]+'>'+a[1]); }
+
+function handleZ_dec_chk(engine, a) {
+    //VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
+    return 't='+a[0]+';t2=varcode_get(this,t)-1;varcode_set(this,t2,t);'+brancher('t2<'+a[1]);
+  }
+function handleZ_inc_chk(engine, a) {
+    //VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
+    return 't='+a[0]+';t2=varcode_get(this,t)+1;varcode_set(this,t2,t);'+brancher('t2>'+a[1]);
+  }
+
+function handleZ_jin(engine, a) {
+    //VERBOSE burin('jin',a[0] + ',' + a[1]);
+    return brancher("obj_in(this,"+a[0]+','+a[1]+')');
+  }
+function handleZ_test(engine, a) {
+    //VERBOSE burin('test','t='+a[1]+';br(' + a[0] + '&t)==t)');
+    return 't='+a[1]+';'+brancher('('+a[0]+'&t)==t');
+  }
+function handleZ_or(engine, a) {
+    //VERBOSE burin('or','('+a[0] + '|' + a[1]+')&0xFFFF');
+    return storer(engine, '('+a[0]+'|'+a[1]+')&0xffff');
+  }
+function handleZ_and(engine, a) {
+    //VERBOSE burin('and',a[0] + '&' + a[1] + '&0xFFFF');
+    return storer(engine, a[0]+'&'+a[1]+'&0xffff');
+  }
+function handleZ_test_attr(engine, a) {
+    //VERBOSE burin('test_attr',a[0] + ',' + a[1]);
+    return brancher('test_attr(this,'+a[0]+','+a[1]+')');
+  }
+function handleZ_set_attr(engine, a) {
+    //VERBOSE burin('set_attr',a[0] + ',' + a[1]);
+    return 'set_attr(this,'+a[0]+','+a[1]+')';
+  }
+function handleZ_clear_attr(engine, a) {
+    //VERBOSE burin('clear_attr',a[0] + ',' + a[1]);
+    return 'clear_attr(this,'+a[0]+','+a[1]+')';
+  }
+function handleZ_store(engine, a) {
+    //VERBOSE burin('store',a[0] + ',' + a[1]);
+    return "varcode_set(this,"+a[1]+","+a[0]+")";
+  }
+function handleZ_insert_obj(engine, a) {
+    //VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
+    return "insert_obj("+a[0]+','+a[1]+")";
+  }
+function handleZ_loadw(engine, a) {
+    //VERBOSE burin('loadw',"this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+    return storer(engine, "this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+  }
+function handleZ_loadb(engine, a) {
+    //VERBOSE burin('loadb',"this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+    return storer(engine, "this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+  }
+function handleZ_get_prop(engine, a) {
+    //VERBOSE burin('get_prop',a[0]+','+a[1]);
+    return storer(engine, "get_prop(this,"+a[0]+','+a[1]+')');
+  }
+function handleZ_get_prop_addr(engine, a) {
+    //VERBOSE burin('get_prop_addr',a[0]+','+a[1]);
+    return storer(engine, "get_prop_addr(this,"+a[0]+','+a[1]+')');
+  }
+function handleZ_get_next_prop(engine, a) {
+    //VERBOSE burin('get_next_prop',a[0]+','+a[1]);
+    return storer(engine, "get_next_prop(this,"+a[0]+','+a[1]+')');
+  }
+function handleZ_add(engine, a) { 
+    //VERBOSE burin('add',a[0]+'+'+a[1]);
+    return storer(engine, a[0]+'+'+a[1]); }
+function handleZ_sub(engine, a) { 
+    //VERBOSE burin('sub',a[0]+'-'+a[1]);
+    return storer(engine, a[0]+'-'+a[1]); }
+function handleZ_mul(engine, a) { 
+    //VERBOSE burin('mul',a[0]+'*'+a[1]);
+    return storer(engine, a[0]+'*'+a[1]); }
+function handleZ_div(engine, a) {
+    //VERBOSE burin('div',a[0]+'/'+a[1]);
+    return storer(engine, 'trunc_divide('+a[0]+','+a[1]+')');
+  }
+function handleZ_mod(engine, a) { 
+    //VERBOSE burin('mod',a[0]+'%'+a[1]);
+    return storer(engine, a[0]+'%'+a[1]);
+  }
+function handleZ_call_2s(engine, a) {
+    //VERBOSE burin('call2s',a[0]+'-'+a[1]);
+    return handler_call(engine, a[0], a[1]);
+  }
+function handleZ_call_2n(engine, a) {
+    //VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
+    // can we use handler_call here, too?
+    engine.m_compilation_running=0; // Got to stop after this.
+    return "gosub(this,"+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
+  }
+function handleZ_set_colour(engine, a) {
+    //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
+    return "pc="+pc+";effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
+  }
+function handleZ_throw(engine, a) {
+    //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
+    engine.m_compilation_running = 0;
+    return "throw_stack_frame(this,"+a[0]+");return";
+  }
+function handleZ_js(engine, a) {
+    //VERBOSE burin('js',a[0]+'==0');
+    return brancher(a[0]+'==0');
+  }
+function handleZ_get_sibling(engine, a) {
+    //VERBOSE burin('get_sibling',"t=get_sibling("+a[0]+");");
+    return "t=get_sibling("+a[0]+");"+storer(engine, "t")+";"+brancher("t");
+  }
+function handleZ_get_child(engine, a) {
+    //VERBOSE burin('get_child',"t=get_child("+a[0]+");");
+    return "t=get_child("+a[0]+");"+
+      storer(engine, "t")+";"+
+      brancher("t");
+  }
+function handleZ_get_parent(engine, a) {
+    //VERBOSE burin('get_parent',"get_parent("+a[0]+");");
+    return storer(engine, "get_parent("+a[0]+")");
+  }
+function handleZ_get_prop_len(engine, a) {
+    //VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
+    return storer(engine, "get_prop_len(engine,"+a[0]+')');
+  }
+function handleZ_inc(engine, a) {
+    //VERBOSE burin('inc',c + '+1');
+    return "t="+a[0]+';varcode_set(this,varcode_get(this,t)+1, t)';
+  }
+function handleZ_dec(engine, a) {
+    //VERBOSE burin('dec',c + '-1');
+    return "t="+a[0]+';varcode_set(this,varcode_get(this,t)-1, t)';
+  }
+function handleZ_print_addr(engine, a) {
+    //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
+    return handler_zOut(engine,'zscii_from('+a[0]+')',0);
+  }
+function handleZ_call_1s(engine, a) {
+    //VERBOSE burin('call_1s','handler_call('+a[0]+')');
+    return handler_call(engine, a[0], '');
+  }
+function handleZ_remove_obj(engine, a) {
+    //VERBOSE burin('remove_obj',"remove_obj("+a[0]+','+a[1]+")");
+    return "remove_obj("+a[0]+','+a[1]+")";
+  }
+function handleZ_print_obj(engine, a) {
+    //VERBOSE burin('print_obj','name_of_object('+a[0]+',0)');
+    return handler_zOut(engine,"name_of_object("+a[0]+")",0);
+  }
+function handleZ_ret(engine, a) {
+    //VERBOSE burin('ret',"func_return("+a[0]+');return');
+    engine.m_compilation_running=0;
+    return "func_return("+a[0]+');return';
+  }
+function handleZ_jump(engine, a) {
+    engine.m_compilation_running=0;
+    if (a[0] & 0x8000) {
+      a[0] = (~0xFFFF) | a[0];
+    }
+				
+    var addr=(a[0] + pc) - 2;
+    //VERBOSE burin('jump',"pc="+addr+";return");
+    return "pc="+addr+";return";
+  }
+function handleZ_print_paddr(engine, a) {
+    //VERBOSE burin('print_paddr',"zscii_from((("+a[0]+")&0xFFFF)*4)");
+    return handler_zOut("zscii_from("+pc_translate_for_string(a[0])+")",0);
+  }
+function handleZ_load(engine, a) {
+    //VERBOSE burin('load',"store " + c);
+    return storer(engine, 'varcode_get(this,'+a[0]+')');
+  }
+function handleZ_call_1n(engine, a) {
+    // can we use handler_call here, too?
+    engine.m_compilation_running=0; // Got to stop after this.
+    //VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
+    return "gosub(this,"+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
+      }
+		
+function handleZ_rtrue(engine, a) {
+    //VERBOSE burin('rtrue',"func_return(1);return");
+    engine.m_compilation_running=0;
+    return "func_return(1);return";
+  }
+function handleZ_rfalse(engine, a) {
+    //VERBOSE burin('rfalse',"func_return(0);return");
+    engine.m_compilation_running=0;
+    return "func_return(0);return";
+  }
+
+function handleZ_print_ret(engine, a) {
+    engine.m_compilation_running = 0;
+    //VERBOSE burin('printret',"see handler_print");
+    return handler_print(engine, 0, '\n', 1)+';func_return(1);return';
+  }
+function handleZ_nop(engine, a) {
+    //VERBOSE burin('noop','');
+    return "";
+  }
+
+function handleZ_restart(engine, a) {
+    //VERBOSE burin('restart','');
+    engine.m_compilation_running=0;
+    return "return "+GNUSTO_EFFECT_RESTART;	
+  }
+		
+function handleZ_ret_popped(engine, a) {
+    //VERBOSE burin('pop',"func_return(gamestack.pop());return");
+    engine.m_compilation_running=0;
+    return "func_return(gamestack.pop());return";
+  }
+function handleZ_catch(engine, a) {
+    // The stack frame cookie is specified by Quetzal 1.3b s6.2
+    // to be the number of frames on the stack.
+    //VERBOSE burin('catch',"store call_stack.length");
+    return storer(engine, "call_stack.length");
+  }
+function handleZ_quit(engine, a) {
+    //VERBOSE burin('quit','');
+    engine.m_compilation_running=0;
+    return "return "+GNUSTO_EFFECT_QUIT;
+  }
+
+function handleZ_new_line(engine, a) {
+    //VERBOSE burin('newline','');
+    return handler_zOut("'\\n'",0);
+  }
+		
+function handleZ_show_status(engine, a){ //(illegal from V4 onward)
+    //VERBOSE burin('illegalop','188');
+    gnusto_error(199);
+  }
+
+function handleZ_verify(engine, a) {
+    engine.m_compilation_running = 0;
+
+    var setter = 'rebound=function(n){'+brancher('n')+'};';
+    //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
+    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
+  }
+		
+function handleZ_illegal_extended(engine, a) {
+    // 190 can't be generated; it's the start of an extended opcode
+    //VERBOSE burin('illegalop','190');
+    gnusto_error(199);
+  }
+		
+function handleZ_piracy(engine, a) {
+    engine.m_compilation_running = 0;
+				
+    var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
+    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
+    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
+  }
+		
+function handleZ_call_vs(engine, a) {
+    //VERBOSE burin('call_vs','see call_vn');
+    return storer(engine, call_vn(engine, a, 1));
+  }
+
+function handleZ_store_w(engine, a) {
+    //VERBOSE burin('storew',"setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")");
+    return "setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
+  }
+
+function handleZ_storeb(engine, a) {
+    //VERBOSE burin('storeb',"setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")");
+    return "setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
+  }
+
+function handleZ_putprop(engine, a) {
+    //VERBOSE burin('putprop',"put_prop("+a[0]+','+a[1]+','+a[2]+')');
+    return "put_prop(this,"+a[0]+','+a[1]+','+a[2]+')';
+  }
+function handleZ_read(engine, a) {
+				
+    // read, aread, sread, whatever it's called today.
+    // That's something that we can't deal with within gnusto:
+    // ask the environment to magic something up for us.
+
+    if (a[3]) {
+      // ...then we should do something with a[2] and a[3],
+      // which are timed input parameters. For now, though,
+      // we'll just ignore them.
+      //VERBOSE burin('read',"should have been timed-- not yet supported");
+    }
+
+    engine.m_compilation_running = 0;
+				
+    var setter = "rebound=function(n){" +
+      storer(engine, "aread(this, n, a0," + a[1] + ")") +
+      "};";
+
+    //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
+    setter + "effect_parameters={"+
+      "'recaps':" + "this.getByte(a0+1),"+
+      "'maxchars':" + "this.getByte(a0),"+
+      "};" + "return GNUSTO_EFFECT_INPUT";
+
+    return "var a0=eval("+ a[0] + ");" +
+      "pc=" + pc + ";" +
+      setter +
+      "effect_parameters={"+
+      "'recaps':"   + "this.getByte(a0+1),"+
+      "'maxchars':" + "this.getByte(a0),"+
+      "};" +
+      "return "+GNUSTO_EFFECT_INPUT;
+  }
+function handleZ_print_char(engine, a) {
+    //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
+    return handler_zOut('zscii_char_to_ascii(this,'+a[0]+')',0);
+  }
+function handleZ_print_num(engine, a) {
+    //VERBOSE burin('print_num','handler_zout('+a[0]+')');
+    return handler_zOut(a[0],0);
+  }
+function handleZ_random(engine, a) {
+    //VERBOSE burin('random',"random_number("+a[0]+")");
+    return storer(engine, "random_number("+a[0]+")");
+  }
+function handleZ_push(engine, a) {
+    //VERBOSE burin('push',a[0]);
+    return store_into(engine, 'gamestack.pop()', a[0]);
+  }
+function handleZ_pull(engine, a) {
+    //VERBOSE burin('pull',c +'=gamestack.pop()');
+    return 'varcode_set(this,gamestack.pop(),'+a[0]+')';
+  }
+function handleZ_split_window(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('split_window','lines=' + a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
+  }
+function handleZ_set_window(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('set_window','win=' + a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
+  }
+function handleZ_call_vs2(engine, a) {
+    //VERBOSE burin('call_vs2',"see call_vn");
+    return storer(engine, call_vn(engine, a,1));
+  }
+function handleZ_erase_window(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('erase_window','win=' + a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
+  }
+function handleZ_erase_line(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('erase_line',a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
+  }
+function handleZ_set_cursor(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
+    return "pc="+pc+";effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
+  }
+		
+function handleZ_get_cursor(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('get_cursor',a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
+  }
+		
+function handleZ_set_text_style(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('set_text_style',a[0]);
+    return "pc="+pc+";effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
+  }
+		
+function handleZ_buffer_mode(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('buffer_mode',a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
+  }
+		
+function handleZ_output_stream(engine, a) {
+    //VERBOSE burin('output_stream',a[0]+', ' + a[1]);
+    return 'this._set_output_stream('+a[0]+','+a[1]+')';
+  }
+		
+function handleZ_input_stream(engine, a) {
+    engine.m_compilation_running=0;
+    //VERBOSE burin('input_stream',a[0]);
+    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
+  }
+		
+function handleZ_sound_effect(engine, a) {
+    // We're rather glossing over whether and how we
+    // deal with callbacks at present.
+				
+    engine.m_compilation_running=0;
+    //VERBOSE burin('sound_effect','better logging later');
+    while (a.length < 5) { a.push(0); }
+    return "pc="+pc+';effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
+  }
+		
+function handleZ_read_char(engine, a) {
+    // Maybe factor out "read" and this?
+    //VERBOSE burin('read_char','');
+    // a[0] is always 1; probably not worth checking for this
+				
+    if (a[3]) {
+      // ...then we should do something with a[2] and a[3],
+      // which are timed input parameters. For now, though,
+      // we'll just ignore them.
+      //VERBOSE burin('read_char','should have been timed-- not yet supported');
+    }
+				
+    engine.m_compilation_running = 0;
+				
+    var setter = "rebound=function(n) { " +
+      storer(engine, "n") +
+      "};";
+				
+    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
+  }
+		
+function handleZ_scan_table(engine, a) { 
+    //VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
+    if (a.length == 4) {
+      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
+	storer(engine, "t") + ";" +  brancher('t');
+    } else { // must use the default for Form, 0x82
+      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
+	storer(engine, "t") + ";" +  brancher('t');
+    }
+  }
+		
+function handleZ_not(engine, a) {
+    //VERBOSE burin('not','~'+a[1]+'&0xffff');
+    return storer(engine, '~'+a[1]+'&0xffff');
+  }
+		
+function handleZ_tokenise(engine, a) {
+    //VERBOSE burin('tokenise',"tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
+    return "tokenise(this,("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
+  }
+		
+function handleZ_encode_text(engine, a) {
+    //VERBOSE burin('tokenise',"encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
+    return "encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
+  }
+
+function handleZ_copy_table(engine, a) {
+    //VERBOSE burin('copy_table',"copy_table("+a[0]+','+a[1]+','+a[2]+")");
+    return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
+  }
+		
+function handleZ_print_table(engine, a) {
+				
+    // Jam in defaults:
+    if (a.length < 3) { a.push(1); } // default height
+    if (a.length < 4) { a.push(0); } // default skip
+    //VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
+    return "pc="+pc+";effect_parameters=print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
+  }
+		
+function handleZ_check_arg_count(engine, a) {
+    //VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
+    return brancher(a[0]+'<=this._param_count()');
+  }
+		
+function handleZ_save(engine, a) {
+    //VERBOSE burin('save','');
+    engine.m_compilation_running=0;
+    var setter = "rebound=function(n) { " +
+      storer(engine, 'n') + "};";
+    return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
+  }
+		
+function handleZ_restore(engine, a) {
+    //VERBOSE burin('restore','');
+    engine.m_compilation_running=0;
+    var setter = "rebound=function(n) { " +
+      storer(engine, 'n') + "};";
+    return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
+  }
+		
+function handleZ_log_shift(engine, a) {
+    //VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
+    // log_shift logarithmic-bit-shift.  Right shifts are zero-padded
+    return storer(engine, "log_shift("+a[0]+','+a[1]+')');
+  }
+
+function handleZ_art_shift(engine, a) {
+    //VERBOSE burin('log_shift',"art_shift("+a[0]+','+a[1]+')');
+    // arithmetic-bit-shift.  Right shifts are sign-extended
+    return storer(engine, "art_shift("+a[0]+','+a[1]+')');
+  }
+
+function handleZ_set_font(engine, a) {
+    //VERBOSE burin('set_font','('+a[0]+'<2?1:0) <<We only provide font 1.>>');
+    // We only provide font 1.
+    return storer(engine, '('+a[0]+'<2?1:0)');
+  }
+
+function handleZ_save_undo(engine, a) {
+    //VERBOSE burin('save_undo','unsupported');
+    return storer(engine, '-1'); // not yet supplied
+  }
+
+function handleZ_restore_undo(engine, a) {
+    //VERBOSE burin('restore_undo','unsupported');
+    gnusto_error(700); // spurious restore_undo
+    return storer(engine, '0');
+  }
+
+function handleZ_print_unicode(engine, a) {
+    //VERBOSE burin('print_unicode',"String.fromCharCode(" +a[0]+")");
+    return handler_zOut("String.fromCharCode(" +a[0]+")",0);
+  }
+
+function handleZ_check_unicode(engine, a) {
+    //VERBOSE burin('check_unicode','we always say yes');
+    // We have no way of telling from JS whether we can
+    // read or write a character, so let's assume we can
+    // read and write all of them. We can always provide
+    // methods to do so somehow (e.g. with an onscreen keyboard).
+    return storer(engine, '3');
+  }
+
+
+  ////////////////////////////////////////////////////////////////
+  //
+  // |handlers|
+  //
+  // An array mapping opcodes to functions. Each function is passed
+  // a series of arguments (between zero and eight, as the Z-machine
+  // allows) as an array, called |a| below. It returns a string of JS,
+  // called |r| in these comments, which can be evaluated to do the job of that
+  // opcode. Note, again, that this is a string (not a function object).
+  //
+  // Extended ("EXT") opcodes are stored 1000 higher than their number.
+  // For example, 1 is "je", but 1001 is "restore".
+  //
+  // |r|'s code may set |engine.m_compilation_running| to 0 to stop compile() from producing
+  // code for any more opcodes after this one. (compile() likes to group
+  // code up into blocks, where it can.)
+  //
+  // |r|'s code may contain a return statement for two reasons: firstly, to
+  // prevent execution of any further generated code before we get to take
+  // our bearings again (for example, |r| must cause a return if it knows that
+  // the program counter has been modified: PC changes can't take effect until
+  // the next lookup of a code block, so we need to force that to happen
+  // immediately). In such cases, return zero or an undefined result. Secondly,
+  // we can return a numeric value to cause an effect in the external
+  // environment. See "effect codes" above for the values.
+  //
+  // If |r|'s code contains a return statement, it must make sure to set the PC
+  // somehow, either directly or, for example, via func_return().
+  //
+
+var handlers_v578 = {
+    1: handleZ_je,
+    2: handleZ_jl,
+    3: handleZ_jg,
+    4: handleZ_dec_chk,
+    5: handleZ_inc_chk,
+    6: handleZ_jin,
+    7: handleZ_test,
+    8: handleZ_or,
+    9: handleZ_and,
+    10: handleZ_test_attr,
+    11: handleZ_set_attr,
+    12: handleZ_clear_attr,
+    13: handleZ_store,
+    14: handleZ_insert_obj,
+    15: handleZ_loadw,
+    16: handleZ_loadb,
+    17: handleZ_get_prop,
+    18: handleZ_get_prop_addr,
+    19: handleZ_get_next_prop,
+    20: handleZ_add,
+    21: handleZ_sub,
+    22: handleZ_mul,
+    23: handleZ_div,
+    24: handleZ_mod,
+    25: handleZ_call_2s,
+    26: handleZ_call_2n,
+    27: handleZ_set_colour,
+    28: handleZ_throw,
+    128: handleZ_js,
+    129: handleZ_get_sibling,
+    130: handleZ_get_child,
+    131: handleZ_get_parent,
+    132: handleZ_get_prop_len,
+    133: handleZ_inc,
+    134: handleZ_dec,
+    135: handleZ_print_addr,
+    136: handleZ_call_1s,
+    137: handleZ_remove_obj,
+    138: handleZ_print_obj,
+    139: handleZ_ret,
+    140: handleZ_jump,
+    141: handleZ_print_paddr,
+    142: handleZ_load,
+    143: handleZ_call_1n,
+    176: handleZ_rtrue,
+    177: handleZ_rfalse,
+    178: handler_print, // (Z_print)
+    179: handleZ_print_ret,
+    180: handleZ_nop,
+    //181: save (illegal in V5)
+    //182: restore (illegal in V5)
+    183: handleZ_restart,
+    184: handleZ_ret_popped,
+    185: handleZ_catch,
+    186: handleZ_quit,
+    187: handleZ_new_line,
+    188: handleZ_show_status, //(illegal from V4 onward)
+    189: handleZ_verify,
+    190: handleZ_illegal_extended,
+    191: handleZ_piracy,
+    224: handleZ_call_vs,
+    225: handleZ_store_w,
+    226: handleZ_storeb,
+    227: handleZ_putprop,
+    228: handleZ_read,
+    229: handleZ_print_char,
+    230: handleZ_print_num,
+    231: handleZ_random,
+    232: handleZ_push,
+    233: handleZ_pull,
+    234: handleZ_split_window,
+    235: handleZ_set_window,
+    236: handleZ_call_vs2,
+    237: handleZ_erase_window,
+    238: handleZ_erase_line,
+    239: handleZ_set_cursor,
+    240: handleZ_get_cursor,
+    241: handleZ_set_text_style,
+    242: handleZ_buffer_mode,
+    243: handleZ_output_stream,
+    244: handleZ_input_stream,
+    245: handleZ_sound_effect,
+    246: handleZ_read_char,
+    247: handleZ_scan_table, 
+    248: handleZ_not,
+    249: call_vn,
+    250: call_vn, // call_vn2,
+    251: handleZ_tokenise,
+    252: handleZ_encode_text,
+    253: handleZ_copy_table,
+    254: handleZ_print_table,
+    255: handleZ_check_arg_count,
+    1000: handleZ_save,
+    1001: handleZ_restore,
+    1002: handleZ_log_shift,
+    1003: handleZ_art_shift,
+    1004: handleZ_set_font,
+    //1005: draw_picture (V6 opcode)
+    //1006: picture_dat (V6 opcode)
+    //1007: erase_picture (V6 opcode)
+    //1008: set_margins (V6 opcode)
+    1009: handleZ_save_undo,
+    1010: handleZ_restore_undo,
+    1011: handleZ_print_unicode,
+    1012: handleZ_check_unicode,
+
+    //1013-1015: illegal
+    //1016: move_window (V6 opcode)
+    //1017: window_size (V6 opcode)
+    //1018: window_style (V6 opcode)
+    //1019: get_wind_prop (V6 opcode)		
+    //1020: scroll_window (V6 opcode)
+    //1021: pop_stack (V6 opcode)
+    //1022: read_mouse (V6 opcode)
+    //1023: mouse_window (V6 opcode)
+    //1024: push_stack (V6 opcode)
+    //1025: put_wind_prop (V6 opcode)
+    //1026: print_form (V6 opcode)
+    //1027: make_menu (V6 opcode)
+    //1028: picture_table (V6 opcode)
+};
+
+////////////////////////////////////////////////////////////////
+//
+// pc_translate_*
+// 
+// Each of these functions returns a string of JS code to set the PC
+// to the address in |packed_target|, based on the current architecture.
+//
+// TODO: Would be good if we could pick up when it was a constant.
+
+function pc_translate_v123(p) { return '(('+p+')&0xFFFF)*2'; }
+function pc_translate_v45(p)  { return '(('+p+')&0xFFFF)*4'; }
+function pc_translate_v67R(p) { return '(('+p+')&0xFFFF)*4+'+this.m_routine_start; }
+function pc_translate_v67S(p) { return '(('+p+')&0xFFFF)*4+'+this.m_string_start; }
+function pc_translate_v8(p)   { return '(('+p+')&0xFFFF)*8'; }
+
+////////////////////////////////////////////////////////////////
+//
+//                       PART THE THIRD
+//
 // THE NEW AMAZING COMPONENT WHICH PLAYS GAMES AND WASHES DISHES
 // AND LAYS THE TABLE AND WALKS THE DOG AND CLEANS THE OVEN AND...
 //
 ////////////////////////////////////////////////////////////////
 
+function gnusto_error(number, message) {
+		// FIXME: Look into how to do this in a more standard way.
+		// FIXME: Support multiple parameters!
+		throw 'Error '+number+': '+message;
+}
 
 ////////////////////////////////////////////////////////////////
 //
@@ -1652,7 +1315,7 @@ GnustoEngine.prototype = {
   // |answer| is for returning answers to earlier effect codes. If you're
   // not answering an effect code, pass 0 here.
   run: function ge_run() {
-    
+   
     dump('This is run.\n');
     // burin('run', answer);
     var start_pc = 0;
@@ -1728,7 +1391,7 @@ GnustoEngine.prototype = {
   _initial_setup: function ge_initial_setup() {
 
     this.m_jit = [];
-    this.m_compiling = 0;
+    this.m_compilation_running = 0;
     this.m_gamestack = [];
 
     this.m_call_stack = [];
@@ -1749,27 +1412,43 @@ GnustoEngine.prototype = {
     this.m_alpha_start = this.getUnsignedWord(0x34);
     this.m_hext_start  = this.getUnsignedWord(0x36);		
 	
+		// Use the correct addressing mode for this Z-machine version...
+
     if (this.m_version<=3) {
-      this.m_pc_translate_for_routine = this.pc_translate_v123;
-      this.m_pc_translate_for_string = this.pc_translate_v123;
+				// Versions 1 and 2 (prehistoric)
+				this.m_pc_translate_for_routine = pc_translate_v123;
+				this.m_pc_translate_for_string = pc_translate_v123;
     } else if (this.m_version<=5) {
-      this.m_pc_translate_for_routine = this.pc_translate_v45;
-      this.m_pc_translate_for_string = this.pc_translate_v45;
+				// Versions 3 ("Standard"), 4 ("Plus") and 5 ("Advanced")
+				this.m_pc_translate_for_routine = pc_translate_v45;
+				this.m_pc_translate_for_string = pc_translate_v45;
     } else if (this.m_version<=7) {
-      this.m_routine_start  = this.getUnsignedWord(0x28)*8;
-      this.m_string_start   = this.getUnsignedWord(0x2a)*8;
-      this.m_pc_translate_for_routine = this.pc_translate_v67R;
-      this.m_pc_translate_for_string = this.pc_translate_v67S;
+				// Versions 6 (the graphical one) and 7 (rare postInfocom extension)
+				this.m_routine_start  = this.getUnsignedWord(0x28)*8;
+				this.m_string_start   = this.getUnsignedWord(0x2a)*8;
+				this.m_pc_translate_for_routine = pc_translate_v67R;
+				this.m_pc_translate_for_string = pc_translate_v67S;
     } else if (this.m_version==8) {
-      this.m_pc_translate_for_routine = this.pc_translate_v8;
-      this.m_pc_translate_for_string = this.pc_translate_v8;
+				// Version 8 (normal postInfocom extension)
+				this.m_pc_translate_for_routine = pc_translate_v8;
+				this.m_pc_translate_for_string = pc_translate_v8;
     } else {
-      gnusto_error(170, 'impossible: unknown z-version got this far');
+				gnusto_error(170, 'impossible: unknown z-version got this far');
+    }
+
+		// And pick up the relevant instruction set.
+
+    if (this.m_version==5) {
+				this.m_handlers = handlers_v578;
+    } else if (this.m_version<9) {
+				gnusto_error(101, 'version not implemented');
+    } else {
+				gnusto_error(170, 'impossible: unknown z-version got this far');
     }
 
     this.m_separator_count = this.getByte(this.m_dict_start);
     for (var i=0; i<this.m_separator_count; i++) {		  
-      this.m_separators[i]=zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
+      this.m_separators[i]=zscii_char_to_ascii(this, this.getByte(this.m_dict_start + i+1));
     }	
 	
     // If there is a header extension...
@@ -1777,8 +1456,8 @@ GnustoEngine.prototype = {
       // get start of custom unicode table, if any
       this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
       if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-	this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
-	this.m_unicode_start += 1;
+					this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
+					this.m_unicode_start += 1;
       }
     }		
     
@@ -1801,32 +1480,33 @@ GnustoEngine.prototype = {
     var newcharcode;		
     if (this.m_alpha_start > 0) { // If there's a custom alphabet...
       for (var alpharow=0; alpharow<3; alpharow++){
-	var alphaholder = '';
-	for (var alphacol=0; alphacol<26; alphacol++) {	
-	  newcharcode = this.getByte(this.m_alpha_start + (alpharow*26) + alphacol);
-	  if ((newcharcode >=155) && (newcharcode <=251)) {		     
-	    // Yes, custom alphabets can refer to custom unicode tables.  Whee...
-	    if (unicode_start == 0) {
-	      alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
-	    } else {
-	      if ((newcharcode-154)<= custom_unicode_charcount)
-		alphaholder += String.fromCharCode(this.getUnsignedWord(unicode_start + ((newcharcode-155)*2)));					
-	      else
-		alphaholder += ' ';
-	    }
-	  } else {
-	    newchar = String.fromCharCode(newcharcode);
-	    if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
-	    alphaholder += newchar;
-	  }
-	}		    
-	this.m_zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
+					var alphaholder = '';
+					for (var alphacol=0; alphacol<26; alphacol++) {	
+							newcharcode = this.getByte(this.m_alpha_start + (alpharow*26) + alphacol);
+							if ((newcharcode >=155) && (newcharcode <=251)) {		     
+									// Yes, custom alphabets can refer to custom unicode tables.  Whee...
+									if (unicode_start == 0) {
+											alphaholder += String.fromCharCode(default_unicode_translation_table[newcharcode]);
+									} else {
+											if ((newcharcode-154)<= custom_unicode_charcount)
+													alphaholder += String.fromCharCode(this.getUnsignedWord(unicode_start + ((newcharcode-155)*2)));					
+											else
+													alphaholder += ' ';
+									}
+							} else {
+									newchar = String.fromCharCode(newcharcode);
+									if (newchar == '^') newchar = '\n';  // This is hackish, but I don't know a better way.
+									alphaholder += newchar;
+							}
+					}		    
+					this.m_zalphabet[alpharow]= alphaholder;  // Replace the current row with the newly constructed one.
       }
     }
 		
 
     // We don't also reset the debugging variables, because
     // they need to persist across re-creations of this object.
+		// FIXME: Is this still true?
 
     // Clear the Z-engine's local variables.
     for (var i=0; i<16; i++) this.m_locals[i]=0;
@@ -1836,26 +1516,1297 @@ GnustoEngine.prototype = {
     this.m_leftovers = '';
   },
 
-  ////////////////////////////////////////////////////////////////
-  //
-  // pc_translate_*
-  // 
-  // Each of these functions returns a string of JS code to set the PC
-  // to the address in |packed_target|, based on the current architecture.
-  //
-  // TODO: Would be good if we could pick up when it was a constant.
-  
-  _pc_translate_v123: function pc_translate_v123(p)
-  { return '(('+p+')&0xFFFF)*2'; },
-  _pc_translate_v45: function pc_translate_v45(p)
-  { return '(('+p+')&0xFFFF)*4'; },
-  _pc_translate_v67R: function pc_translate_v67R(p)
-  { return '(('+p+')&0xFFFF)*4+'+this.m_routine_start; },
-  _pc_translate_v67S: function pc_translate_v67S(p)
-  { return '(('+p+')&0xFFFF)*4+'+this.m_string_start; },
-  _pc_translate_v8: function pc_translate_v8(p)
-  { return '(('+p+')&0xFFFF)*8'; },
-  
+  getByte: function ge_getByte(address) {
+    if (address<0) { address &= 0xFFFF; }
+    return this.m_memory[address];
+  },
+
+  setByte: function ge_setByte(value, address) {
+    if (address<0) { address &= 0xFFFF; }
+    this.m_memory[address] = value;
+  },
+
+  getWord: function ge_getWord(address) {
+    if (address<0) { address &= 0xFFFF; }
+    return this._unsigned2signed((this.m_memory[address]<<8)|
+																 this.m_memory[address+1]);
+  },
+
+  _unsigned2signed: function ge_unsigned2signed(value) {
+    return ((value & 0x8000)?~0xFFFF:0)|value;
+  },
+
+  _signed2unsigned: function ge_signed2unsigned(value) {
+    return value & 0xFFFF;
+  },
+
+  getUnsignedWord: function ge_getUnsignedWord(address) {
+    if (address<0) { address &= 0xFFFF; }
+    return (this.m_memory[address]<<8)|this.m_memory[address+1];
+  },
+
+  setWord: function ge_setWord(value, address) {
+			if (address<0) { address &= 0xFFFF; }
+			this.setByte((value>>8) & 0xFF, address);
+			this.setByte((value) & 0xFF, address+1);
+  },
+
+	// Inelegant function to load parameters according to a VAR byte (or word).
+	_handle_variable_parameters: function ge_handle_var_parameters(args, types, bytecount) {
+			var argcursor = 0;
+
+			if (bytecount==1) {
+					types = (types<<8) | 0xFF;
+			}
+
+			while (1) {
+					var current = types & 0xC000;
+					if (current==0xC000) {
+							return;
+					} else if (current==0x0000) {
+							args[argcursor++] = this.getWord(this.m_pc);
+							this.m_pc+=2;
+					} else if (current==0x4000) {
+							args[argcursor++] = this.getByte(this.m_pc++);
+					} else if (current==0x8000) {
+							args[argcursor++] =
+							code_for_varcode(this.getByte(this.m_pc++));
+					} else {
+							gnusto_error(171); // impossible
+					}
+						
+					types = (types << 2) | 0x3;
+			}
+	},
+
+	// _compile() returns a string of JavaScript code representing the
+	// instruction at the program counter (and possibly the next few
+	// instructions, too). It will change the PC to point to the end of the
+	// code it's compiled.
+	_compile: function ge_compile() {
+
+			this.m_compilation_running = 1;
+			code = '';
+			var starting_pc = this.m_pc;
+
+			do {
+
+					// List of arguments to the opcode.
+					var args = [];
+
+					this_instr_pc = this.m_pc;
+
+			
+					// Check for a breakpoint.
+					if (this.m_pc in this.m_breakpoints) {
+							code = code + 'if(is_valid_breakpoint(this,'+this.m_pc+'))return 0x510;';
+							//VERBOSE burin(code,'');
+					}
+
+					// Golden Trail code. Usually commented out for efficiency.
+					//code = code + 'golden_trail('+this.m_pc+');';
+					//code = code + 'burin("gold","'+this.m_pc.toString(16)+'");';
+				
+					// So here we go...
+					// what's the opcode?
+					var instr = this.getByte(this.m_pc++);
+			
+					if (instr==0) {
+							// If we just get a zero, we've probably
+							// been directed off into deep space somewhere.
+					
+							gnusto_error(201); // lost in space
+					
+					} else if (instr==190) { // Extended opcode.
+							
+							instr = 1000+this.getByte(this.m_pc++);
+							this._handle_variable_parameters(args,
+																							 this.getByte(this.m_pc++),
+																							 1);
+					
+					} else if (instr & 0x80) {
+							if (instr & 0x40) { // Variable params
+									
+									if (!(instr & 0x20))
+											// This is a 2-op, despite having
+											// variable parameters; reassign it.
+											instr &= 0x1F;
+								
+									if (instr==250 || instr==236) {
+											// We get more of them!
+											var types = this.getUnsignedWord(this.m_pc);
+											this.m_pc += 2;
+											this._handle_variable_parameters(args, types, 2);
+									} else
+											this._handle_variable_parameters(args,
+																											 this.getByte(this.m_pc++), 1);
+							
+							} else { // Short. All 1-OPs except for one 0-OP.
+									
+									switch(instr & 0x30) {
+									case 0x00:
+											args[0] = this.getWord(this.m_pc);
+											this.m_pc+=2;
+											instr = (instr & 0x0F) | 0x80;
+											break;
+											
+									case 0x10:
+											args[0] = this.getByte(this.m_pc++);
+											instr = (instr & 0x0F) | 0x80;
+											break;
+									
+									case 0x20:
+											args[0] =
+													code_for_varcode(this.getByte(this.m_pc++));
+											instr = (instr & 0x0F) | 0x80;
+											break;
+									
+									case 0x30:
+											// 0-OP. We don't need to get parameters, but we
+											// *do* need to translate the opcode.
+											instr = (instr & 0x0F) | 0xB0;
+											break;
+									}
+							}
+					} else { // Long
+					
+							if (instr & 0x40)
+									args[0] =
+											code_for_varcode(this.getByte(this.m_pc++));
+							else
+									args[0] = this.getByte(this.m_pc++);
+							
+							if (instr & 0x20)
+									args[1] =
+											code_for_varcode(this.getByte(this.m_pc++));
+							else
+									args[1] = this.getByte(this.m_pc++);
+					
+							instr &= 0x1F;
+					}
+			
+					if (this.m_handlers[instr]) {
+							code = code + this.m_handlers[instr](args)+';';
+							//VERBOSE burin(code,'');
+					} else if (instr>=1128 && instr<=1255 &&
+										 "special_instruction_EXT"+(instr-1000) in this) {
+					
+							// ZMSD 14.2: We provide a hook for plug-in instructions.
+							
+							code = code +
+									this["special_instruction_EXT"+(instr-1000)](args)+
+									';';
+							//VERBOSE burin(code,'');
+
+					} else {
+							gnusto_error(200, instr, this.m_pc.toString(16)); // no handler
+					}
+					
+			} while(this.m_compilation_running);
+
+			// When we're not in debug mode, dissembly only stops at places where
+			// the THIS.M_PC must be reset; but in debug mode it's perfectly possible
+			// to have |code| not read or write to the PC at all. So we need to
+			// set it automatically at the end of each fragment.
+			
+			if (single_step||debug_mode) {
+					code = code + 'this.m_pc='+this.m_pc; 
+					//VERBOSE burin(code,'');
+			}
+
+			// Name the function after the starting position, to make life
+			// easier for Venkman.
+			return 'function J'+starting_pc.toString(16)+'(){'+code+'}';
+	},
+
+	_param_count: function ge_param_count() {
+		return m_param_counts[0];
+	},
+
+	_set_output_stream: function ge_set_output_stream(target, address) {
+			if (target==0) {
+					// then it's a no-op.
+			} else if (target==1) {
+					this.m_output_to_console = 1;
+			} else if (target==2) {
+					this.setByte(engine.getByte(0x11) | 0x1);
+			} else if (target==3) {
+					
+					if (this.m_streamthrees.length>15) {
+							gnusto_error(202); // too many nested stream-3s
+					}
+
+					this.m_streamthrees.unshift([address, address+2]);
+
+			} else if (target==4) {
+					this.m_output_to_script = 1;
+			} else if (target==-1) {
+					this.m_output_to_console = 0;
+			} else if (target==-2) {
+					this.setByte(this.getByte(0x11) & ~0x1);
+			} else if (target==-3) {
+					
+					if (this.m_streamthrees.length<1) {
+							gnusto_error(203); // not enough nested stream-3s
+					}
+
+					var latest = this.m_streamthrees.shift();
+					this.setWord((latest[1]-latest[0])-2, latest[0]);
+					
+			} else if (target==-4) {
+					this.m_output_to_script = 0;
+			} else {
+					gnusto_error(204, target); // weird output stream number
+			}
+	},
+
+	// Called when we reach a possible breakpoint. |addr| is the opcode
+	// address. If we should break, sets |pc| to |addr| and returns true;
+	// else returns false.
+	_is_valid_breakpoint: function ge_is_valid_breakpoint(addr) {
+			if (addr in this.m_breakpoints) {
+					if (this.m_breakpoints[addr]==2) {
+							// A breakpoint we've just reurned from.
+							this.m_breakpoints[addr]=1; // set it ready for next time
+							return 0; // it doesn't trigger again this time.
+					} else if (this.m_breakpoints[addr]==1) {
+							// a genuine breakpoint!
+							this.m_pc = addr;
+							return 1;
+					}
+
+					gnusto_error(170); // not really impossible, though
+					return 0;
+			} else
+			// not listed in the breakpoints table
+			return 0; // Well, duh.
+	},
+
+/*
+  function golden_print(text) {
+  var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
+  transcription_file.write(text, text.length);
+  transcription_file.close();
+  }
+*/
+/*function golden_trail(addr) {
+  var text = '\npc : '+addr.toString(16);
+  print(text);*/
+/*burin('gold',text);
+
+// Extra debugging information which may sometimes be useful
+var v = 0;
+
+for (var jj=0; jj<16; jj++) {
+v = locals[jj] & 65535;
+text = text + ' '+jj.toString(16)+'='+v.toString(16);
+}
+
+if (gamestack.length!=0) {
+v = gamestack[gamestack.length-1] & 65535;
+text = text + ' s='+v.toString(16);
+}
+
+text = text + '\n';
+golden_print(text);*/
+/*}*/
+
+////////////////////////////////////////////////////////////////
+// Library functions
+
+//@@@
+
+	_trunc_divide: function ge_trunc_divide(over, under) {
+	
+			var result;
+
+			if (under==0) {
+					gnusto_error(701); // division by zero
+					return 0;
+			}
+
+			result = over / under;
+
+			if (result > 0) {
+					return Math.floor(result);
+			} else {
+					return Math.ceil(result);
+			}			
+		  
+	},
+
+	_zscii_char_to_ascii: function ge_zscii_char_to_ascii(zscii_code) {
+			if (zscii_code<0 || zscii_code>1023) {
+					gnusto_error(702, zscii_code); // illegal zscii code
+			}
+
+			var result;
+
+			if (zscii_code==13 || zscii_code==10)
+			result = 10;
+			else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0)
+			result = zscii_code;
+			else if (zscii_code>=155 && zscii_code<=251) {
+					// Extra characters.
+
+					if (unicode_start == 0) 
+							return String.fromCharCode(default_unicode_translation_table[zscii_code]);
+					else { // if we're using a custom unicode translation table...
+							if ((zscii_code-154)<= custom_unicode_charcount) 
+									return String.fromCharCode(this.getUnsignedWord(unicode_start + ((zscii_code-155)*2)));					
+							else 
+									gnusto_error(703, zscii_code); // unknown zscii code
+                                  
+					}
+
+
+					// FIXME: It's not clear what to do if they request a character
+					// that's off the end of the table.
+			}	else {
+					//let's do nothing for the release-- we'll check the spec afterwards.
+					// FIXME: what release was that, and what are we doing now?
+					// Is there anything in Bugzilla to track this?
+					return "*";//gnusto_error(703, zscii_code); // unknown zscii code
+			}
+
+			return String.fromCharCode(result);
+	},
+
+	_random_number: function ge_random_number(arg) {
+		if (arg==0) {  //zero returns to true random mode-- seed from system clock
+				use_seed = 0;
+				return 0;
+		} else {
+				if (arg>0) {  //return a random number between 1 and arg.
+						if (use_seed == 0) {
+								return 1 + Math.round((arg -1) * Math.random());
+						} else {
+								random_seed--;
+								return Math.round(Math.abs(Math.tan(random_seed))*8.71*arg)%arg;
+						}
+				} else {
+						// Else we should reseed the RNG and return 0.
+						random_seed = arg;
+						use_seed = 1;
+						return 0;
+				}
+		},
+	}
+
+	_func_prologue: function ge_func_prologue(actuals) {
+			var count = this.getByte(this.m_pc++);
+			for (var i=count; i>=0; i--) {
+					if (i<actuals.length) {
+							locals.unshift(actuals[i]);
+					} else {
+							locals.unshift(0); // except in v.3, but hey
+					}
+			}
+			locals_stack.unshift(count+1);
+	},
+
+	_func_gosub: function gosub(to_address, actuals, ret_address, result_eater) {
+			this.call_stack.push(ret_address);
+			this.m_pc = to_address;
+			// FIXME: func_prologue only called here. Refactor.
+			func_prologue(actuals);
+			this.param_counts.unshift(actuals.length);
+			this.result_eaters.push(result_eater);
+
+			if (to_address==0) {
+					// Rare special case.
+					this.func_return(0);
+			}
+	},
+
+	////////////////////////////////////////////////////////////////
+	// Tokenises a string.
+	//
+	// See aread() for caveats.
+	// Maybe we should allow aread() to pass in the correct value stored
+	// in text_buffer, since it knows it already. It means we don't have
+	// to figure it out ourselves.
+	//
+	_tokenise: function ge_tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
+
+			var cursor = parse_buffer + 2;                	
+			if (isNaN(dictionary)) dictionary = 0;
+			if (isNaN(overwrite)) overwrite = 0;
+
+			// burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
+
+			function look_up(engine, word, dict_addr) {
+
+					var entry_length = engine.getByte(dict_addr+separator_count+1);
+					var entries_count = engine.getWord(dict_addr+separator_count+2);
+					var entries_start = engine.m_dict_addr+separator_count+4;
+
+					// Whether the dictionary is sorted.
+					// We don't use this at present (it would be a
+					// useful optimisation, though).
+					var is_sorted = 1;
+
+					if (entries_count < 0) {
+					
+							// This should actually only happen on user dictionaries,
+							// but the distinction isn't a useful one, and so we don't
+							// bother to check.
+
+							is_sorted = 0;
+							entries_count = -entries_count;
+					}
+
+					var oldword = word;				
+					word = into_zscii(word);
+			
+					for (var i=0; i<entries_count; i++) {
+							//really ugly kludge until into_zscii is fixed properly
+							var address = entries_start+i*entry_length;
+							if (zscii_from(address)==oldword) {
+									return address;
+							}
+							
+							var j=0;
+							while (j<word.length &&		
+										 this.getByte(address+j)==word.charCodeAt(j))
+									j++;
+
+							if (j==word.length)return address;
+					}
+				
+					return 0;
+			}
+
+			function add_to_parse_table(engine, curword, wordindex, wordpos) {
+                       
+					var lexical = look_up(engine, curword, dictionary);
+
+					//alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
+					if (!(overwrite && lexical==0)) {
+							this.setWord(lexical, cursor);
+			
+							cursor+=2;
+							engine.setByte(curword.length, cursor++);
+							engine.setByte(wordpos+2, cursor++);
+	
+					} else cursor +=4;
+		
+					this.setByte(this.getByte(words_count)+1, words_count);		
+			
+					return 1;
+			}
+
+			if (dictionary==0) {
+					// Use the standard game dictionary.
+					dictionary = dict_start;
+			}
+
+			var max_chars = this.getByte(text_buffer);
+
+			var result = '';
+
+			for (var i=0;i<this.getByte(text_buffer + 1);i++) {
+					result += String.fromCharCode(this.getByte(text_buffer + 2 + i));
+			}
+
+			var words_count = this.parse_buffer + 1;
+			this.setByte(0, words_count);
+		
+			var words = [];
+			var curword = '';
+			var wordindex = 0;
+		
+			for (var cpos=0; cpos < result.length; cpos++) {
+					if (result[cpos]  == ' ') {
+							if (curword != '') {
+									words[wordindex] = curword;
+									add_to_parse_table(this, words[wordindex], wordindex,
+																		 cpos - words[wordindex].length);
+									wordindex++;
+									curword = '';
+							}
+					} else {
+							if (IsSeparator(result[cpos])) {
+									if (curword != '') {
+											words[wordindex] = curword;
+											add_to_parse_table(this, words[wordindex], wordindex,
+																				 cpos - words[wordindex].length);
+											wordindex++;
+									}
+									words[wordindex] = result[cpos];
+									add_to_parse_table(words[wordindex], wordindex, cpos);
+									wordindex++;
+									curword = '';		
+							} else {
+									curword += result[cpos];	
+							}
+					}
+			}
+		
+			if (curword != '') {			
+					words[wordindex] = curword;
+					add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
+			}
+		
+			//display the broken-up text for visual validation 
+			//for (var i=0; i < words.length; i++){
+			//		alert(i + ': ' + words[i] + ' ' + words[i].length);
+			//}
+
+	},
+
+	// Very very very limited implementation:
+	//  * Doesn't properly handle terminating characters (always returns 10).
+	//  * Doesn't handle word separators.
+	_aread: function ge_aread(source, text_buffer, parse_buffer) {
+
+			text_buffer &= 0xFFFF;
+			parse_buffer &= 0xFFFF;
+
+			var max_chars = this.getByte(text_buffer);
+			var result = source.substring(0,max_chars);
+
+			setByte(result.length, text_buffer + 1);
+			
+			for (var i=0;i<result.length;i++) {
+					setByte(result.charCodeAt(i), text_buffer + 2 + i);
+			}
+
+			if (parse_buffer!=0) {
+					tokenise(text_buffer, parse_buffer, 0, 0);
+			}
+
+			// Return the ASCII value for the Enter key. aread() is supposed
+			// to return the value of the key which terminated the string, but
+			// (FIXME:) at present we only support termination using Enter.
+			return 10;
+	},
+
+	// Returns from a z-machine routine.
+	// |value| is the numeric result of the routine.
+	// It can also be null, in which case the remaining results of
+	// the current opcode won't be executed (it won't run the "result eater").
+	_func_return: function ge_func_return(value) {
+			for (var i=locals_stack.shift(); i>0; i--) {
+					this.m_locals.shift();
+			}
+			this.m_param_counts.shift();
+			this.m_pc = this.m_call_stack.pop();
+
+			var eater = this.m_result_eaters.pop();
+			if (eater && (value!=null)) {
+					eater(value);
+			}
+	},
+
+	_throw_stack_frame: function throw_stack_frame(cookie) {
+			// The cookie is the value of call_stack.length when @catch was
+			// called. It cannot be less than 1 or greater than the current
+			// value of call_stack.length.
+
+			if (cookie>this.m_call_stack.length || cookie<1) {
+					gnusto_error(207, cookie);
+			}
+
+			while (this.m_call_stack.length > cookie-1) {
+					this._func_return(null);
+			}
+	},
+
+	_get_prop_addr: function ge_get_prop_addr(object, property) {
+			var result = property_search(object, property, -1);
+			if (result[2]) {
+					return result[0];
+			} else {
+					return 0;
+			}
+	},
+
+	_get_prop_len: function ge_get_prop_len(address) {
+			// The last byte before the data is either the size byte of a 2-byte
+			// field, or the only byte of a 1-byte field. We can tell the
+			// difference using the top bit.
+
+			var value = this.getByte(address-1);
+
+			if (value & 0x80) {
+					// A two-byte field, so we take the bottom five bits.
+					value = value & 0x1F;
+
+					if (value==0)
+							return 64;
+					else
+							return value;
+			} else {
+					// A one-byte field. Our choice rests on a single bit.
+					if (value & 0x40)
+					return 2;
+					else
+					return 1;
+			}
+
+			gnusto_error(172); // impossible
+	},
+
+	_get_next_prop: function ge_get_next_prop(object, property) {
+
+			if (object==0) return 0; // Kill that V0EFH before it starts.
+
+			var result = this.property_search(object, -1, property);
+
+			if (result[2]) {
+					// There's a real property number in there;
+					// return it.
+					return result[3];
+			} else {
+					// There wasn't a valid property following the one
+					// we wanted. Why not?
+
+					if (result[4]) {
+							// Because the one we wanted was the last one.
+							// Tell them to go back to square one.
+							return 0;
+					} else {
+							// Because the one we wanted didn't exist.
+							// They shouldn't have asked for it: barf.
+							gnusto_error(205, property);
+					}
+			}
+
+			gnusto_error(173); // impossible
+	},
+
+	_get_prop: function ge_get_prop(object, property) {
+			
+			if (object==0) return 0; // Kill that V0EFH before it starts.
+
+			var temp = this.property_search(object, property, -1);
+
+			if (temp[1]==2) {
+					return this.getWord(temp[0]);
+			} else if (temp[1]==1) {
+					return this.getByte(temp[0]); // should this be treated as signed?
+			} else {
+					// get_prop used on a property of the wrong length
+					gnusto_error(706, object, property);
+					return this.getWord(temp[0]);
+			}
+
+			gnusto_error(174); // impossible
+	},
+
+	// This is the function which does all searching of property lists.
+	// It takes three parameters:
+	//    |object| -- the number of the object you're interested in
+	//
+	// The next parameters allow us to specify the property in two ways.
+	// If you use both, it will "or" them together.
+	//    |property| -- the number of the property you're interested in,
+	//                     or -1 if you don't mind.
+	//    |previous_property| -- the number of the property BEFORE the one
+	//                     you're interested in, or 0 if you want the first one,
+	//                     or -1 if you don't mind.
+	//
+	// If you specify a valid property, and the property doesn't exist, this
+	// function will return the default value instead (and tell you it's done so).
+	//
+	// The function returns an array with these elements:
+	//    [0] = the property address.
+	//    [1] = the property length.
+	//    [2] = 1 if this property really belongs to the object, or
+	//	    0 if it doesn't (and if it doesn't, and you've specified
+	//          a valid |property|, then [0] and [1] will be properly
+	//          set to defaults.)
+	//    [3] = the number of the property.
+	//          Equal to |property| if you specified it.
+	//          May be -1, if |property| is -1 and [2]==0.
+	//    [4] = a piece of state only useful to get_next_prop():
+	//          if the object does not contain the property (i.e. if [2]==0)
+	//          then this will be 1 if the final property was equal to
+	//          |previous_property|, and 0 otherwise. At all other times it will
+	//          be 0.
+	_property_search: function ge_property_search(object, property, previous_property) {
+			var props_address = this.getUnsignedWord(objs_start + 124 + object*14);
+
+			props_address = props_address + this.getByte(props_address)*2 + 1;
+			
+			var previous_prop = 0;
+
+			while(1) {
+					var len = 1;
+
+					var prop = this.getByte(props_address++);
+
+					if (prop & 0x80) {
+							// Long format.
+							len = this.getByte(props_address++) & 0x3F;
+							if (len==0) len = 64;
+					} else {
+							// Short format.
+							if (prop & 0x40) len = 2;
+					}
+					prop = prop & 0x3F;
+
+					if (prop==property || previous_prop==previous_property) {
+							return [props_address, len, 1, prop, 0];
+					} else if (prop < property) {
+
+							// So it's not there. Can we get it from the defaults?
+
+							if (property>0)
+									// Yes, because it's a real property.
+									return [objs_start + (property-1)*2,
+													2, 0, property, 0];
+							else
+									// No: they didn't specify a particular
+									// property.
+									return [-1, -1, 0, property,
+													previous_prop==property];
+					}
+
+					props_address += len;
+					previous_prop = prop;
+			}
+			gnusto_error(175); // impossible
+	},
+
+	////////////////////////////////////////////////////////////////
+	// Functions that modify the object tree
+
+	_set_attr: function ge_set_attr(object, bit) {
+			if (object==0) return; // Kill that V0EFH before it starts.
+			
+			var address = objs_start + 112 + object*14 + (bit>>3);
+			var value = this.getByte(address);
+			this.setByte(value | (128>>(bit%8)), address);
+	},
+
+	_clear_attr: function ge_clear_attr(object, bit) {
+			if (object==0) return; // Kill that V0EFH before it starts.
+
+			var address = objs_start + 112 + object*14 + (bit>>3);
+			var value = this.getByte(address);
+			this.setByte(value & ~(128>>(bit%8)), address);
+	},
+
+	_test_attr: function ge_test_attr(object, bit) {
+			if (object==0) return 0; // Kill that V0EFH before it starts.
+
+			if ((this.getByte(objs_start + 112 + object*14 +(bit>>3)) &
+					 (128>>(bit%8)))) {
+					return 1;
+			} else {
+					return 0;
+			}
+	},
+
+	_put_prop: function put_prop(object, property, value) {
+
+			var address = property_search(object, property, -1);
+
+			if (!address[2]) {
+					gnusto_error(704); // undefined property
+			}
+
+			if (address[1]==1) {
+					this.setByte(value & 0xff, address[0]);
+			} else if (address[1]==2) {
+					this.setWord(value&0xffff, address[0]);
+			} else {
+					gnusto_error(705); // weird length
+			}
+	},
+
+
+	_get_older_sibling: function ge_get_older_sibling(object) {
+			// Start at the eldest child.
+			var candidate = this.get_child(this.get_parent(object));
+
+			if (object==candidate) {
+					// evidently nothing doing there.
+					return 0;
+			}
+
+			while (candidate) {
+					next_along = this.get_sibling(candidate);
+					if (next_along==object) {
+							return candidate; // Yay! Got it!
+					}
+					candidate = next_along;
+			}
+
+			// We ran out, so the answer's 0.
+			return 0;
+	},
+
+	_insert_obj: function ge_insert_obj(mover, new_parent) {
+
+			// First, remove mover from wherever it is in the tree now.
+
+			var old_parent = this.get_parent(mover);
+			var older_sibling = this.get_older_sibling(mover);
+			var younger_sibling = this.get_sibling(mover);
+
+			if (old_parent && get_child(old_parent)==mover) {
+					this.set_child(old_parent, younger_sibling);
+			}
+
+			if (older_sibling) {
+					this.set_sibling(older_sibling, younger_sibling);
+			}
+
+			// Now, slip it into the new place.
+			
+			set_parent(mover, new_parent);
+
+			if (new_parent) {
+					this.set_sibling(mover, get_child(new_parent));
+					this.set_child(new_parent, mover);
+			}
+	},
+
+	// FIXME: Why the new_parent?!
+	_remove_obj: function ge_remove_obj(mover, new_parent) {
+			this.insert_obj(mover, 0);
+	},
+
+	_get_family: function ge_get_family(from, relationship) {
+			return this.getUnsignedWord(objs_start + 112 +
+																	relationship + from*14);
+	},
+
+	_get_parent:  function ge_get_parent(from)
+	{ return this.get_family(from, PARENT_REC); },
+
+	_get_child:   function ge_get_child(from)
+  { return this.get_family(from, CHILD_REC); },
+
+  _get_sibling: function ge_get_sibling(from)
+	{ return this.get_family(from, SIBLING_REC); },
+
+	_set_family: function ge_set_family(from, to, relationship)
+	{ this.setWord(to, objs_start + 112 + relationship + from*14); },
+
+	_set_parent: function ge_set_parent(from, to)
+	{ return set_family(from, to, PARENT_REC); },
+
+	_set_child: function ge_set_child(from, to)
+	{ return set_family(from, to, CHILD_REC); },
+
+	_set_sibling: function ge_set_sibling(from, to)
+	{ return set_family(from, to, SIBLING_REC); },
+
+	_obj_in: function ge_obj_in(child, parent)
+	{ return get_parent(child) == parent; },
+
+	////////////////////////////////////////////////////////////////
+
+	// Implements @copy_table, as in the Z-spec.
+	_copy_table: function ge_copy_table(first, second, size) {
+			if (second==0) {
+
+					// Zero out the first |size| bytes of |first|.
+
+					for (var i=0; i<size; i++) {
+							this.setByte(0, i+first);
+					}
+			} else {
+
+					// Copy |size| bytes of |first| into |second|.
+
+					var copy_forwards = 0;
+
+					if (size<0) {
+							size = -size;
+							copy_forwards = 1;
+					} else {
+							if (first > second) {
+									copy_forwards = 1;
+							} else {
+									copy_forwards = 0;
+							}
+					}
+
+					if (copy_forwards) {
+							for (var i=0; i<size; i++) {
+									this.setByte(this.getByte(first+i), second+i);
+							}
+					} else {
+							for (var i=size-1; i>=0; i--) {
+									this.setByte(this.getByte(first+i), second+i);
+							}
+					}
+			}
+	},
+
+
+	////////////////////////////////////////////////////////////////
+	// Implements @scan_table, as in the Z-spec.
+	_scan_table: function ge_scan_table(target_word, target_table,
+																			table_length, table_form)
+	{
+			// TODO: Optimise this some.
+	                         
+			var jumpby = table_form & 0x7F;
+			var usewords = ((table_form & 0x80) == 0x80);
+			var lastlocation = target_table + (table_length*jumpby);
+
+			if (usewords) {
+					//if the table is in the form of word values
+					while (target_table < lastlocation) {
+							if (((this.getByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
+									((this.getByte(target_table+1)&0xFF) == (target_word&0xFF))) {
+
+									return target_table;
+							}
+							target_table += jumpby;
+					}
+			} else {
+					//if the table is in the form of byte values
+					while (target_table < lastlocation) {
+							if ((this.getByte(target_table)&0xFF) == (target_word&0xFFFF)) {
+									return target_table;
+							}
+							target_table += jumpby;
+					}
+			}
+			return 0;	
+	},
+
+	////////////////////////////////////////////////////////////////
+	// Returns the lines that @print_table should draw, as in
+	// the Z-spec.
+	//
+	// It's rather poorly defined there:
+	//   * How is the text in memory encoded?
+	//       [Straight ZSCII, not five-bit encoded.]
+	//   * What happens to the cursor? Moved?
+	//       [We're guessing not.]
+	//   * Is the "table" a table in the Z-machine sense, or just
+	//     a contiguous block of memory?
+	//       [Just a contiguous block.]
+	//   * What if the width takes us off the edge of the screen?
+	//   * What if the height causes a [MORE] event?
+	//
+	// It also goes largely un-noted that this is the only possible
+	// way to draw on the lower window away from the current
+	// cursor position. (If we take the view that v5 windows are
+	// roughly the same thing as v6 windows, though, windows don't
+	// "own" any part of the screen, so there's no such thing as
+	// drawing on the lower window per se.)
+
+	_print_table: function ge_print_table(address, width, height, skip) {
+
+			var lines = [];
+
+			for (var y=0; y<height; y++) {
+
+					var s='';
+
+					for (var x=0; x<width; x++) {
+							s=s+zscii_char_to_ascii(this.getByte(address++));
+					}
+
+					lines.push(s);
+
+					address += skip;
+			}
+
+			return lines;
+	},
+
+	//var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
+
+	_zscii_from: function ge_zscii_from(address, max_length, tell_length) {
+
+			if (address in this.m_jit) {
+					//VERBOSE burin('zscii_from ' + address,'already in THIS.M_JIT');
+
+					// Already seen this one.
+					
+					if (tell_length)
+					return this.m_jit[address];
+					else
+					return this.m_jit[address][0];
+			}
+
+			var temp = '';
+			var alph = 0;
+			var running = 1;
+			var start_address = address;
+
+			// Should be:
+			//   -2 if we're not expecting a ten-bit character
+			//   -1 if we are, but we haven't seen any of it
+			//   n  if we've seen half of one, where n is what we've seen
+			var tenbit = -2;
+
+			// Should be:
+			//    0 if we're not expecting an abbreviation
+			//    z if we are, where z is the prefix
+			var abbreviation = 0;
+
+			if (!max_length) max_length = 65535;
+			var stopping_place = address + max_length;
+
+			while (running) {
+					var word = this.getUnsignedWord(address);
+					address += 2;
+
+					running = ((word & 0x8000)==0) && address<stopping_place;
+
+					for (var j=2; j>=0; j--) {
+							var code = ((word>>(j*5))&0x1f);
+
+							if (abbreviation) {
+									temp = temp + this.zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+abbr_start)*2);
+									abbreviation = 0;
+							} else if (tenbit==-2) {
+
+									if (code>5) {
+											if (alph==2 && code==6)
+													tenbit = -1;
+											else
+													temp = temp + zalphabet[alph][code-6];
+											
+											alph = 0;
+									} else {
+											if (code==0) { temp = temp + ' '; alph=0; }
+											else if (code<4) { abbreviation = code; }
+											else { alph = code-3; }
+									}
+
+							} else if (tenbit==-1) {
+									tenbit = code;
+							} else {
+									temp = temp + this.zscii_char_to_ascii((tenbit<<5) + code);
+									tenbit = -2;
+							}
+					}
+			}
+
+			if (start_address >= stat_start) {
+					this.m_jit[start_address] = [temp, address];
+			}
+
+			//VERBOSE burin('zscii_from ' + address,temp);
+			if (tell_length) {
+					return [temp, address];
+			} else {
+					return temp;
+			}
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// encode_text
+	//
+	// Implements the @encode_text opcode.
+	//   |zscii_text|+|from| is the address of the unencoded text.
+	//   |length|            is its length.
+	//                         (It may also be terminated by a zero byte.)
+	//   |coded_text|        is where to put the six bytes of encoded text.
+	_encode_text: function ge_encode_text(zscii_text, length, from, coded_text) {
+
+			zscii_text += from;
+			var source = '';
+
+			while (length>0) {
+					var b = this.getByte(zscii_text);
+		
+					if (b==0) break;
+
+					source = source + this.zscii_char_to_ascii(b);
+					zscii_text++;
+					length--;
+			}
+
+			var result = this.into_zscii(source);
+
+			for (var i=0; i<result.length; i++) {
+					var c = result[i].charCodeAt(0);
+					this.setByte(c, coded_text++);
+			}
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// Encodes the ZSCII string |str| to its compressed form,
+	// and returns it.
+	// 
+	_into_zscii: function ge_into_zscii(str) {
+			var result = '';
+			var buffer = [];
+			var set_stop_bit = 0;
+			
+			function emit(value) {
+
+					buffer.push(value);
+
+					if (buffer.length==3) {
+							var temp = (buffer[0]<<10 | buffer[1]<<5 | buffer[2]);
+
+							// Weird, but it seems to be the rule:
+							if (result.length==4) temp += 0x8000;
+
+							result = result +
+									String.fromCharCode(temp >> 8) +
+									String.fromCharCode(temp &  0xFF);
+							buffer = [];
+					}
+			}
+
+			// Need to handle other alphabets. At present we only
+			// handle alphabetic characters (A0).
+			// Also need to handle ten-bit characters.
+			// FIXME: Are the above still true?
+		
+			var cursor = 0;
+
+			while (cursor<str.length && result.length<6) {
+					var ch = str.charCodeAt(cursor++);
+
+					if (ch>=65 && ch<=90) { // A to Z
+							// These are NOT mapped to A1. ZSD3.7
+							// explicitly forbids use of upper case
+							// during encoding.
+							emit(ch-59);
+					} else if (ch>=97 && ch<=122) { // a to z
+							emit(ch-91);
+					} else {
+							var z2 = zalphabet[2].indexOf(ch);
+							
+							if (z2!=-1) {
+									emit(5); // shift to weird stuff
+
+									// XXX FIXME. This ought logically to be z2+6
+									// (and Frotz also uses 6 here.) For some reason,
+									// it seems not to work unless it's z2+9.
+									// Find out what's up.
+									emit(z2+6);
+							} else {
+									emit(5);
+									emit(6);
+									emit(ch >> 5);
+									emit(ch &  0x1F);
+							}
+					}
+			}
+
+			cursor = 0;
+
+			while (result.length<6) emit(5);
+
+			return result.substring(0,6);
+	},
+
+	_name_of_object: function ge_name_of_object(object) {
+
+			if (object==0)
+			return "<void>";
+			else {
+					var aa = objs_start + 124 + object*14;
+					return this.zscii_from(this.getUnsignedWord(aa)+1);
+			}
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// Function to print the contents of leftovers.
+
+	_print_leftovers: function ge_print_leftovers() {
+
+			this.zOut(leftovers);
+
+			// May as well clear it out and save memory,
+			// although we won't be called again until it's
+			// set otherwise.
+			this.leftovers = '';
+	},
+
+	////////////////////////////////////////////////////////////////
+	//
+	// Prints the text |text| on whatever input streams are
+	// currently enabled.
+	//
+	// If this returns false, the text has been printed.
+	// If it returns true, the text hasn't been printed, but
+	// you must return the GNUSTO_EFFECT_FLAGS_CHANGED effect
+	// to your caller. (There's a function handler_zOut()
+	// which does all this for you.)
+
+	_zOut: function ge_zOut(text) {
+			if (this.m_streamthrees.length) {
+
+					// Stream threes disable any other stream while they're on.
+					// (And they can't cause flag changes, I suppose.)
+
+					var current = this.m_streamthrees[0];
+					var address = this.m_streamthrees[0][1];
+
+					for (var i=0; i<text.length; i++) {
+							this.setByte(text.charCodeAt(i), address++);
+					}
+
+					this.m_streamthrees[0][1] = address;
+			} else {
+
+					var bits = this.getByte(0x11) & 0x03;
+					var changed = bits != printing_header_bits;
+					effect_parameters = printing_header_bits; 
+					printing_header_bits = bits;
+
+					// OK, so should we bail?
+
+					if (changed) {
+							
+							m_leftovers = text;
+							m_rebound = print_leftovers;
+
+							return 1;
+
+					} else {
+
+							if (output_to_console) {
+									console_buffer = console_buffer + text;
+							}
+
+							if (bits & 1) {
+									transcript_buffer = transcript_buffer + text;
+							}
+					}
+			}
+
+			return 0;
+	},
+
+	////////////////////////////////////////////////////////////////
+
+	_console_text: function ge_console_text() {
+			var temp = this.m_console_buffer;
+			this.m_console_buffer = '';
+			return temp;
+	},
+
+	_transcript_text: function ge_transcript_text() {
+			var temp = this.m_transcript_buffer;
+			this.m_transcript_buffer = '';
+			return temp;
+	},
+
+	_effect_parameters: function ge_effect_parameters() {
+			return this.m_effect_parameters;
+	},
+
+	////////////////////////////////////////////////////////////////
+
+	_is_separator: function ge_IsSeparator(value) {
+			for (var sepindex=0; sepindex < this.m_separator_count; sepindex++) {
+					if (value == this.m_separators[sepindex]) return 1;	
+			}
+			return 0;	
+	},
+
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
   //                                                            //
@@ -1873,6 +2824,10 @@ GnustoEngine.prototype = {
 
   // The actual memory of the Z-machine, one byte per element.
   m_memory: [],
+
+	// Hash mapping Z-code instructions to functions which return a
+	// JavaScript string to handle them.
+	m_handlers: handlers_v578,
   
   // |this.m_jit| is a cache for the results of compile(): it maps
   // memory locations to JS function objects. Theoretically,
@@ -1895,9 +2850,9 @@ GnustoEngine.prototype = {
   // stop dissembling (for example, when we reach a RETURN) or it
   // will seem a good idea (say, when we meet an unconditional jump).
   // In such cases, a subroutine anywhere along the line may set
-  // |compiling| to 0, and compile() will stop after the current
+  // |m_compilation_running| to 0, and compile() will stop after the current
   // iteration.
-  m_compiling: 0,
+  m_compilation_running: 0,
   
   // |gamestack| is the Z-machine's stack.
   m_gamestack: 0,
@@ -2064,910 +3019,6 @@ GnustoEngine.prototype = {
   m_pc_translate_for_routine: this.pc_translate_v45,
   m_pc_translate_for_string: this.pc_translate_v45,
 
-  _handleZ_je: function handleZ_je(a) { 		
-
-    if (a.length<2) { 
-      //VERBOSE burin('je','noop');
-      return ''; // it's a no-op
-    } else if (a.length==2) { 
-      //VERBOSE burin('je',a[0] + '==' + a[1]);
-      return brancher(a[0]+'=='+a[1]);
-    } else {
-      var condition = '';
-      for (var i=1; i<a.length; i++) {
-	if (i!=1) condition = condition + '||';
-	condition = condition + 't=='+a[i];
-      }
-      //VERBOSE burin('je','t=' + a[0] + ';' + condition);
-      return 't='+a[0]+';'+brancher(condition);
-    }
-  },
-
-  _handleZ_jl: function handleZ_jl(a) {
-    //VERBOSE burin('jl',a[0] + '<' + a[1]); 
-    return brancher(a[0]+'<'+a[1]); },
-
-  _handleZ_jg: function handleZ_jg(a) { 
-    //VERBOSE burin('jg',a[0] + '>'+a[1]);
-    return brancher(a[0]+'>'+a[1]); },
-
-  _handleZ_dec_chk: function handleZ_dec_chk(a) {
-    //VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
-    return 't='+a[0]+';t2=varcode_get(t)-1;varcode_set(t2,t);'+brancher('t2<'+a[1]);
-  },
-  _handleZ_inc_chk: function handleZ_inc_chk(a) {
-    //VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
-    return 't='+a[0]+';t2=varcode_get(t)+1;varcode_set(t2,t);'+brancher('t2>'+a[1]);
-  },
-
-  _handleZ_jin: function handleZ_jin(a) {
-    //VERBOSE burin('jin',a[0] + ',' + a[1]);
-    return brancher("obj_in("+a[0]+','+a[1]+')');
-  },
-  _handleZ_test: function handleZ_test(a) {
-    //VERBOSE burin('test','t='+a[1]+';br(' + a[0] + '&t)==t)');
-    return 't='+a[1]+';'+brancher('('+a[0]+'&t)==t');
-  },
-  _handleZ_or: function handleZ_or(a) {
-    //VERBOSE burin('or','('+a[0] + '|' + a[1]+')&0xFFFF');
-    return storer('('+a[0]+'|'+a[1]+')&0xffff');
-  },
-  _handleZ_and: function handleZ_and(a) {
-    //VERBOSE burin('and',a[0] + '&' + a[1] + '&0xFFFF');
-    return storer(a[0]+'&'+a[1]+'&0xffff');
-  },
-  _handleZ_test_attr: function handleZ_test_attr(a) {
-    //VERBOSE burin('test_attr',a[0] + ',' + a[1]);
-    return brancher('test_attr('+a[0]+','+a[1]+')');
-  },
-  _handleZ_set_attr: function handleZ_set_attr(a) {
-    //VERBOSE burin('set_attr',a[0] + ',' + a[1]);
-    return 'set_attr('+a[0]+','+a[1]+')';
-  },
-  _handleZ_clear_attr: function handleZ_clear_attr(a) {
-    //VERBOSE burin('clear_attr',a[0] + ',' + a[1]);
-    return 'clear_attr('+a[0]+','+a[1]+')';
-  },
-  _handleZ_store: function handleZ_store(a) {
-    //VERBOSE burin('store_into',a[0] + ',' + a[1]);
-    return "varcode_set("+a[1]+","+a[0]+")";
-  },
-  _handleZ_insert_obj: function handleZ_insert_obj(a) {
-    //VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
-    return "insert_obj("+a[0]+','+a[1]+")";
-  },
-  _handleZ_loadw: function handleZ_loadw(a) {
-    //VERBOSE burin('loadw',"this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
-    return storer("this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
-  },
-  _handleZ_loadb: function handleZ_loadb(a) {
-    //VERBOSE burin('loadb',"this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
-    return storer("this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
-  },
-  _handleZ_get_prop: function handleZ_get_prop(a) {
-    //VERBOSE burin('get_prop',a[0]+','+a[1]);
-    return storer("get_prop("+a[0]+','+a[1]+')');
-  },
-  _handleZ_get_prop_addr: function handleZ_get_prop_addr(a) {
-    //VERBOSE burin('get_prop_addr',a[0]+','+a[1]);
-    return storer("get_prop_addr("+a[0]+','+a[1]+')');
-  },
-  _handleZ_get_next_prop: function handleZ_get_next_prop(a) {
-    //VERBOSE burin('get_next_prop',a[0]+','+a[1]);
-    return storer("get_next_prop("+a[0]+','+a[1]+')');
-  },
-  _handleZ_add: function handleZ_add(a) { 
-    //VERBOSE burin('add',a[0]+'+'+a[1]);
-    return storer(a[0]+'+'+a[1]); },
-  _handleZ_sub: function handleZ_sub(a) { 
-    //VERBOSE burin('sub',a[0]+'-'+a[1]);
-    return storer(a[0]+'-'+a[1]); },
-  _handleZ_mul: function handleZ_mul(a) { 
-    //VERBOSE burin('mul',a[0]+'*'+a[1]);
-    return storer(a[0]+'*'+a[1]); },
-  _handleZ_div: function handleZ_div(a) {
-    //VERBOSE burin('div',a[0]+'/'+a[1]);
-    return storer('trunc_divide('+a[0]+','+a[1]+')');
-  },
-  _handleZ_mod: function handleZ_mod(a) { 
-    //VERBOSE burin('mod',a[0]+'%'+a[1]);
-    return storer(a[0]+'%'+a[1]);
-  },
-  _handleZ_call_: function handleZ_call_2s(a) {
-    //VERBOSE burin('call2s',a[0]+'-'+a[1]);
-    return handler_call(a[0], a[1]);
-  },
-  _handleZ_call_: function handleZ_call_2n(a) {
-    //VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
-    // can we use handler_call here, too?
-    compiling=0; // Got to stop after this.
-    return "gosub("+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
-  },
-  _handleZ_set_colour: function handleZ_set_colour(a) {
-    //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
-    return "pc="+pc+";effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
-  },
-  _handleZ_throw: function handleZ_throw(a) {
-    //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
-    compiling = 0;
-    return "throw_stack_frame("+a[0]+");return";
-  },
-  _handleZ_js: function handleZ_js(a) {
-    //VERBOSE burin('js',a[0]+'==0');
-    return brancher(a[0]+'==0');
-  },
-  _handleZ_get_sibling: function handleZ_get_sibling(a) {
-    //VERBOSE burin('get_sibling',"t=get_sibling("+a[0]+");");
-    return "t=get_sibling("+a[0]+");"+storer("t")+";"+brancher("t");
-  },
-  _handleZ_get_child: function handleZ_get_child(a) {
-    //VERBOSE burin('get_child',"t=get_child("+a[0]+");");
-    return "t=get_child("+a[0]+");"+
-      storer("t")+";"+
-      brancher("t");
-  },
-  _handleZ_get_parent: function handleZ_get_parent(a) {
-    //VERBOSE burin('get_parent',"get_parent("+a[0]+");");
-    return storer("get_parent("+a[0]+")");
-  },
-  _handleZ_get_prop_len: function handleZ_get_prop_len(a) {
-    //VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
-    return storer("get_prop_len("+a[0]+')');
-  },
-  _handleZ_inc: function handleZ_inc(a) {
-    //VERBOSE burin('inc',c + '+1');
-    return "t="+a[0]+';varcode_set(varcode_get(t)+1, t)';
-  },
-  _handleZ_dec: function handleZ_dec(a) {
-    //VERBOSE burin('dec',c + '-1');
-    return "t="+a[0]+';varcode_set(varcode_get(t)-1, t)';
-  },
-  _handleZ_print_addr: function handleZ_print_addr(a) {
-    //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
-    return handler_zOut('zscii_from('+a[0]+')',0);
-  },
-  _handleZ_call_: function handleZ_call_1s(a) {
-    //VERBOSE burin('call_1s','handler_call('+a[0]+')');
-    return handler_call(a[0], '');
-  },
-  _handleZ_remove_obj: function handleZ_remove_obj(a) {
-    //VERBOSE burin('remove_obj',"remove_obj("+a[0]+','+a[1]+")");
-    return "remove_obj("+a[0]+','+a[1]+")";
-  },
-  _handleZ_print_obj: function handleZ_print_obj(a) {
-    //VERBOSE burin('print_obj','name_of_object('+a[0]+',0)');
-    return handler_zOut("name_of_object("+a[0]+")",0);
-  },
-  _handleZ_ret: function handleZ_ret(a) {
-    //VERBOSE burin('ret',"gnusto_return("+a[0]+');return');
-    compiling=0;
-    return "gnusto_return("+a[0]+');return';
-  },
-  _handleZ_jump: function handleZ_jump(a) {
-    compiling=0;
-    if (a[0] & 0x8000) {
-      a[0] = (~0xFFFF) | a[0];
-    }
-				
-    var addr=(a[0] + pc) - 2;
-    //VERBOSE burin('jump',"pc="+addr+";return");
-    return "pc="+addr+";return";
-  },
-  _handleZ_print_paddr: function handleZ_print_paddr(a) {
-    //VERBOSE burin('print_paddr',"zscii_from((("+a[0]+")&0xFFFF)*4)");
-    return handler_zOut("zscii_from("+pc_translate_for_string(a[0])+")",0);
-  },
-  _handleZ_load: function handleZ_load(a) {
-    //VERBOSE burin('load',"store " + c);
-    return storer('varcode_get('+a[0]+')');
-  },
-  _handleZ_call_: function handleZ_call_1n(a) {
-    // can we use handler_call here, too?
-    compiling=0; // Got to stop after this.
-    //VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
-    return "gosub("+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
-      },
-		
-  _handleZ_rtrue: function handleZ_rtrue(a) {
-    //VERBOSE burin('rtrue',"gnusto_return(1);return");
-    compiling=0;
-    return "gnusto_return(1);return";
-  },
-  _handleZ_rfalse: function handleZ_rfalse(a) {
-    //VERBOSE burin('rfalse',"gnusto_return(0);return");
-    compiling=0;
-    return "gnusto_return(0);return";
-  },
-
-  _handleZ_print_ret: function handleZ_print_ret(a) {
-    compiling = 0;
-    //VERBOSE burin('printret',"see handler_print");
-    return handler_print(0,'\n',1)+';gnusto_return(1);return';
-  },
-  _handleZ_nop: function handleZ_nop(a) {
-    //VERBOSE burin('noop','');
-    return "";
-  },
-
-  _handleZ_restart: function handleZ_restart(a) {
-    //VERBOSE burin('restart','');
-    compiling=0;
-    return "return "+GNUSTO_EFFECT_RESTART;	
-  },
-		
-  _handleZ_ret_popped: function handleZ_ret_popped(a) {
-    //VERBOSE burin('pop',"gnusto_return(gamestack.pop());return");
-    compiling=0;
-    return "gnusto_return(gamestack.pop());return";
-  },
-  _handleZ_catch: function handleZ_catch(a) {
-    // The stack frame cookie is specified by Quetzal 1.3b s6.2
-    // to be the number of frames on the stack.
-    //VERBOSE burin('catch',"store call_stack.length");
-    return storer("call_stack.length");
-  },
-  _handleZ_quit: function handleZ_quit(a) {
-    //VERBOSE burin('quit','');
-    compiling=0;
-    return "return "+GNUSTO_EFFECT_QUIT;
-  },
-
-  _handleZ_new_line: function handleZ_new_line(a) {
-    //VERBOSE burin('newline','');
-    return handler_zOut("'\\n'",0);
-  },
-		
-  _handleZ_show_status: function handleZ_show_status(a){ //(illegal from V4 onward)
-    //VERBOSE burin('illegalop','188');
-    gnusto_error(199);
-  },
-
-  _handleZ_verify: function handleZ_verify(a) {
-    compiling = 0;
-
-    var setter = 'rebound=function(n){'+brancher('n')+'};';
-    //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
-    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
-  },
-		
-  _handleZ_illegal_extended: function handleZ_illegal_extended(a) {
-    // 190 can't be generated; it's the start of an extended opcode
-    //VERBOSE burin('illegalop','190');
-    gnusto_error(199);
-  },
-		
-  _handleZ_piracy: function handleZ_piracy(a) {
-    compiling = 0;
-				
-    var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
-    //VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
-    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
-  },
-		
-  _handleZ_call_vs: function handleZ_call_vs(a) {
-    //VERBOSE burin('call_vs','see call_vn');
-    return storer(call_vn(a,1));
-  },
-
-  _handleZ_store_w: function handleZ_store_w(a) {
-    //VERBOSE burin('storew',"setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")");
-    return "setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
-  },
-
-  _handleZ_storeb: function handleZ_storeb(a) {
-    //VERBOSE burin('storeb',"setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")");
-    return "setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
-  },
-
-  _handleZ_putprop: function handleZ_putprop(a) {
-    //VERBOSE burin('putprop',"put_prop("+a[0]+','+a[1]+','+a[2]+')');
-    return "put_prop("+a[0]+','+a[1]+','+a[2]+')';
-  },
-  _handleZ_read: function handleZ_read(a) {
-				
-    // read, aread, sread, whatever it's called today.
-    // That's something that we can't deal with within gnusto:
-    // ask the environment to magic something up for us.
-
-    if (a[3]) {
-      // ...then we should do something with a[2] and a[3],
-      // which are timed input parameters. For now, though,
-      // we'll just ignore them.
-      //VERBOSE burin('read',"should have been timed-- not yet supported");
-    }
-
-    compiling = 0;
-				
-    var setter = "rebound=function(n){" +
-      storer("aread(n, a0," + a[1] + ")") +
-      "};";
-
-    //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
-    setter + "effect_parameters={"+
-      "'recaps':" + "this.getByte(a0+1),"+
-      "'maxchars':" + "this.getByte(a0),"+
-      "};" + "return GNUSTO_EFFECT_INPUT";
-
-    return "var a0=eval("+ a[0] + ");" +
-      "pc=" + pc + ";" +
-      setter +
-      "effect_parameters={"+
-      "'recaps':"   + "this.getByte(a0+1),"+
-      "'maxchars':" + "this.getByte(a0),"+
-      "};" +
-      "return "+GNUSTO_EFFECT_INPUT;
-  },
-  _handleZ_print_char: function handleZ_print_char(a) {
-    //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
-    return handler_zOut('zscii_char_to_ascii('+a[0]+')',0);
-  },
-  _handleZ_print_num: function handleZ_print_num(a) {
-    //VERBOSE burin('print_num','handler_zout('+a[0]+')');
-    return handler_zOut(a[0],0);
-  },
-  _handleZ_random: function handleZ_random(a) {
-    //VERBOSE burin('random',"gnusto_random("+a[0]+")");
-    return storer("gnusto_random("+a[0]+")");
-  },
-  _handleZ_push: function handleZ_push(a) {
-    //VERBOSE burin('push',a[0]);
-    return store_into('gamestack.pop()', a[0]);
-  },
-  _handleZ_pull: function handleZ_pull(a) {
-    //VERBOSE burin('pull',c +'=gamestack.pop()');
-    return 'varcode_set(gamestack.pop(),'+a[0]+')';
-  },
-  _handleZ_split_window: function handleZ_split_window(a) {
-    compiling=0;
-    //VERBOSE burin('split_window','lines=' + a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
-  },
-  _handleZ_set_window: function handleZ_set_window(a) {
-    compiling=0;
-    //VERBOSE burin('set_window','win=' + a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
-  },
-  _handleZ_call_vs: function handleZ_call_vs2(a) {
-    //VERBOSE burin('call_vs2',"see call_vn");
-    return storer(call_vn(a,1));
-  },
-  _handleZ_erase_window: function handleZ_erase_window(a) {
-    compiling=0;
-    //VERBOSE burin('erase_window','win=' + a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
-  },
-  _handleZ_erase_line: function handleZ_erase_line(a) {
-    compiling=0;
-    //VERBOSE burin('erase_line',a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
-  },
-  _handleZ_set_cursor: function handleZ_set_cursor(a) {
-    compiling=0;
-    //VERBOSE burin('set_cursor',' ['+a[0]+', ' + a[1] + '] ');
-    return "pc="+pc+";effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
-  },
-		
-  _handleZ_get_cursor: function handleZ_get_cursor(a) {
-    compiling=0;
-    //VERBOSE burin('get_cursor',a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
-  },
-		
-  _handleZ_set_text_style: function handleZ_set_text_style(a) {
-    compiling=0;
-    //VERBOSE burin('set_text_style',a[0]);
-    return "pc="+pc+";effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
-  },
-		
-  _handleZ_buffer_mode: function handleZ_buffer_mode(a) {
-    compiling=0;
-    //VERBOSE burin('buffer_mode',a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
-  },
-		
-  _handleZ_output_stream: function handleZ_output_stream(a) {
-    //VERBOSE burin('output_stream',a[0]+', ' + a[1]);
-    return 'set_output_stream('+a[0]+','+a[1]+')';
-  },
-		
-  _handleZ_input_stream: function handleZ_input_stream(a) {
-    compiling=0;
-    //VERBOSE burin('input_stream',a[0]);
-    return "pc="+pc+";effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
-  },
-		
-  _handleZ_sound_effect: function handleZ_sound_effect(a) {
-    // We're rather glossing over whether and how we
-    // deal with callbacks at present.
-				
-    compiling=0;
-    //VERBOSE burin('sound_effect','better logging later');
-    while (a.length < 5) { a.push(0); }
-    return "pc="+pc+';effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
-  },
-		
-  _handleZ_read_char: function handleZ_read_char(a) {
-    // Maybe factor out "read" and this?
-    //VERBOSE burin('read_char','');
-    // a[0] is always 1; probably not worth checking for this
-				
-    if (a[3]) {
-      // ...then we should do something with a[2] and a[3],
-      // which are timed input parameters. For now, though,
-      // we'll just ignore them.
-      //VERBOSE burin('read_char','should have been timed-- not yet supported');
-    }
-				
-    compiling = 0;
-				
-    var setter = "rebound=function(n) { " +
-      storer("n") +
-      "};";
-				
-    return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
-  },
-		
-  _handleZ_scan_table: function handleZ_scan_table(a) { 
-    //VERBOSE burin('scan_table',"t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");");
-    if (a.length == 4) {
-      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
-	storer("t") + ";" +  brancher('t');
-    } else { // must use the default for Form, 0x82
-      return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x82 +");" +
-	storer("t") + ";" +  brancher('t');
-    }
-  },
-		
-  _handleZ_not: function handleZ_not(a) {
-    //VERBOSE burin('not','~'+a[1]+'&0xffff');
-    return storer('~'+a[1]+'&0xffff');
-  },
-		
-  _handleZ_tokenise: function handleZ_tokenise(a) {
-    //VERBOSE burin('tokenise',"tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-    return "tokenise(("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
-  },
-		
-  _handleZ_encode_text: function handleZ_encode_text(a) {
-    //VERBOSE burin('tokenise',"encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-    return "encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
-  },
-
-  _handleZ_copy_table: function handleZ_copy_table(a) {
-    //VERBOSE burin('copy_table',"copy_table("+a[0]+','+a[1]+','+a[2]+")");
-    return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
-  },
-		
-  _handleZ_print_table: function handleZ_print_table(a) {
-				
-    // Jam in defaults:
-    if (a.length < 3) { a.push(1); } // default height
-    if (a.length < 4) { a.push(0); } // default skip
-    //VERBOSE burin('print_table',"print_table("+a[0]+','+a[1]+','+a[2]+',' + a[3]+')');
-    return "pc="+pc+";effect_parameters=print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
-  },
-		
-  _handleZ_check_arg_count: function handleZ_check_arg_count(a) {
-    //VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
-    return brancher(a[0]+'<=param_count()');
-  },
-		
-  _handleZ_save: function handleZ_save(a) {
-    //VERBOSE burin('save','');
-    compiling=0;
-    var setter = "rebound=function(n) { " +
-      storer('n') + "};";
-    return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
-  },
-		
-  _handleZ_restore: function handleZ_restore(a) {
-    //VERBOSE burin('restore','');
-    compiling=0;
-    var setter = "rebound=function(n) { " +
-      storer('n') + "};";
-    return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
-  },
-		
-  _handleZ_log_shift: function handleZ_log_shift(a) {
-    //VERBOSE burin('log_shift',"log_shift("+a[0]+','+a[1]+')');
-    // log_shift logarithmic-bit-shift.  Right shifts are zero-padded
-    return storer("log_shift("+a[0]+','+a[1]+')');
-  },
-
-  _handleZ_art_shift: function handleZ_art_shift(a) {
-    //VERBOSE burin('log_shift',"art_shift("+a[0]+','+a[1]+')');
-    // arithmetic-bit-shift.  Right shifts are sign-extended
-    return storer("art_shift("+a[0]+','+a[1]+')');
-  },
-
-  _handleZ_set_font: function handleZ_set_font(a) {
-    //VERBOSE burin('set_font','('+a[0]+'<2?1:0) <<We only provide font 1.>>');
-    // We only provide font 1.
-    return storer('('+a[0]+'<2?1:0)');
-  },
-
-  _handleZ_save_undo: function handleZ_save_undo(a) {
-    //VERBOSE burin('save_undo','unsupported');
-    return storer('-1'); // not yet supplied
-  },
-
-  _handleZ_restore_undo: function handleZ_restore_undo(a) {
-    //VERBOSE burin('restore_undo','unsupported');
-    gnusto_error(700); // spurious restore_undo
-    return storer('0');
-  },
-
-  _handleZ_print_unicode: function handleZ_print_unicode(a) {
-    //VERBOSE burin('print_unicode',"String.fromCharCode(" +a[0]+")");
-    return handler_zOut("String.fromCharCode(" +a[0]+")",0);
-  },
-
-  _handleZ_check_unicode: function handleZ_check_unicode(a) {
-    //VERBOSE burin('check_unicode','we always say yes');
-    // We have no way of telling from JS whether we can
-    // read or write a character, so let's assume we can
-    // read and write all of them. We can always provide
-    // methods to do so somehow (e.g. with an onscreen keyboard).
-    return storer('3');
-  },
-
-
-  ////////////////////////////////////////////////////////////////
-  //
-  // |handlers|
-  //
-  // An array mapping opcodes to functions. Each function is passed
-  // a series of arguments (between zero and eight, as the Z-machine
-  // allows) as an array, called |a| below. It returns a string of JS,
-  // called |r| in these comments, which can be evaluated to do the job of that
-  // opcode. Note, again, that this is a string (not a function object).
-  //
-  // Extended ("EXT") opcodes are stored 1000 higher than their number.
-  // For example, 1 is "je", but 1001 is "restore".
-  //
-  // |r|'s code may set |compiling| to 0 to stop compile() from producing
-  // code for any more opcodes after this one. (compile() likes to group
-  // code up into blocks, where it can.)
-  //
-  // |r|'s code may contain a return statement for two reasons: firstly, to
-  // prevent execution of any further generated code before we get to take
-  // our bearings again (for example, |r| must cause a return if it knows that
-  // the program counter has been modified: PC changes can't take effect until
-  // the next lookup of a code block, so we need to force that to happen
-  // immediately). In such cases, return zero or an undefined result. Secondly,
-  // we can return a numeric value to cause an effect in the external
-  // environment. See "effect codes" above for the values.
-  //
-  // If |r|'s code contains a return statement, it must make sure to set the PC
-  // somehow, either directly or, for example, via gnusto_return().
-  //
-
-  _handlers_v578: {
-    1: this.Z_je,
-    2: this.Z_jl,
-    3: this.Z_jg,
-    4: this.Z_dec_chk,
-    5: this.Z_inc_chk,
-    6: this.Z_jin,
-    7: this.Z_test,
-    8: this.Z_or,
-    9: this.Z_and,
-    10: this.Z_test_attr,
-    11: this.Z_set_attr,
-    12: this.Z_clear_attr,
-    13: this.Z_store,
-    14: this.Z_insert_obj,
-    15: this.Z_loadw,
-    16: this.Z_loadb,
-    17: this.Z_get_prop,
-    18: this.Z_get_prop_addr,
-    19: this.Z_get_next_prop,
-    20: this.Z_add,
-    21: this.Z_sub,
-    22: this.Z_mul,
-    23: this.Z_div,
-    24: this.Z_mod,
-    25: this.Z_call_2s,
-    26: this.Z_call_2n,
-    27: this.Z_set_colour,
-    28: this.Z_throw,
-    128: this.Z_js,
-    129: this.Z_get_sibling,
-    130: this.Z_get_child,
-    131: this.Z_get_parent,
-    132: this.Z_get_prop_len,
-    133: this.Z_inc,
-    134: this.Z_dec,
-    135: this.Z_print_addr,
-    136: this.Z_call_1s,
-    137: this.Z_remove_obj,
-    138: this.Z_print_obj,
-    139: this.Z_ret,
-    140: this.Z_jump,
-    141: this.Z_print_paddr,
-    142: this.Z_load,
-    143: this.Z_call_1n,
-    176: this.Z_rtrue,
-    177: this.Z_rfalse,
-    178: handler_print, // (Z_print)
-    179: this.Z_print_ret,
-    180: this.Z_nop,
-    //181: save (illegal in V5)
-    //182: restore (illegal in V5)
-    183: this.Z_restart,
-    184: this.Z_ret_popped,
-    185: this.Z_catch,
-    186: this.Z_quit,
-    187: this.Z_new_line,
-    188: this.Z_show_status, //(illegal from V4 onward)
-    189: this.Z_verify,
-    190: this.Z_illegal_extended,
-    191: this.Z_piracy,
-    224: this.Z_call_vs,
-    225: this.Z_store_w,
-    226: this.Z_storeb,
-    227: this.Z_putprop,
-    228: this.Z_read,
-    229: this.Z_print_char,
-    230: this.Z_print_num,
-    231: this.Z_random,
-    232: this.Z_push,
-    233: this.Z_pull,
-    234: this.Z_split_window,
-    235: this.Z_set_window,
-    236: this.Z_call_vs2,
-    237: this.Z_erase_window,
-    238: this.Z_erase_line,
-    239: this.Z_set_cursor,
-    240: this.Z_get_cursor,
-    241: this.Z_set_text_style,
-    242: this.Z_buffer_mode,
-    243: this.Z_output_stream,
-    244: this.Z_input_stream,
-    245: this.Z_sound_effect,
-    246: this.Z_read_char,
-    247: this.Z_scan_table, 
-    248: this.Z_not,
-    249: call_vn,
-    250: call_vn, // call_vn2,
-    251: this.Z_tokenise,
-    252: this.Z_encode_text,
-    253: this.Z_copy_table,
-    254: this.Z_print_table,
-    255: this.Z_check_arg_count,
-    1000: this.Z_save,
-    1001: this.Z_restore,
-    1002: this.Z_log_shift,
-    1003: this.Z_art_shift,
-    1004: this.Z_set_font,
-    //1005: draw_picture (V6 opcode)
-    //1006: picture_dat (V6 opcode)
-    //1007: erase_picture (V6 opcode)
-    //1008: set_margins (V6 opcode)
-    1009: this.Z_save_undo,
-    1010: this.Z_restore_undo,
-    1011: this.Z_print_unicode,
-    1012: this.Z_check_unicode,
-    //1013-1015: illegal
-    //1016: move_window (V6 opcode)
-    //1017: window_size (V6 opcode)
-    //1018: window_style (V6 opcode)
-    //1019: get_wind_prop (V6 opcode)		
-    //1020: scroll_window (V6 opcode)
-    //1021: pop_stack (V6 opcode)
-    //1022: read_mouse (V6 opcode)
-    //1023: mouse_window (V6 opcode)
-    //1024: push_stack (V6 opcode)
-    //1025: put_wind_prop (V6 opcode)
-    //1026: print_form (V6 opcode)
-    //1027: make_menu (V6 opcode)
-    //1028: picture_table (V6 opcode)
-  },
-
-  getByte: function ge_getByte(address) {
-    if (address<0) { address &= 0xFFFF; }
-    return this.m_memory[address];
-  },
-
-  setByte: function ge_setByte(value, address) {
-    if (address<0) { address &= 0xFFFF; }
-    this.m_memory[address] = value;
-  },
-
-  getWord: function ge_getWord(address) {
-    if (address<0) { address &= 0xFFFF; }
-    return this._unsigned2signed((this.m_memory[address]<<8)|
-																 this.m_memory[address+1]);
-  },
-
-  _unsigned2signed: function ge_unsigned2signed(value) {
-    return ((value & 0x8000)?~0xFFFF:0)|value;
-  },
-
-  _signed2unsigned: function ge_signed2unsigned(value) {
-    return value & 0xFFFF;
-  },
-
-  getUnsignedWord: function ge_getUnsignedWord(address) {
-    if (address<0) { address &= 0xFFFF; }
-    return (this.m_memory[address]<<8)|this.m_memory[address+1];
-  },
-
-  setWord: function ge_setWord(value, address) {
-			if (address<0) { address &= 0xFFFF; }
-			this.setByte((value>>8) & 0xFF, address);
-			this.setByte((value) & 0xFF, address+1);
-  },
-
-	// Inelegant function to load parameters according to a VAR byte (or word).
-	_handle_variable_parameters: function ge_handle_var_parameters(args, types, bytecount) {
-			var argcursor = 0;
-
-			if (bytecount==1) {
-					types = (types<<8) | 0xFF;
-			}
-
-			while (1) {
-					var current = types & 0xC000;
-					if (current==0xC000) {
-							return;
-					} else if (current==0x0000) {
-							args[argcursor++] = this.getWord(this.m_pc);
-							this.m_pc+=2;
-					} else if (current==0x4000) {
-							args[argcursor++] = this.getByte(this.m_pc++);
-					} else if (current==0x8000) {
-							args[argcursor++] =
-							code_for_varcode(this.getByte(this.m_pc++));
-					} else {
-							gnusto_error(171); // impossible
-					}
-						
-					types = (types << 2) | 0x3;
-			}
-	},
-
-	// _compile() returns a string of JavaScript code representing the
-	// instruction at the program counter (and possibly the next few
-	// instructions, too). It will change the PC to point to the end of the
-	// code it's compiled.
-	_compile: function ge_compile() {
-
-			compiling = 1;
-			code = '';
-			var starting_pc = this.m_pc;
-
-			do {
-
-					// List of arguments to the opcode.
-					var args = [];
-
-					this_instr_pc = this.m_pc;
-
-			
-					// Check for a breakpoint.
-					if (this.m_pc in this.m_breakpoints) {
-							code = code + 'if(is_valid_breakpoint('+this.m_pc+'))return 0x510;';
-							//VERBOSE burin(code,'');
-					}
-
-					// Golden Trail code. Usually commented out for efficiency.
-					//code = code + 'golden_trail('+this.m_pc+');';
-					//code = code + 'burin("gold","'+this.m_pc.toString(16)+'");';
-				
-					// So here we go...
-					// what's the opcode?
-					var instr = this.getByte(this.m_pc++);
-			
-					if (instr==0) {
-							// If we just get a zero, we've probably
-							// been directed off into deep space somewhere.
-					
-							gnusto_error(201); // lost in space
-					
-					} else if (instr==190) { // Extended opcode.
-							
-							instr = 1000+this.getByte(this.m_pc++);
-							this._handle_variable_parameters(args,
-																							 this.getByte(this.m_pc++),
-																							 1);
-					
-					} else if (instr & 0x80) {
-							if (instr & 0x40) { // Variable params
-									
-									if (!(instr & 0x20))
-											// This is a 2-op, despite having
-											// variable parameters; reassign it.
-											instr &= 0x1F;
-								
-									if (instr==250 || instr==236) {
-											// We get more of them!
-											var types = this.getUnsignedWord(this.m_pc);
-											this.m_pc += 2;
-											this._handle_variable_parameters(args, types, 2);
-									} else
-											this._handle_variable_parameters(args,
-																											 this.getByte(this.m_pc++), 1);
-							
-							} else { // Short. All 1-OPs except for one 0-OP.
-									
-									switch(instr & 0x30) {
-									case 0x00:
-											args[0] = this.getWord(this.m_pc);
-											this.m_pc+=2;
-											instr = (instr & 0x0F) | 0x80;
-											break;
-											
-									case 0x10:
-											args[0] = this.getByte(this.m_pc++);
-											instr = (instr & 0x0F) | 0x80;
-											break;
-									
-									case 0x20:
-											args[0] =
-													code_for_varcode(this.getByte(this.m_pc++));
-											instr = (instr & 0x0F) | 0x80;
-											break;
-									
-									case 0x30:
-											// 0-OP. We don't need to get parameters, but we
-											// *do* need to translate the opcode.
-											instr = (instr & 0x0F) | 0xB0;
-											break;
-									}
-							}
-					} else { // Long
-					
-							if (instr & 0x40)
-									args[0] =
-											code_for_varcode(this.getByte(this.m_pc++));
-							else
-									args[0] = this.getByte(this.m_pc++);
-							
-							if (instr & 0x20)
-									args[1] =
-											code_for_varcode(this.getByte(this.m_pc++));
-							else
-									args[1] = this.getByte(this.m_pc++);
-					
-							instr &= 0x1F;
-					}
-			
-					if (handlers[instr]) {
-							code = code + handlers[instr](args)+';';
-							//VERBOSE burin(code,'');
-					} else if (instr>=1128 && instr<=1255 &&
-										 "special_instruction_EXT"+(instr-1000) in this) {
-					
-							// ZMSD 14.2: We provide a hook for plug-in instructions.
-							
-							code = code +
-									this["special_instruction_EXT"+(instr-1000)](args)+
-									';';
-							//VERBOSE burin(code,'');
-
-					} else {
-							gnusto_error(200, instr, this.m_pc.toString(16)); // no handler
-					}
-					
-			} while(compiling);
-
-			// When we're not in debug mode, dissembly only stops at places where
-			// the THIS.M_PC must be reset; but in debug mode it's perfectly possible
-			// to have |code| not read or write to the PC at all. So we need to
-			// set it automatically at the end of each fragment.
-			
-			if (single_step||debug_mode) {
-					code = code + 'this.m_pc='+this.m_pc; 
-					//VERBOSE burin(code,'');
-			}
-
-			// Name the function after the starting position, to make life
-			// easier for Venkman.
-			return 'function J'+starting_pc.toString(16)+'(){'+code+'}';
-	},
-
-
 };
 
 
@@ -3052,3 +3103,5 @@ function mod_canunload(compMgr) {
 function NSGetModule(compMgr, fileSpec) {
   return Module;
 }
+
+// EOF gnusto-engine.js //
