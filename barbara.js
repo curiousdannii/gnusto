@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.20 2003/07/20 01:23:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.21 2003/07/21 16:40:57 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -164,7 +164,11 @@ function barbara_chalk(text, monospace) {
 
 		barbara__previous_monospace = monospace;
 
-		var lines = text.replace('  ','\u00A0 ','g').split('\n');
+		// Replace alternate spaces with &nbsp;s so that Gecko
+		// won't collapse them.
+		var lines = text.
+				replace('  ',' \u00A0','g').
+				split('\n');
 
 		for (var i in lines) {
 				if (i!=0) {
