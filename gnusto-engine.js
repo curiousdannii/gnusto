@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.16 2003/09/24 00:30:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.17 2003/09/24 22:41:38 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/24 00:30:14 $';
+const CVS_VERSION = '$Date: 2003/09/24 22:41:38 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1125,13 +1125,12 @@ GnustoEngine.prototype = {
       }
 
       // Some useful debugging code:
-      burin('eng pc', start_pc.toString(16));
-      burin('eng this.m_jit', jscode);
+      //burin('eng pc', start_pc.toString(16));
+      //burin('eng this.m_jit', jscode);
     
       stopping = jscode();
     }
 
-		burin('run STOP', this.m_effects);
   },
   
   walk: function ge_walk(answer) {
@@ -1376,19 +1375,9 @@ GnustoEngine.prototype = {
 
 					this_instr_pc = this.m_pc;
 
-			
-					// Check for a breakpoint.
-					if (this.m_pc in this.m_breakpoints) {
-							code = code + 'if(_is_valid_breakpoint('+this.m_pc+'))return 0x510;';
-							//VERBOSE burin(code,'');
-					}
+					// Add the touch (see bug 4687). This lets us track progress simply.
+					code = code + '_touch('+this.m_pc+');';
 
-					if (this.m_goldenTrail) {
-							// for now.
-							// (Can we merge this with the breakpoint check?)
-							code = code + 'dump("pc : '+this.m_pc.toString(16)+'\\n");';
-					}
-				
 					// So here we go...
 					// what's the opcode?
 					var instr = this.getByte(this.m_pc++);
@@ -1542,28 +1531,6 @@ GnustoEngine.prototype = {
 			} else {
 					gnusto_error(204, target); // weird output stream number
 			}
-	},
-
-	// Called when we reach a possible breakpoint. |addr| is the opcode
-	// address. If we should break, sets |pc| to |addr| and returns true;
-	// else returns false.
-	_is_valid_breakpoint: function ge_is_valid_breakpoint(addr) {
-			if (addr in this.m_breakpoints) {
-					if (this.m_breakpoints[addr]==2) {
-							// A breakpoint we've just reurned from.
-							this.m_breakpoints[addr]=1; // set it ready for next time
-							return 0; // it doesn't trigger again this time.
-					} else if (this.m_breakpoints[addr]==1) {
-							// a genuine breakpoint!
-							this.m_pc = addr;
-							return 1;
-					}
-
-					gnusto_error(170); // not really impossible, though
-					return 0;
-			} else
-			// not listed in the breakpoints table
-			return 0; // Well, duh.
 	},
 
 	_trunc_divide: function ge_trunc_divide(over, under) {
@@ -2477,7 +2444,6 @@ GnustoEngine.prototype = {
 
 	_print_leftovers: function ge_print_leftovers() {
 
-			burin('print_leftovers','called');
 			this._zOut(this.m_leftovers);
 
 			// May as well clear it out and save memory,
@@ -2811,6 +2777,32 @@ GnustoEngine.prototype = {
 			} else {
 					return (value << shiftbits) &0x7FFF;
 			}	
+	},
+
+	_touch: function ge_touch(address) {
+			
+			// Check for a breakpoint.
+			// Actually, don't for now: we have no plans as to what we'd do
+			// if we found one.
+			//			if (this.m_pc in this.m_breakpoints) {
+			//					if (address in this.m_breakpoints) {
+			//							if (this.m_breakpoints[address]==2) {
+			//									// A breakpoint we've just reurned from.
+			//									this.m_breakpoints[addr]=1; // set it ready for next time
+			//									return 0; // it doesn't trigger again this time.
+			//							} else if (this.m_breakpoints[addr]==1) {
+			//									// a genuine breakpoint!
+			//									this.m_pc = address;
+			//									return 1;
+			//							}
+			//
+			//							return 0;
+			//					}
+			//			}
+
+			if (this.m_goldenTrail) {
+					dump("pc : "+address.toString(16)+"\n");
+			}
 	},
 
   ////////////////////////////////////////////////////////////////
