@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.70 2003/05/26 18:52:25 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.71 2003/05/26 18:55:28 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1305,11 +1305,6 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 				position += words[i].length+1;
 				setbyte(getbyte(words_count)+1, words_count);
 		}
-
-		// Return the ASCII value for the Enter key. engine__tokenise() is
-		// supposed to return the value of the key which terminated the
-		// string, but at present we only support termination using Enter.
-		return 10;
 }
 
 // Very very very limited implementation:
@@ -1330,8 +1325,6 @@ function aread(source, text_buffer, parse_buffer) {
 		// Return the ASCII value for the Enter key. aread() is supposed
 		// to return the value of the key which terminated the string, but
 		// at present we only support termination using Enter.
-		// (Later, we probably want to return the result of the call to
-		// engine__tokenise() above.)
 		return 10;
 }
 
