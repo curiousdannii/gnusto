@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.49 2003/04/11 20:02:00 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.50 2003/04/11 22:49:16 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -611,6 +611,11 @@ function glue_store_screen_size() {
 		setword(screen_height*glue__font_height, 0x24); // screen h, units
 		setbyte(glue__font_width,                0x26); // font w, units
 		setbyte(glue__font_height,               0x27); // font h, units
+
+		// Set the window title to tell the user
+		// (useful for debugging and not much else)
+
+		window.title = 'Now '+window.innerWidth+'x'+window.innerHeight+' => '+screen_width+'x'+screen_height+' chars';
 
 		// Tell the window drivers about it
 		win_resize(screen_width, screen_height);
