@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.14 2003/03/02 17:22:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.15 2003/03/02 17:47:57 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -691,6 +691,14 @@ var handlers = {
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
 		},
 
+		// 1002 -- log_shift -- we should implement this
+		// 1003 -- art_shift -- we should implement this
+
+		1004: function(a) { // set_font
+				// We only provide font 1.
+				return storer('('+a[0]+'<2?1:0)');
+		},
+
 		1009: function(a) { // save_undo
 				return storer('-1'); // not yet supplied
 		},
@@ -699,6 +707,9 @@ var handlers = {
 				gnusto_error(700); // spurious restore_undo
 				return storer('0');
 		},
+
+		// 1011 -- print_unicode } neither needed until we claim
+		// 1012 -- check_unicode } compliance with Standard 1.0
 
 }
 
