@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.38 2003/04/04 11:16:08 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.39 2003/04/04 13:27:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -231,33 +231,15 @@ function gnustoglue_split_window(lines) {
 		win_set_top_window_size(lines);
 }
 
-function gnustoglue_set_buffer_mode(whether) {
-		// Not sure this makes much difference to us.
-		// Mozilla handles the printing.
-		// FIXME: not any more!
-}
-
-function gnustoglue_set_window(w) {
-    if (w==0 || w==1)
-				current_window = w;
-    else
-				gnusto_error(303, w);
-}
-
 function gnustoglue_erase_window(w) {
 
 		switch (w) {
 
 		case 1: // clear upper window
-				// FIXME: was: u_setup(u_width, u_height);
-				// this may come in useful when we put height-fixing back
-
 				win_clear(1);
 				break;
 
 		case 0: // clear lower window
-				// can't handle clearing lower window yet
-
 				win_clear(0);
 				break;
 
@@ -276,13 +258,6 @@ function gnustoglue_erase_window(w) {
 				gnusto_error(303, w);
 		}
 
-}
-
-function gnustoglue_set_cursor(y, x) {
-		if (current_window==1) {
-				// @set_cursor has no effect on the lower window.
-				win_gotoxy(current_window, x-1, y-1);
-		}
 }
 
 // Convenience wrapper for win_chalk().
@@ -395,7 +370,11 @@ function go_wrapper(answer) {
 						break;
 
         case GNUSTO_EFFECT_SETWINDOW:
-						gnustoglue_set_window(engine_effect_parameters());
+						current_window = engine_effect_parameters();
+
+						if (current_window!=0 && current_window!=1)
+								gnusto_error(303, w);
+
 						looping = 1;
 						break;
 
@@ -405,23 +384,33 @@ function go_wrapper(answer) {
 						break;
 
         case GNUSTO_EFFECT_ERASELINE:
-						gnustoglue_erase_line(engine_effect_parameters());
+						// FIXME: this appears to be unimplemented!
+						gnusto_error(101);
+
 						looping = 1;
 						break;
 
         case GNUSTO_EFFECT_SETCURSOR:
-						p = engine_effect_parameters();
-						gnustoglue_set_cursor(p[0], p[1]);
+
+						if (current_window==1) {
+
+								// @set_cursor has no effect on the lower window.
+
+								p = engine_effect_parameters();
+								win_gotoxy(current_window, p[1]-1, p[0]-1);
+						}
+
 						looping = 1;
 						break;
 
         case GNUSTO_EFFECT_SETBUFFERMODE:
-						gnustoglue_set_buffer_mode(engine_effect_parameters());
+						// We should really do something with this to make
+						// the printing prettier, but we haven't yet.
 						looping = 1;
 						break;
 
         case GNUSTO_EFFECT_SETINPUTSTREAM:
-						gnustoglue_set_input_stream(engine_effect_parameters());
+						// FIXME: stub at present. See bug 3470.
 						looping = 1;
 						break;
 
@@ -667,10 +656,6 @@ function gnustoglue_transcribe(text) {
 				transcription_file.write(text, text.length);
 				transcription_file.flush();
 		}
-}
-
-function gnustoglue_input_stream(number) {
-		// FIXME: dummy function. See bug 3470.
 }
 
 function doTranscript() {
