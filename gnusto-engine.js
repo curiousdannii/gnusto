@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.20 2003/03/12 22:55:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.21 2003/03/13 02:50:53 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -981,15 +981,18 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		for (var i=0;i<getbyte(text_buffer + 1);i++)
 				result += String.fromCharCode(getbyte(text_buffer + 2 + i));
 
+		var ZZPB = parse_buffer;
+
 		var words_count = parse_buffer + 1;
 		setbyte(0, words_count);
 		parse_buffer+=2;
 
 		var words = result.split(' ');
-		var position = 0;
+		var position = 2;
 
 		for (var i in words) {
 				var lexical = look_up(words[i]);
+				alert(words[i]+' -> '+lexical);
 
 				setword(lexical, parse_buffer);
 				parse_buffer+=2;
@@ -998,6 +1001,10 @@ function tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		
 				position += words[i].length+1;
 				setbyte(getbyte(words_count)+1, words_count);
+		}
+
+		for (var j=ZZPB; j<parse_buffer; j++) {
+				alert(j+' == '+getbyte(j).toString(16));
 		}
 
 		// Return the ASCII value for the Enter key. tokenise() is supposed
