@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.96 2003/08/12 07:41:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.97 2003/08/12 23:42:28 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -82,8 +82,9 @@ var objs_start;
 // memory.
 var vars_start;
 
-// Not sure what this does. It doesn't seem to be used, anyway.
-// We should probably remove it.
+// |stat_start| is the address of the bottom of static memory.
+// Anything below this can change during the games. Anything
+// above this does not change like the shifting shadows.
 var stat_start;
 
 // Address of the start of the abbreviations table in memory. (Can this
@@ -2212,6 +2213,7 @@ function engine_run(answer) {
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
+	  var jscode;
 		var turns_limit = single_step? 1: 10000;
 
 		if (rebound) {
@@ -2226,11 +2228,20 @@ function engine_run(answer) {
 						return GNUSTO_EFFECT_WIMP_OUT;
 
 				start_pc = pc;
-				if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
+
+				if (jit[start_pc]) {
+						jscode = jit[start_pc];
+				} else {
+						eval('jscode=' + dissemble());
+						if (start_pc >= stat_start)
+								jit[start_pc] = jscode;
+				}
+
 				// Some useful debugging code:
 				//burin('eng pc', start_pc);
-				//burin('eng jit', jit[start_pc]);
-				stopping = jit[start_pc]();
+				//burin('eng jit', jscode);
+
+				stopping = jscode();
 		}
 
 		// so, return an effect code.
@@ -2313,18 +2324,16 @@ var default_unicode_translation_table = {
 
 function zscii_from(address, max_length, tell_length) {
 
-		/* This part has been disabled until bug 3491 has been fixed.
-			 See bug 3472 for why. -- marnanel
-
 		if (address in jit) {
 				//VERBOSE burin('zscii_from ' + address,'already in JIT');
+
 				// Already seen this one.
 
 				if (tell_length)
 						return jit[address];
 				else
 						return jit[address][0];
-						}*/
+		}
 
 		var temp = '';
 		var alph = 0;
@@ -2381,7 +2390,9 @@ function zscii_from(address, max_length, tell_length) {
 				}
 		}
 
-    jit[start_address] = [temp, address];
+		if (start_address >= stat_start) {
+				jit[start_address] = [temp, address];
+		}
 
 		//VERBOSE burin('zscii_from ' + address,temp);
 		if (tell_length) {
