@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.85 2003/06/13 21:15:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.86 2003/06/16 18:32:07 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -32,10 +32,15 @@ var ignore_errors = {
    };
 
 var ignore_transient_errors = false;
-// The reason that go_wrapper stopped last time. This is
+
+// The reason that command_exec stopped last time. This is
 // global because other parts of the program might want to know--
 // for example, to disable input boxes.
 var glue__reason_for_stopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
+
+// Answer to glue__reason_for_stopping, which will be supplied to
+// Felapton next pass.
+var glue__answer_for_next_run = 0;
 
 // The maximum number of characters that the input buffer can currently
 // accept.
@@ -75,9 +80,44 @@ function glue_print(text) {
 		}
 }
 
-function go_wrapper(answer) {
+////////////////////////////////////////////////////////////////
+//
+// glue_effect_code
+//
+// Returns the reason the Z-machine engine (Felapton) stopped
+// last time. This may require answering with glue_set_answer()
+// before the next call to command_exec().
 
-    var looping;
+function glue_effect_code() {
+		return glue__reason_for_stopping;
+}
+
+////////////////////////////////////////////////////////////////
+//
+// glue_set_answer
+//
+// Supplies the answer to the most recent effect code.
+
+function glue_set_answer(answer) {
+		glue__answer_for_next_run = answer;
+}
+
+////////////////////////////////////////////////////////////////
+// [MOVE TO DATISI/DARII]
+//
+// command_exec
+//
+// Command which calls the Z-machine engine (Felapton).
+// Felapton is designed so that we can call it and it'll only
+// return when it needs our help. The reason it returned is
+// encoded in an "effect code", which can be discovered by
+// calling glue_effect_code(). Many effect codes are requests
+// for information, which must be supplied to the next call
+// to Felapton by calling glue_set_answer() before calling
+// this function.
+
+function command_exec(args) {
+
 		var p; // variable to hold parameters temporarily below
 
 		// If we stopped on a breakpoint last time, fix it up.
@@ -85,179 +125,175 @@ function go_wrapper(answer) {
 				breakpoints[pc]=2; // So it won't trigger immediately we run.
 		}
 	
-    do {
-				looping = 0; // By default, we stop.
+		glue__reason_for_stopping = engine_run(glue__answer_for_next_run);
 
-				glue__reason_for_stopping = engine_run(answer);
+		burin('effect', glue__reason_for_stopping.toString(16));
 
-				burin('effect', glue__reason_for_stopping.toString(16));
+		glue_print(engine_console_text());
 
-				glue_print(engine_console_text());
+		switch (glue__reason_for_stopping) {
 
-				switch (glue__reason_for_stopping) {
-
-				case GNUSTO_EFFECT_WIMP_OUT:
-						if (!single_step) {
-								// Well, just go round again.
-								answer = 0;
-								looping = 1;
-						}
-						break;
-
-				case GNUSTO_EFFECT_FLAGS_CHANGED:
-						var flags = zGetByte(0x11);
-
-						if (!glue__set_transcription(flags & 1)) {
-								// they cancelled the dialogue:
-								// clear the bit
-								zSetByte(zGetByte(0x11) & ~0x1);
-						}
-
-						win_force_monospace(flags & 2);
-
-						if (!single_step) {
-								answer = 0;
-								looping = 1;
-						}
-						break;
-
-				case GNUSTO_EFFECT_INPUT_CHAR:
-						// we know how to do this.
-						// Just bail out of here.
-						win_relax();
-						break;
-
-				case GNUSTO_EFFECT_INPUT:
-						win_relax();
-						var eep = engine_effect_parameters();
-						for (var i in engine__effect_parameters) burin('geep '+i,engine__effect_parameters[i]);
-						glue__input_buffer_max_chars = eep.maxchars;
-						win_set_input([win_recaps(eep.recaps), '']);
-						break;
-
-				case GNUSTO_EFFECT_SAVE:
-						// nope
-						alert("Saving of games isn't implemented yet.");
-						answer = 0;
-						looping = 1;
-            break;
-
-				case GNUSTO_EFFECT_RESTORE:
-						// nope here, too
-						alert("Loading saved games isn't implemented yet.");
-						answer = 0;
-						looping = 1;
-            break;
-
-				case GNUSTO_EFFECT_QUIT:
-						win_relax();
-						win_show_status("Game over.");
-            break;
-
-				case GNUSTO_EFFECT_PIRACY:
-						// "Interpreters are asked to be gullible and
-						// to unconditionally branch."
-						//
-						// One day, we should perhaps have a preference
-						// that the user can set to influence the result.
-						answer = 0;
-						looping = 1;
-            break;
-
-				case GNUSTO_EFFECT_VERIFY:
-						// FIXME: Here we should verify the game.
-						// There are many more important things to fix first,
-						// though. So let's just say "yes" for now.
-
-						alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
-						answer = 1;
-						looping = 1;
-            break;
-
-				case GNUSTO_EFFECT_BREAKPOINT:
-						// Ooh, a breakpoint! Lovely!
-						looping = 0;
-						tossio_notify_breakpoint_hit();
-						break;
-
-        case GNUSTO_EFFECT_STYLE:
-						p = engine_effect_parameters();
-						win_set_text_style(p[0], p[1], p[2]);
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SOUND:
-						p = engine_effect_parameters();
-						glue__sound_effect(p[0], p[1], p[2], p[3], p[4]);
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SPLITWINDOW:
-						win_set_top_window_size(engine_effect_parameters());
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SETWINDOW:
-						current_window = engine_effect_parameters();
-
-						// reset the css style variable to reflect the current
-						// state of text in the new window
-						win_set_text_style(-1, 0, 0);
-
-						if (current_window!=0 && current_window!=1)
-								gnusto_error(303, current_window);
-
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_ERASEWINDOW:
-						win_clear(engine_effect_parameters());
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_ERASELINE:
-						// FIXME: this appears to be unimplemented!
-						gnusto_error(101);
-
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SETCURSOR:
-
-						// FIXME: this looks prehistoric
-						if (current_window==1) {
-
-								// @set_cursor has no effect on the lower window.
-
-								p = engine_effect_parameters();
-								win_gotoxy(current_window, p[1]-1, p[0]-1);
-						}
-
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SETBUFFERMODE:
-						// We should really do something with this to make
-						// the printing prettier, but we haven't yet.
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_SETINPUTSTREAM:
-						// FIXME: stub at present. See bug 3470.
-						looping = 1;
-						break;
-
-        case GNUSTO_EFFECT_PRINTTABLE:
-						win_print_table(current_window,
-														engine_effect_parameters());
-						looping = 1;
-						break;
-
-				default:
-						// give up: it's nothing we know
-						gnusto_error(304, "0x"+glue__reason_for_stopping.toString(16));
+		case GNUSTO_EFFECT_WIMP_OUT:
+				if (!single_step) {
+						// Well, just go round again.
+						glue_set_answer(0);
+						dispatch('exec');
 				}
-    } while (looping);
+				break;
+
+		case GNUSTO_EFFECT_FLAGS_CHANGED:
+				var flags = zGetByte(0x11);
+
+				if (!glue__set_transcription(flags & 1)) {
+						// they cancelled the dialogue:
+						// clear the bit
+						zSetByte(zGetByte(0x11) & ~0x1);
+				}
+
+				win_force_monospace(flags & 2);
+
+				if (!single_step) {
+						glue_set_answer(0);
+						dispatch('exec');
+				}
+				break;
+
+		case GNUSTO_EFFECT_INPUT_CHAR:
+				// we know how to do this.
+				// Just bail out of here.
+				win_relax();
+				break;
+
+		case GNUSTO_EFFECT_INPUT:
+				win_relax();
+				var eep = engine_effect_parameters();
+				for (var i in engine__effect_parameters) burin('geep '+i,engine__effect_parameters[i]);
+				glue__input_buffer_max_chars = eep.maxchars;
+				win_set_input([win_recaps(eep.recaps), '']);
+				break;
+
+		case GNUSTO_EFFECT_SAVE:
+				// nope
+				alert("Saving of games isn't implemented yet.");
+				glue_set_answer(0);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_RESTORE:
+				// nope here, too
+				alert("Loading saved games isn't implemented yet.");
+				glue_set_answer(0);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_QUIT:
+				win_relax();
+				win_show_status("Game over.");
+				break;
+
+		case GNUSTO_EFFECT_PIRACY:
+				// "Interpreters are asked to be gullible and
+				// to unconditionally branch."
+				//
+				// One day, we should perhaps have a preference
+				// that the user can set to influence the result.
+				glue_set_answer(0);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_VERIFY:
+				// FIXME: Here we should verify the game.
+				// There are many more important things to fix first,
+				// though. So let's just say "yes" for now.
+
+				alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
+				glue_set_answer(1);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_BREAKPOINT:
+				// Ooh, a breakpoint! Lovely!
+				looping = 0;
+				tossio_notify_breakpoint_hit();
+				break;
+
+		case GNUSTO_EFFECT_STYLE:
+				p = engine_effect_parameters();
+				win_set_text_style(p[0], p[1], p[2]);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SOUND:
+				p = engine_effect_parameters();
+				glue__sound_effect(p[0], p[1], p[2], p[3], p[4]);
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SPLITWINDOW:
+				win_set_top_window_size(engine_effect_parameters());
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SETWINDOW:
+				current_window = engine_effect_parameters();
+
+				// reset the css style variable to reflect the current
+				// state of text in the new window
+				win_set_text_style(-1, 0, 0);
+
+				if (current_window!=0 && current_window!=1)
+						gnusto_error(303, current_window);
+
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_ERASEWINDOW:
+				win_clear(engine_effect_parameters());
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_ERASELINE:
+				// FIXME: this appears to be unimplemented!
+				gnusto_error(101);
+
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SETCURSOR:
+
+				// FIXME: this looks prehistoric
+				if (current_window==1) {
+
+						// @set_cursor has no effect on the lower window.
+
+						p = engine_effect_parameters();
+						win_gotoxy(current_window, p[1]-1, p[0]-1);
+				}
+
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SETBUFFERMODE:
+				// We should really do something with this to make
+				// the printing prettier, but we haven't yet.
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_SETINPUTSTREAM:
+				// FIXME: stub at present. See bug 3470.
+				dispatch('exec');
+				break;
+
+		case GNUSTO_EFFECT_PRINTTABLE:
+				win_print_table(current_window,
+												engine_effect_parameters());
+				dispatch('exec');
+				break;
+
+		default:
+				// give up: it's nothing we know
+				gnusto_error(304, "0x"+glue__reason_for_stopping.toString(16));
+		}
 
 		if (debug_mode) {
 				tossio_debug_instruction(['status']);
@@ -390,7 +426,7 @@ function glue_play(memory) {
 		bocardo_start_game();
 
 		if (!single_step) {
-				go_wrapper(0);
+				dispatch('exec');
 		}
 }
 
@@ -420,8 +456,10 @@ function gotInput(e) {
 
 						win_destroy_input();
 						bocardo_collapse();
+
 						glue_print(result+'\n');
-						go_wrapper(result);
+						glue_set_answer(result);
+						dispatch('exec');
 
 				} else if (e.keyCode==0) {
 
@@ -479,9 +517,10 @@ function gotInput(e) {
 				if (e.keyCode==0) {
 						var code = e.charCode;
 
-						if (code>=32 && code<=126)
+						if (code>=32 && code<=126) {
 								// Regular ASCII; just pass it straight through
-								go_wrapper(code);
+								glue_set_answer(code); dispatch('exec');
+						}
 
 				}	else {
 
@@ -490,10 +529,10 @@ function gotInput(e) {
 						switch (e.keyCode) {
 
 								// Arrow keys
-						case  37 : go_wrapper(131); break;
-						case  38 : go_wrapper(129); break;
-						case  39 : go_wrapper(132); break;
-						case  40 : go_wrapper(130); break;
+						case  37 : glue_set_answer(131); dispatch('exec'); break;
+						case  38 : glue_set_answer(129); dispatch('exec'); break;
+						case  39 : glue_set_answer(132); dispatch('exec'); break;
+						case  40 : glue_set_answer(130); dispatch('exec'); break;
 
 								// Function keys
 								// Note: WinFrotz requires the user to
@@ -501,27 +540,27 @@ function gotInput(e) {
 								// be used for their usual Windows functions
 								// (in particular, so that F1 can still
 								// invoke help).
-						case 112 : go_wrapper(133); break;
-						case 113 : go_wrapper(134); break;
-						case 114 : go_wrapper(135); break;
-						case 115 : go_wrapper(136); break;
-						case 116 : go_wrapper(137); break;
-						case 117 : go_wrapper(138); break;
-						case 118 : go_wrapper(139); break;
-						case 119 : go_wrapper(140); break;
-						case 120 : go_wrapper(141); break;
-						case 121 : go_wrapper(142); break;
+						case 112 : glue_set_answer(133); dispatch('exec'); break;
+						case 113 : glue_set_answer(134); dispatch('exec'); break;
+						case 114 : glue_set_answer(135); dispatch('exec'); break;
+						case 115 : glue_set_answer(136); dispatch('exec'); break;
+						case 116 : glue_set_answer(137); dispatch('exec'); break;
+						case 117 : glue_set_answer(138); dispatch('exec'); break;
+						case 118 : glue_set_answer(139); dispatch('exec'); break;
+						case 119 : glue_set_answer(140); dispatch('exec'); break;
+						case 120 : glue_set_answer(141); dispatch('exec'); break;
+						case 121 : glue_set_answer(142); dispatch('exec'); break;
 
 								// delete / backspace
-						case  46 : go_wrapper(8); break;
-						case   8 : go_wrapper(8); break;
+						case  46 : glue_set_answer(8); dispatch('exec'); break;
+						case   8 : glue_set_answer(8); dispatch('exec'); break;
 
 								// newline / return
-						case  10 : go_wrapper(13); break;
-						case  13 : go_wrapper(13); break;
+						case  10 : glue_set_answer(13); dispatch('exec'); break;
+						case  13 : glue_set_answer(13); dispatch('exec'); break;
 
 								// escape
-						case  27 : go_wrapper(27); break;
+						case  27 : glue_set_answer(27); dispatch('exec'); break;
 						}
 				}
 

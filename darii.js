@@ -1,6 +1,6 @@
 // darii.js || -*- Mode: Java; tab-width: 2; -*-
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.7 2003/06/13 21:10:12 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.8 2003/06/16 18:32:07 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -62,7 +62,17 @@ function dispatch(what) {
 		}
 }
 
+////////////////////////////////////////////////////////////////
+
+function dispatch_with_status(what, status) {
+		win_set_status_line(status);		
+		setTimeout('dispatch("'+what+'")', 1000);
+}
+
+////////////////////////////////////////////////////////////////
+
 var despatch = dispatch; // because some people are English :)
+var despatch_with_status = dispatch_with_status;
 
 function darii_print(message) {
     if (message!=null) {

@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.51 2003/06/16 06:04:47 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.52 2003/06/16 18:32:07 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -117,7 +117,7 @@ function ensureHappiness() {
 <menu id="file-menu" label="File" accesskey="F">
 <menupopup>
 <menuitem label="New (restart)" accesskey="N" disabled="true" />
-<menuitem label="Open..." accesskey="O" oncommand="dispatch('open');"/>
+<menuitem label="Open..." accesskey="O" oncommand="dispatch_with_status('open', 'Opening...');"/>
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
