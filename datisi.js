@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.5 2003/04/23 12:53:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.6 2003/04/23 23:43:18 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -173,6 +173,8 @@ function command_open(a) {
 		////////////////////////////////////////////////////////////////
 
 		var localfile = 0;
+		var filename = null;
+		var result = 0;
 
 		switch (a.length) {
 				
@@ -186,18 +188,20 @@ function command_open(a) {
 				picker.appendFilter("Blorb", "*.blb");
 				picker.appendFilter("Saved game", "*.sav");
 				
-				if (picker.show()==ifp.returnOK)
+				if (picker.show()==ifp.returnOK) {
+						filename = picker.fileURL.path;
 						localfile = picker.file;
-				else
-						return;
+				} else
+						return 0;
 				
 				break;
 		}
 
 		case 2: {
-				localfile= new Components.Constructor("@mozilla.org/file/local;1",
-																							"nsILocalFile",
-																							"initWithPath")(a[1]);
+				localfile = new Components.Constructor("@mozilla.org/file/local;1",
+																							 "nsILocalFile",
+																							 "initWithPath")(a[1]);
+				filename = a[1];
 				break;
 		}
 
@@ -271,7 +275,7 @@ function command_open(a) {
                         TransContents[i] = fileContents[i].charCodeAt();
                       }
                       fc.close();
-                      dealWith(TransContents);
+                      result = dealWith(TransContents);
                     }
 		}
 		else {
@@ -280,9 +284,12 @@ function command_open(a) {
 		  var bin = Components.classes[BINIS_CTR].createInstance(nsIBinaryInputStream);
 		  bin.setInputStream(buf);
 
-		  dealWith(bin.readByteArray(localfile.fileSize));
+		  result = dealWith(bin.readByteArray(localfile.fileSize));
 		}
 
+		if (filename && result==1) {
+				sys_notify_of_load(filename);
+		}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -304,7 +311,7 @@ function sys_init() {
 		sys__recent_list = sys__vault.clone();
 		sys__recent_list.append('recent.dat');
 
-		sys_update_recent_menu();
+		sys_update_recent_menu(sys_get_recent_list());
 }
 
 ////////////////////////////////////////////////////////////////
@@ -355,10 +362,79 @@ function sys_get_recent_list() {
 
 ////////////////////////////////////////////////////////////////
 
+function sys_notify_of_load(filename) {
+
+		var recent = sys_get_recent_list();
+
+		/////////////////////////////////////
+
+		var j=0;
+		while (j<recent.length) {
+				if (recent[j][0]==filename)
+						recent.splice(j,1);
+				else
+						j++;
+		}
+
+		recent.unshift([filename]);
+
+		/////////////////////////////////////
+
+		// Splice the list so that it doesn't grow beyond "n" entries.
+		// "n" should be configurable later.
+
+		recent.splice(10);
+	 
+		/////////////////////////////////////
+
+		var stored = new Components.
+				Constructor('@mozilla.org/network/file-output-stream;1',
+										'nsIFileOutputStream',
+										'init')(
+														sys__recent_list,
+														10,
+														0600,
+														0);
+
+		function write(file, text) { file.write(text, text.length); }
+
+		for (var m in recent) {
+
+				for (var n in recent[m])
+						write(stored, recent[m][n]+'\n');
+
+				write(stored, '\n');
+		}
+
+		stored.close();
+
+		/////////////////////////////////////
+
+		sys_update_recent_menu(recent);
+}
+
+////////////////////////////////////////////////////////////////
+
 // Unsure where this should best go, really...
 // perhaps it would be better in mozilla-glue.
-function sys_update_recent_menu() {
-		var recent = sys_get_recent_list();
+function sys_update_recent_menu(recent) {
+
+		// Add in the separator only if it doesn't already
+		// exist, but we do have any recent files to display.
+		if (recent.length!=0 &&
+				!(document.getElementById('recent-separator'))) {
+
+				var sep = document.createElement('menuseparator');
+				sep.setAttribute('id', 'recent-separator');
+
+				document.
+						getElementById('file-menu').
+						childNodes[0].
+						appendChild(sep);
+		}
+
+
+		// Now, for each recent file, set or create a menu item.
 
 		for (var i in recent) {
 				var name = 'recent'+i;
@@ -376,6 +452,7 @@ function sys_update_recent_menu() {
 				if (element==null) {
 
 						element = document.createElement('menuitem');
+						element.setAttribute('id', name);
 
 						document.getElementById('file-menu').childNodes[0].appendChild(element);
 				}
