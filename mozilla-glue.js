@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.25 2003/03/26 04:49:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.26 2003/03/26 05:18:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -633,6 +633,10 @@ function gnustoglue_transcribe(text) {
 				transcription_file.write(text, text.length);
 				transcription_file.flush();
 		}
+}
+
+function gnustoglue_input_stream(number) {
+		// FIXME: dummy function. See bug 3470.
 }
 
 function doTranscript() {
