@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.19 2003/04/10 00:03:06 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.20 2003/04/10 20:49:34 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -36,9 +36,13 @@ var win__screen_height = 25; // a good default size
 ////////////////////////////////////////////////////////////////
 
 function win_setup() {
-    win__screen_doc = frames[0].document;
 
-    win__screen_window = win__screen_doc.getElementById('text');
+    win__screen_doc = barbarix_get_document(BARBARIX_INFOBOX);
+
+		var body = win__screen_doc.getElementsByTagName('body')[0];
+		barbarix_clear(body);
+		win__screen_window = win__screen_doc.createElement('pre');
+		body.appendChild(win__screen_window);
 
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
