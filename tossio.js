@@ -619,7 +619,7 @@ var tossio_verbs = {
 										return;
 								}
 
-								if (loadMangledZcode(localfile)) {
+								if (loadSomeFile(localfile)) {
 										if (single_step) {
 												tossio_print('Loaded OK (use /run or /step now).');
 										}

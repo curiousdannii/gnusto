@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.44 2003/04/05 17:06:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.45 2003/04/06 12:02:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -73,60 +73,166 @@ var ignore_errors = {
 
 ////////////////////////////////////////////////////////////////
 //
-// Loads the |fixups| and |mangled| arrays, and clears |zbytes| ready to be
-// filled from them. |zcode| is an nsILocalFile, initialised and ready to be
-// read from. Returns false if there was an error (and the global state will be
-// unchanged), true if everything worked.
+// Parses an IFF file entirely contained in the string |s|.
+// (s is still in the mangled encoding.)
+// The return value is a list. The first element is the form type
+// of the file; subsequent elements represent chunks. Each chunk is
+// represented by a list whose first element is the chunk type,
+// whose second element is the starting offset of the data within
+// the string, and whose third element is the length.
 //
-// Modified by Eric Liga <naltrexone42@yahoo.com> to remove deprecated
-// interfaces which are no longer present in Mozilla v1.3.
+function iff_parse(s) {
+		function b(offset) {
+				if (s.charCodeAt(s.length/2 + offset)==89)
+						return 0;
+				else
+						return s.charCodeAt(offset);
+		}
+
+		function num(offset) {
+				return b(offset)<<24 | b(offset+1)<<16 | b(offset+2)<<8 | b(offset+3);
+		}
+
+		var result = [s.substring(8, 12)];
+
+		var cursor = 12;
+
+		while (cursor < s.length/2) {
+				var chunk = [s.substring(cursor, cursor+4)];
+				var chunk_length = num(cursor+4);
+
+				chunk.push(cursor+8);
+				chunk.push(chunk_length);
+
+				result.push(chunk);
+
+				cursor += 8 + chunk_length;
+				if (chunk_length % 2) cursor++;
+		}
+
+		return result;
+}
+
+////////////////////////////////////////////////////////////////
 //
-function loadMangledZcode(zcode) {
+// Loads the file |f| (an nsILocalFile, initialised and ready to be
+// read from), decides what its format is, and hence what to do
+// with it. Returns false if there was an error (and the global state
+// will be unchanged), true if everything worked.
+//
+function loadSomeFile(f) {
 
-    if (!zcode.exists()) gnusto_error(301);
+		////////////////////////////////////////////////////////////////
+		//
+		// Loads the |mangled| array and sets |fixups| according to
+		// |zcode| (a string), and clears |zbytes| ready to be filled
+		// from them.
+		//
+		function loadMangledZcode(zcode) {
+				mangled = zcode;
+				zbytes = [];
+				fixups = zcode.length / 2;
+				
+				// We're required to modify some bits
+				// according to what we're able to supply.
+				setbyte(0x1D, 0x01);
+				setbyte(getbyte(0x11) & 0x47, 0x11);
 
-    fixups = zcode.fileSize / 2;
+				// It's not at all clear what architecture
+				// we should claim to be. We could decide to
+				// be the closest to the real machine
+				// we're running on (6=PC, 3=Mac, and so on),
+				// but the story won't be able to tell the
+				// difference because of the thick layers of
+				// interpreters between us and the metal.
+				// At least, we hope it won't.
+
+				setbyte(  1, 0x1E); // uh, let's be a vax.
+				setbyte(103, 0x1F); // little "g" for gnusto
+
+				// Put in some default screen values here until we can
+				// set them properly later.
+				// For now, units are characters. Later they'll be pixels.
+				setbyte( 25, 0x20); // screen height, characters
+				setbyte( 80, 0x21); // screen width, characters
+				setword( 25, 0x22); // screen width, units
+				setword( 80, 0x24); // screen height, units
+				setbyte(  1, 0x26); // font width, units
+				setbyte(  1, 0x27); // font height, units
+		}
+		
+		////////////////////////////////////////////////////////////////
+
+    if (!f.exists()) gnusto_error(301);
 
 		var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
 
-		fc.init(zcode, 1, 0, 0);
+		fc.init(f, 1, 0, 0);
 
 		var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
 																				 "nsIScriptableInputStream")();
 
 		sis.init(fc);
 
-    var tempMangled = sis.read(zcode.fileSize);
+    var content = sis.read(f.fileSize);
 
-		if (tempMangled.length!=zcode.fileSize) {
+		fc.close();
+
+		if (content.length!=f.fileSize) {
 				if (confirm('You seem to have opened an ordinary, non-encoded story file. Because of a current problem within Mozilla, Gnusto needs all story files to be encoded in "mz5" format before loading.\n\nWould you like more explanation?'))
 						open('http://gnusto.mozdev.org/nullbytes.html', '_blank');
 				return 0;
 		}
 
-		mangled = tempMangled;
-    zbytes = [];
+		////////////////////////////////////////////////////////////////
 
-		// We're required to modify some bits according to what we're able to supply.
-		setbyte(0x1D, 0x01);
-		setbyte(getbyte(0x11) & 0x47, 0x11);
-		// It's not at all clear what architecture we should claim to be. We could
-		// decide to be the closest to the real machine we're running on (6=PC, 3=Mac,
-		// and so on), but the story won't be able to tell the difference because of
-		// the thick layers of interpreters between us and the metal. At least,
-		// we hope it won't.
-		setbyte(  1, 0x1E); // uh, let's be a vax.
-		setbyte(103, 0x1F); // little "g" for gnusto
+		// Okay. Our task now is to find what kind of file we've been handed,
+		// and to deal with it accordingly.
 
-		// Put in some default screen values here until we can
-		// set them properly later.
-		// For now, units are characters. Later they'll be pixels.
-		setbyte( 25, 0x20); // screen height, characters
-		setbyte( 80, 0x21); // screen width, characters
-		setword( 25, 0x22); // screen width, units
-		setword( 80, 0x24); // screen height, units
-		setbyte(  1, 0x26); // font width, units
-		setbyte(  1, 0x27); // font height, units
+		if (content.charCodeAt(0)==5) {
+				// Probably a .z5 file, so let's go ahead.
+				loadMangledZcode(content);
+		} else if (content.substring(0,4)=='FORM') {
+				// An IFF file, then...
+
+				var iff_details = iff_parse(content);
+
+				if (iff_details[0]=='IFZS') {
+
+						// Quetzal saved file.
+						// Can't deal with these yet.
+
+						alert("Sorry, Gnusto can't yet load saved games.");
+						return 0;
+
+				} else if (iff_details[0]=='IFRS') {
+
+						// Blorb resources file, possibly containing
+						// Z-code.
+
+						// OK, so go digging for it.
+						for (var j=1; j<iff_details.length; j++) {
+								if (iff_details[j][0]=='ZCOD') {
+										loadMangledZcode(content.substring(iff_details[j][1],
+																											 iff_details[j][1]+iff_details[j][2]));
+										return 1;
+								}
+						}
+
+						alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
+						return 0;
+
+				} else {
+
+						// Some other IFF file type which we don't know.
+
+						gnusto_error(309,'IFF',iff_details[0]);
+						return 0;
+				}
+		} else {
+				gnusto_error(309);
+				return 0;
+		}
 
 		return 1;
 }
@@ -638,7 +744,7 @@ function loadStory() {
     picker.appendFilter("mangled-z5", "*.mz5");
 
     if (picker.show()==ifp.returnOK) {
-				if (loadMangledZcode(picker.file))
+				if (loadSomeFile(picker.file))
 						play();
     }
 }
