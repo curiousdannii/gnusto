@@ -8,7 +8,7 @@
 	xmlns:html="http://www.w3.org/1999/xhtml"
 	persist="width height sizemode"
 	width="640" height="480"
-	onload="start_up();">
+	onload="ensureHappiness();start_up();">
 
 <!-- Debugger -->
 <script type="application/x-javascript" src="chrome://gnusto/content/tossio.js"/>

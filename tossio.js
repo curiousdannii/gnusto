@@ -1,6 +1,8 @@
 // tossio.js || -*- Mode: Java; tab-width: 2; -*-
 // The debugger in Gnusto.
 
+var TOSSIO_HAPPY = 0;
+
 //================================================================
 //
 // List of opcodes
@@ -231,30 +233,6 @@ function zscii_from(address, max_length, tell_length) {
 		}
 }
 
-
-function loadI0() {
-
-    var zcode = new Components.Constructor(
-																					 "@mozilla.org/file/local;1",
-																					 "nsILocalFile",
-																					 "initWithPath")("/tmp/I-0.mz5");
-    if (!zcode.exists())
-				throw "Mangled Zcode file doesn't exist.";
-
-    var fc = new Components.Constructor("@mozilla.org/network/local-file-channel;1",
-																				"nsIFileChannel")();
-
-    var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
-																				 "nsIScriptableInputStream")();
-
-    fixups = zcode.fileSize / 2;
-
-    fc.init(zcode, 1, 0);
-    sis.init(fc.open());
-
-    mangled = sis.read(zcode.fileSize);
-    zbytes = [];
-}
 
 function getbyte(address) {
     // Convoluted to work around the null byte problem.
@@ -590,6 +568,8 @@ function tossio_print(message) {
 		gnustoglue_output(message);
 }
 
+////////////////////////////////////////////////////////////////
+
 var show_js = 0;
 var dissembly_done = 0;
 
@@ -680,6 +660,8 @@ var tossio_verbs = {
 						}],
 		'run': ['run through until something happens worth stopping for',
 						'...',
+					 // FIXME: This shouldn't work if we're stopped for, say,
+					 // keyboard input.
 						function(a) {
 								single_step = 0;
 								go_wrapper(0);
@@ -739,6 +721,52 @@ var tossio_verbs = {
 									 tossio_print('No breakpoint there!');
 							 }
 						 }],
+		'show': ['show value of a variable',
+						// Bzzt. This should use the new variable syntax ($, #, & and so on).
+						// Call it "get" then.
+						'...',
+						function(a) {
+								var which = a[2];
+								if (a[1]=='local') {
+										if (which>=0 && which<=15) {
+												tossio_print('Value of L'+which+': '+locals[which]+'\n');
+										} else {
+												tossio_print('Unknown local variable.\n');
+										}
+								} else if (a[1]=='global') {
+										if (which>=0 && which<=240) {
+												tossio_print('Value of G'+which+': '+getword(vars_start+which*2)+'\n');
+										} else {
+												tossio_print('Unknown local variable.\n');
+										}
+								} else if (a[1]=='memory') {
+										tossio_print('Value of address '+which+': byte='+getword(which)+'; word='+getword(which)+'\n');
+								} else {
+										tossio_print('Unknown variable.\n');
+								}
+						}],
+		'put': ['set value of a variable',
+					 '...',
+					 function(a) {
+							 //  $xxx = variable named xxx (not yet implemented)
+							 //  #xxx = literal, hex xxx
+							 //  &xxx = memory word xxx
+							 //  *xxx = memory byte xxx
+							 //  %xx  = global variable xx
+							 //  !x   = local variable x
+							 //  otherwise: literal, decimal
+
+							 var t = a[1][0];
+							 var n = eval('0x'+a[1].substring(1));
+							 var v = a[2];
+
+							 if (t=='%') {
+									 setword(v, vars_start+n*2);
+							 } else {
+									 tossio_print('Unknown type in /put');
+							 }
+
+					 }],
 		'about': ['show the about box',
 						 '...',
 						 function (a) {
@@ -750,6 +778,11 @@ var tossio_verbs = {
 };
 
 function tossio_debug_instruction(command) {
+
+		// FIXME: these should be equivalences:
+		//   /%2E=177 and /put %2E 177
+		//   /%2E     and /get %2E
+
 		if (tossio_verbs[command[0]])
 				tossio_verbs[command[0]][2](command);
 		else
@@ -761,3 +794,7 @@ function tossio_debug_instruction(command) {
 function tossio_notify_breakpoint_hit() {
 		tossio_print('\n ** Hit breakpoint. **\n');
 }
+
+////////////////////////////////////////////////////////////////
+TOSSIO_HAPPY = 1;
+////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.2 2003/02/04 21:40:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.3 2003/03/15 13:59:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,6 +20,8 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
+////////////////////////////////////////////////////////////////
+var UPPER_HAPPY = 0;
 ////////////////////////////////////////////////////////////////
 
 var u_width = 80;
@@ -83,3 +85,7 @@ function u_write(message, x, y) {
 function u_preformatted() {
 	return u_contents.join('\n');
 }
+
+////////////////////////////////////////////////////////////////
+UPPER_HAPPY = 1;
+////////////////////////////////////////////////////////////////

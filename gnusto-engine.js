@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.24 2003/03/14 06:11:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.25 2003/03/15 13:59:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,6 +18,10 @@
 // You should have be able to view the GNU General Public License at 
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+////////////////////////////////////////////////////////////////
+var GNUSTO_LIB_HAPPY = 0;
+////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////
 /////////////////////// Global variables ///////////////////////
@@ -1655,3 +1659,7 @@ function output(text) {
 				if (output_to_transcript) gnustoglue_transcribe(text);
 		}
 }
+
+////////////////////////////////////////////////////////////////
+GNUSTO_LIB_HAPPY = 1;
+////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.19 2003/03/14 06:11:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.20 2003/03/15 13:59:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,6 +20,32 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 ////////////////////////////////////////////////////////////////
+var MOZILLA_GLUE_HAPPY = 0;
+////////////////////////////////////////////////////////////////
+
+// Checks that all the JavaScript files are happy-- that is, that they
+// all loaded without any errors. (Happiness Will Prevail.)
+function ensureHappiness() {
+		function ensureOneFile(check) {
+				try {
+						if (eval(check)==0) {
+								gnusto_error(300,check);
+						}
+				} catch (e) {
+						if (e==-1) {
+								// crash out from gnusto_error
+								throw e;
+						} else {
+								gnusto_error(300,check,e.toString());
+						}
+				}
+		}
+
+		ensureOneFile('MOZILLA_GLUE_HAPPY');
+		ensureOneFile('GNUSTO_LIB_HAPPY');
+		ensureOneFile('TOSSIO_HAPPY');
+		ensureOneFile('UPPER_HAPPY');
+}
 
 var lowerWindow = 0;
 var tty = 0;
@@ -492,30 +518,36 @@ function gnusto_error(n) {
 		}
 		m = m + '\n\nJS call stack:' + procstring;
 
-		m = m + '\n\nZ call stack:'
+		m = m + '\n\nZ call stack:';
+
+		try {
 				for (var i in call_stack) {
 						// We don't have any way of finding out the real names
 						// of z-functions at present. This will have to do.
 						m = m + ' ('+call_stack[i].toString(16)+')'
 				}
 
-		if (pc!=null)
-				m = m + '\nProgram counter: '+pc.toString(16);
+				if (pc!=null)
+						m = m + '\nProgram counter: '+pc.toString(16);
 
-  	m = m + '\nZ eval stack (decimal):'
+				m = m + '\nZ eval stack (decimal):';
 				for (var i in gamestack) {
 						m = m + ' '+ gamestack[i];
 				}
 
-		if (locals!=null) {
-				m = m + '\nLocals (decimal):';
-				for (var i=0; i<16; i++) {
-						m = m + ' ' + i + '=' + locals[i];
+				if (locals!=null) {
+						m = m + '\nLocals (decimal):';
+						for (var i=0; i<16; i++) {
+								m = m + ' ' + i + '=' + locals[i];
+						}
 				}
-		}
 
-		if (debug_mode) {
-				gnustoglue_output('\n\n--- Error ---:\n'+m);
+				if (debug_mode) {
+						gnustoglue_output('\n\n--- Error ---:\n'+m);
+				}
+
+		} catch (e) {
+				m = m + '(Some symbols not defined.)';
 		}
 
 		alert(m);
@@ -571,3 +603,6 @@ function doTranscript() {
 		}
 }
 
+////////////////////////////////////////////////////////////////
+MOZILLA_GLUE_HAPPY = 1;
+////////////////////////////////////////////////////////////////
