@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.96 2003/07/21 03:56:30 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.97 2003/07/21 05:49:46 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -179,6 +179,13 @@ function command_exec(args) {
 				case GNUSTO_EFFECT_QUIT:
 						win_relax();
 						win_show_status("Game over.");
+						break;
+						
+				case GNUSTO_EFFECT_RESTART:
+						win_relax();
+						start_up();
+						var content = load_from_file(local_game_file);
+						var result = dealWith(content);				
 						break;
 
 				case GNUSTO_EFFECT_VERIFY:
@@ -452,7 +459,7 @@ function start_up() {
 
 function glue_play(memory) {
 
-    engine_start_game(memory);
+                engine_start_game(memory);
 		win_start_game();
 		barbara_start_game();
 		bocardo_start_game();

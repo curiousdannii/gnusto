@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.20 2003/07/20 01:25:49 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.21 2003/07/21 05:49:46 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -313,6 +313,8 @@ function command_open(a) {
 				gnusto_error(301);
 				return;
 		}
+		
+		local_game_file = localfile;
 
 		var content = load_from_file(localfile);
 		var result = dealWith(content);

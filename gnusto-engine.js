@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.83 2003/07/21 03:56:30 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.84 2003/07/21 05:49:46 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -24,6 +24,10 @@
 ////////////////////////////////////////////////////////////////
 /////////////////////// Global variables ///////////////////////
 ////////////////////////////////////////////////////////////////
+
+// This will hold the filename of the current game file (so we can
+// reset the memory from it as needed.
+var local_game_file = 0;
 
 // These are all initialised in the function engine_start_game().
 
@@ -351,6 +355,10 @@ var GNUSTO_EFFECT_RESTORE    = 0x300;
 // Returned when the Z-machine requests we quit.
 // Not to be answered, obviously.
 var GNUSTO_EFFECT_QUIT       = 0x400;
+
+// Returned when the Z-machine requests that we restart a game.
+// Assumedly, we won't be around to answer
+var GNUSTO_EFFECT_RESTART    = 0x410;
 
 // Returned if we've run for more than a certain number of iterations.
 // This means that the environment gets a chance to do some housekeeping
@@ -702,6 +710,17 @@ var handlers = {
 		180: function Z_nop(a) {
 				return "";
 		},
+		
+		//181: save (illegal in V5)
+		
+		//182: restore (illegal in V5)
+		
+		//183: restart (currently unimplemented)
+		183: function Z_restart(a) {
+				compiling=0;
+				return "return "+GNUSTO_EFFECT_RESTART;	
+		},
+		
 		184: function Z_ret_popped(a) {
 				compiling=0;
 				return "gnusto_return(gamestack.pop());return";
@@ -719,6 +738,8 @@ var handlers = {
 		187: function Z_new_line(a) {
 				return handler_zOut("'\\n'",0);
 		},
+
+                //188: show_status (illegal from V4 onward)
 
 		189: function Z_verify(a) {
 				compiling = 0;
@@ -946,6 +967,14 @@ var handlers = {
 				// We only provide font 1.
 				return storer('('+a[0]+'<2?1:0)');
 		},
+		
+		//1005: draw_picture (V6 opcode)
+		
+		//1006: picture_dat (V6 opcode)
+		
+		//1007: erase_picture (V6 opcode)
+		
+		//1008: set_margins (V6 opcode)
 
 		1009: function Z_save_undo(a) {
 				return storer('-1'); // not yet supplied
@@ -967,6 +996,34 @@ var handlers = {
 				// methods to do so somehow (e.g. with an onscreen keyboard).
 				return storer('3');
 		},
+		
+		//1013-1015: illegal
+		
+		//1016: move_window (V6 opcode)
+		
+		//1017: window_size (V6 opcode)
+		
+		//1018: window_style (V6 opcode)
+		
+		//1019: get_wind_prop (V6 opcode)		
+		
+		//1020: scroll_window (V6 opcode)
+		
+		//1021: pop_stack (V6 opcode)
+		
+		//1022: read_mouse (V6 opcode)
+		
+		//1023: mouse_window (V6 opcode)
+		
+		//1024: push_stack (V6 opcode)
+		
+		//1025: put_wind_prop (V6 opcode)
+		
+		//1026: print_form (V6 opcode)
+		
+		//1027: make_menu (V6 opcode)
+		
+		//1028: picture_table (V6 opcode)
 }
 
 function log_shift(value, shiftbits) {
