@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.13 2003/05/21 04:46:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.14 2003/05/25 21:47:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -312,6 +312,15 @@ function win_waiting_for_more() {
 
 function win_show_status(text) {
 		document.getElementById('status').setAttribute('label', text);
+}
+
+////////////////////////////////////////////////////////////////
+
+// Removes |count| characters from the end of the text and
+// returns them.
+function win_recaps(count) {
+		// Stub at present
+		return 'RcTest';
 }
 
 ////////////////////////////////////////////////////////////////
