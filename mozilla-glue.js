@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.95 2003/07/20 01:35:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.96 2003/07/21 03:56:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -252,6 +252,14 @@ function command_exec(args) {
 								eep = engine_effect_parameters();
 								win_gotoxy(current_window, eep[1]-1, eep[0]-1);
 						}
+						
+						looping = 1;
+						break;
+						
+				case GNUSTO_EFFECT_GETCURSOR:
+				                //bocardo__current_x and y are 0-based, but it's expecting 1-based, so add 1
+						zSetWord(bocardo__current_y[current_window]+1,a[0]);
+						zSetWord(bocardo__current_x[current_window]+1,a[0]+2); //shift by 2 bytes for 2nd word
 						
 						looping = 1;
 						break;

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.82 2003/07/20 01:33:21 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.83 2003/07/21 03:56:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -412,6 +412,7 @@ var GNUSTO_EFFECT_SETCURSOR      = 0x940;
 
 var GNUSTO_EFFECT_SETBUFFERMODE  = 0x950;
 var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
+var GNUSTO_EFFECT_GETCURSOR = 0x970;
 
 // Returned if the story wants to print a table, as with
 // @print_table. (This is complicated enough to get its
@@ -821,7 +822,10 @@ var handlers = {
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
 
-		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
+                240: function Z_get_cursor(a) {
+                                compiling=0;
+				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_GETCURSOR;
+                },
 
 		241: function Z_set_text_style(a) {
 				compiling=0;
