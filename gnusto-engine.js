@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.101 2004/10/02 22:21:32 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.102 2004/10/03 23:24:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/10/02 22:21:32 $';
+const CVS_VERSION = '$Date: 2004/10/03 23:24:04 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -1390,11 +1390,12 @@ GnustoEngine.prototype = {
 			this.m_result_targets = [];
 
 			var evals_count = 0;
+			var callbreaks_top = 0; // Highest value yet pushed to m_gamestack_callbreaks
 
 			// Pick up the amount of eval stack used by the bootstrap.
 			evals_count = decodeStackInt(7, 1);
 
-			this.m_gamestack_callbreaks.length = evals_count;
+			this.m_gamestack_callbreaks = [];
 
 			var cursor = 8;
 
@@ -1436,6 +1437,9 @@ GnustoEngine.prototype = {
 
 					evals_count = decodeStackInt(cursor, 2);
 					cursor += 2;
+
+					callbreaks_top += evals_count;
+					this.m_gamestack_callbreaks.push(callbreaks_top);
 
 					var locals_temp = [];
 					for (var k=0; k<locals_count; k++) {
@@ -1485,6 +1489,7 @@ GnustoEngine.prototype = {
 					this._varcode_set(2, this.m_memory[pc]);
 					this.m_pc = pc+1;
 			}
+
 	},
 
   resetStory: function ge_resetStory() {
