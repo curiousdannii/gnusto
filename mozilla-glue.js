@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.28 2003/03/27 02:20:16 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.29 2003/03/27 06:37:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -33,7 +33,7 @@ function ensureHappiness() {
 						}
 				} catch (e) {
 						if (e==-1) {
-								// crash out from gnusto_error
+								// This is gnusto_error crashing out. Let it through.
 								throw e;
 						} else {
 								gnusto_error(300,check,e.toString());
@@ -84,8 +84,7 @@ var ignore_errors = {
 //
 function loadMangledZcode(zcode) {
 
-    if (!zcode.exists())
-				throw "Mangled Zcode file doesn't exist.";
+    if (!zcode.exists()) gnusto_error(301);
 
     fixups = zcode.fileSize / 2;
 
@@ -145,8 +144,8 @@ function setbyte(value, address) {
 
     // These two lines are to find bugs in gnusto-lib, not the
     // story file. They can be removed when we're sure it works.
-    if (value<0) throw "too low "+value;
-    if (value>255) throw "too high "+value;
+    if (value<0) gnusto_error(302, "too low ", value, address);
+    if (value>255) gnusto_error(302, "too high", value, address);
 
     zbytes[address] = value;
 }
@@ -166,7 +165,7 @@ function print_newline() {
 				u_x = 0;
 				u_y = (u_y + 1) % u_height;
     } else
-				throw "unearthly window "+current_window+' in print_newline';
+				gnusto_error(303, current_window);
 }
 
 function gnustoglue_output(what) {
@@ -194,7 +193,7 @@ function gnustoglue_output(what) {
 				u_write(what);
 				set_upper_window();
     } else
-				throw "unearthly window "+current_window+' in gnustoglue_output';
+				gnustoglue_error(303, current_window);
 }
 
 function gnustoglue_soundeffect(number, effect, volume, callback) {
@@ -282,7 +281,7 @@ function gnustoglue_set_window(w) {
     if (w==0 || w==1)
 				current_window = w;
     else
-				throw "set_window's argument must be 0 or 1";
+				gnusto_error(303, w);
 }
 
 function gnustoglue_erase_window(w) {
@@ -306,7 +305,7 @@ function gnustoglue_erase_window(w) {
 				break;
 
 		default: // weird
-				throw "weird erase_window argument";
+				gnusto_error(303, w);
 		}
 }
 
@@ -383,8 +382,7 @@ function go_wrapper(answer) {
 						tossio_notify_breakpoint_hit();
 				} else
 						// give up: it's nothing we know
-						throw "gnusto-lib used an effect code we don't understand: 0x"+
-								reasonForStopping.toString(16);
+						gnusto_error(304, "0x"+reasonForStopping.toString(16));
     } while (looping);
 
 		if (debug_mode) {
@@ -423,14 +421,14 @@ function play() {
 		}
 }
 
+// Used as the only content of the exception handlers of JS fragments in the XUL.
 function deal_with_exception(e) {
 
 		// -1 is thrown by gnusto_error when it wants to kill everything
-		// back down to this level.
+		// back down to this level, so we should ignore that.
 
 		if (e!=-1) {
-				alert('-- gnusto error --\n'+e);
-				throw e;
+ 				gnusto_error(307, e);
 		}
 }
 
@@ -627,7 +625,7 @@ function gnustoglue_transcribe(text) {
 		if (current_window==0) {
 				if (!transcription_file) {
 						if (!gnustoglue_notify_transcription(1)) {
-								throw "Can't create spontaneous transcript";
+								gnusto_error(308);
 						}
 				}
 				transcription_file.write(text, text.length);
