@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.79 2003/06/19 22:59:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.80 2003/07/09 22:12:52 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -206,7 +206,7 @@ var engine__leftovers = '';
 // |handlers| array, below.
 //
 ////////////////////////////////////////////////////////////////
-
+//
 // Returns a string of JS code to set the PC to the address in
 // |packed_target|, based on the current architecture.
 function pc_translate(packed_target) {
@@ -883,7 +883,9 @@ var handlers = {
 				return "engine__tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
 
-		// not implemented:   VAR:252 1C 5 encode_text zscii-text length from coded-text encode_text'"},
+		252: function Z_encode_text(a) {
+				return "engine__encode_text("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
+		},
 
 		253: function Z_copy_table(a) {
 				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
@@ -1035,6 +1037,8 @@ function dissemble() {
 
 		do {
 
+				burin('dis',pc.toString(16));
+
 				// List of arguments to the opcode.
 				var args = [];
 
@@ -1074,7 +1078,7 @@ function dissemble() {
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
-				// code = code + 'burin("golden","'+pc.toString(16)+'");';
+				//code = code + 'burin("golden","'+pc.toString(16)+'");';
 				
 				// So here we go...
 				// what's the opcode?
@@ -1153,6 +1157,15 @@ function dissemble() {
 
 				if (handlers[instr]) {
 						code = code + handlers[instr](args)+';';
+				} else if (instr>=1128 && instr<=1255 &&
+									 "special_instruction_EXT"+(instr-1000) in this) {
+
+						// ZMSD 14.2: We provide a hook for plug-in instructions.
+
+						code = code +
+								this["special_instruction_EXT"+(instr-1000)](args)+
+								';';
+
 				} else {
 						gnusto_error(200, instr, pc.toString(16)); // no handler
 				}
@@ -2106,9 +2119,43 @@ function zscii_from(address, max_length, tell_length) {
 		}
 }
 
-// This function is specifically for encoding ASCII to ZSCII to match
-// against dictionary words. It's not (yet) possible to implement
-// encode_text using it.
+////////////////////////////////////////////////////////////////
+//
+// engine__encode_text
+//
+// Implements the @encode_text opcode.
+//   |zscii_text|+|from| is the address of the unencoded text.
+//   |length|            is its length.
+//                         (It may also be terminated by a zero byte.)
+//   |coded_text|        is where to put the six bytes of encoded text.
+function engine__encode_text(zscii_text, length, from, coded_text) {
+
+		var source = '';
+
+		zscii_text += from;
+
+		while (length>0) {
+				var b = zGetByte(zscii_text);
+
+				if (b==0) break;
+
+				source = source + zscii_char_to_ascii(b);
+				zscii_text++;
+				i--;
+		}
+
+		var result = into_zscii(source);
+
+		for (var i=0; i<result.length; i++) {
+				zSetByte(result[i], coded_text++)
+		}
+}
+
+////////////////////////////////////////////////////////////////
+//
+// Encodes the ZSCII string |str| to its compressed form,
+// and returns it.
+// 
 function into_zscii(str) {
 		var result = '';
 		var buffer = [];
