@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.41 2003/04/05 10:53:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.42 2003/04/05 11:35:21 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -434,15 +434,13 @@ function go_wrapper(answer) {
 }
 
 ////////////////////////////////////////////////////////////////
+// Font metrics.
 
-function glue_store_screen_size() {
+var glue__font_width = 1;
+var glue__font_height = 1;
 
-		// FIXME: sensible minima (see the spec)
+function glue__get_font_metrics() {
 
-		var screen_width = 80;
-		var screen_height = 25;
-
-		////////////////////////////////////////////////////////////////
 		// Pick up the font height using the canary (it's a letter X
 		// inside a box that only we can see... rather more hacky than
 		// I like :/ )
@@ -455,29 +453,43 @@ function glue_store_screen_size() {
 		// Experimentation shows that there are no borders returned
 		// on this object's width. (If you check "XX", you get twice
 		// the width of "X".)
-		var font_width = box.width;
-		var font_height = box.height;
+		glue__font_width = box.width;
+		glue__font_height = box.height;
 
 		// And hide the canary away again.
 		holder.setAttribute('hidden', 'true');
+}
+
+////////////////////////////////////////////////////////////////
+
+function glue_store_screen_size() {
+
+		// FIXME: sensible minima (see the spec)
+
+		var screen_width = 80;
+		var screen_height = 25;
 
 		if (window.innerHeight!=1 && window.innerWidth!=1) {
 
-				screen_width  = Math.floor(window.innerWidth/font_width)-1;
-				screen_height = Math.floor(window.innerHeight/font_height)-1;
+				screen_width  = Math.floor(window.innerWidth/glue__font_width)-1;
+				screen_height = Math.floor(window.innerHeight/glue__font_height)-1;
 
 				// Why -1? Check whether we're off-by-one anywhere.
+
+				// Screen minima (s8.4): 60x14.
+				if (screen_width<60) screen_width=60;
+				if (screen_height<14) screen_height=14;
 		}
 
-		setbyte(screen_height,               0x20); // screen height, characters
-		setbyte(screen_width,                0x21); // screen width, characters
-		setword(screen_width  * font_width,  0x22); // screen width, units
-		setword(screen_height * font_height, 0x24); // screen height, units
-		setbyte(font_width,                  0x26); // font width, units
-		setbyte(font_height,                 0x27); // font height, units
+		setbyte(screen_height,                   0x20); // screen h, chars
+		setbyte(screen_width,                    0x21); // screen w, chars
+		setword(screen_width *glue__font_width,  0x22); // screen w, units
+		setword(screen_height*glue__font_height, 0x24); // screen h, units
+		setbyte(glue__font_width,                0x26); // font w, units
+		setbyte(glue__font_height,               0x27); // font h, units
 
 		// Tell the window drivers about it
-		win_setup(screen_width, screen_height);
+		win_resize(screen_width, screen_height);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -485,9 +497,16 @@ function glue_store_screen_size() {
 function start_up() {
 		document.getElementById('input').focus();
 
+    gnustoglue_set_text_style(0, 1, 1);
+
+		glue__get_font_metrics();
+		win_setup(80, 25);
+
 		glue_store_screen_size();
 
-    gnustoglue_set_text_style(0, 1, 1);
+		// Do that every time the size changes, actually.
+		window.addEventListener('resize',
+														glue_store_screen_size,	0);
 }
 
 function play() {

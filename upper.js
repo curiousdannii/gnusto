@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.16 2003/04/05 10:53:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.17 2003/04/05 11:35:21 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -35,7 +35,7 @@ var win__screen_height = 25; // a good default size
 
 ////////////////////////////////////////////////////////////////
 
-function win_setup(width, height) {
+function win_setup() {
     win__screen_doc = frames[0].document;
 
     win__screen_window = win__screen_doc.getElementById('text');
@@ -43,10 +43,16 @@ function win_setup(width, height) {
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
 
-		win__screen_width = width;
-		win__screen_height = height;
+		win_resize(80, 25);
 
 		win_set_top_window_size(0);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_resize(width, height) {
+		win__screen_width = width;
+		win__screen_height = height;
 }
 
 ////////////////////////////////////////////////////////////////
