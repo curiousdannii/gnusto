@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.25 2003/04/18 22:50:42 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.26 2003/04/22 10:55:26 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -33,6 +33,15 @@ var win__screen_height = 25; // a good default size
 
 ////////////////////////////////////////////////////////////////
 
+// Called on startup.
+function win_init() {
+
+		// Does nothing at present.
+
+}
+
+////////////////////////////////////////////////////////////////
+
 function win_setup() {
 
     win__screen_doc = barbarix_get_document(BARBARIX_INFOBOX);
@@ -40,6 +49,7 @@ function win_setup() {
 		var body = win__screen_doc.getElementsByTagName('body')[0];
 		barbarix_clear(body);
 		win__screen_window = win__screen_doc.createElement('pre');
+		win__screen_window.setAttribute('class', 'bocardo');
 		body.appendChild(win__screen_window);
 
     win__current_x[0] = win__current_y[0] = 0;
@@ -65,7 +75,7 @@ function win_reset_scroll_count() {
 
 ////////////////////////////////////////////////////////////////
 
-function win_chalk(win, style, text) {
+function win_chalk(win, text) {
 
 		var paused_for_more = 0;
 
@@ -145,7 +155,7 @@ function win_chalk(win, style, text) {
 										amount = win__screen_width - win__current_x[win];
 								}
 
-								win__subchalk(win, style, message.substring(0, amount));
+								win__subchalk(win, message.substring(0, amount));
 								
 								message = message.substring(amount+1);
 								newline();
@@ -154,7 +164,7 @@ function win_chalk(win, style, text) {
 								
 								// The message is shorter.
 
-								win__subchalk(win, style, message);
+								win__subchalk(win, message);
 								win__current_x[win] += message.length;
 								message = '';
 						}
@@ -202,13 +212,13 @@ function win_clear(win) {
 
 ////////////////////////////////////////////////////////////////
 
-// Prints an array of strings, |lines|, on window |win| in
-// style |style|. The first line will be printed at the current
+// Prints an array of strings, |lines|, on window |win|.
+// The first line will be printed at the current
 // cursor position, and each subsequent line will be printed
 // at the point immediately below the previous one. This function
 // leaves the cursor where it started.
 
-function win_print_table(win, style, lines) {
+function win_print_table(win, lines) {
 
 		var temp_x = win__current_x[win];
 		var temp_y = win__current_y[win];
@@ -221,11 +231,87 @@ function win_print_table(win, style, lines) {
 						lines[i] = lines[i].substring(win__screen_width-temp_x);
 				}
 
-				win_chalk(win, style, lines[i]);
+				win_chalk(win, lines[i]);
 		}
 
 		win__current_x[win] = temp_x;
 		win__current_y[win] = temp_y;
+}
+
+////////////////////////////////////////////////////////////////
+
+var win__current_style = [0,0];
+var win__current_foreground = [1,1];
+var win__current_background = [1,1];
+
+var win__current_css = ['',''];
+
+// Set the current text style, foreground and background colours
+// of a given window. Very Z-machine specific.
+function win_set_text_style(win, style, foreground, background) {
+
+		// List of CSS classes we want.
+		var css = '';
+
+		////////////////////////////////////////////////////////////////
+
+		// Examine the parameters, and set the internal variables
+		// which store the text style and colours of this window.
+		//
+		// The value -1 (for style) and 0 (for bg/fg) mean that we
+		// shouldn't change the current value. Style also has the
+		// particular oddity that it needs to be ORed with the
+		// current style, except when it's zero (==roman text),
+		// when it should set the current style to zero too.
+
+		if (style==-1) // Don't change
+				style = win__current_style[current_window];
+		else if (style==0)
+				win__current_style[current_window] = 0;
+		else {
+				win__current_style[current_window] |= style;
+				style = win__current_style[current_window];
+		}
+
+		if (foreground==0) // Don't change
+				foreground = win__current_foreground[current_window];
+		else
+				win__current_foreground[current_window] = foreground;
+
+		if (background==0) // Don't change
+				background = win__current_background[current_window];
+		else
+				win__current_background[current_window] = background;
+
+		////////////////////////////////////////////////////////////////
+
+		// Handle colours:
+
+		var fg_code;
+		var bg_code;
+
+		if (foreground==1)
+				fg_code = 'f';
+		else
+				fg_code = foreground.toString();
+
+		if (background==1)
+				bg_code = 'b';
+		else
+				bg_code = background.toString();
+
+		// Handle styles:
+
+		if (style & 0x1) // Reverse video.
+				css = 'b' + fg_code + ' f'+bg_code;
+		else
+				css = 'f' + fg_code + ' b'+bg_code;
+
+		if (style & 0x2) css = css + ' sb'; // bold
+		if (style & 0x4) css = css + ' si'; // italic
+		if (style & 0x8) css = css + ' sm'; // monospace
+
+		win__current_css[win] = css;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -234,7 +320,7 @@ function win_print_table(win, style, lines) {
 //
 ////////////////////////////////////////////////////////////////
 
-function win__subchalk(win, style, text) {
+function win__subchalk(win, text) {
 
 		var x = win__current_x[win];
 		var y = win__current_y[win];
@@ -247,14 +333,19 @@ function win__subchalk(win, style, text) {
     // FIXME: possibly this will become redundant when we handle
     // dynamic screen resizing.
     while (lines.length <= y) {
-                                var newdiv = win__screen_doc.createElement('div');
-                                newdiv.setAttribute('style', 'width: 100%; background-color: ' + css_colours[win__current_background[current_window]]);
-                                win__screen_window.appendChild(newdiv);
+				var newdiv = win__screen_doc.createElement('div');
+
+				newdiv.setAttribute('style', 'width: 100%;');
+				// Possibly the line above will become redundant
+				// once bug 3658 is fixed.
+
+				newdiv.setAttribute('class', win__current_css[current_window]);
+				win__screen_window.appendChild(newdiv);
     }
 
     // We delete any bits of that line we're going to overwrite,
 		// and work out where to insert the new span. The line consists of a
-		// number of spans plus a carriage return (which we should ignore).
+		// sequence of spans.
     var current_line = lines[y];
 
 		var spans = current_line.childNodes;
@@ -353,7 +444,7 @@ function win__subchalk(win, style, text) {
 
 		// ..and append our text.
 		var newSpan = win__screen_doc.createElement('span');
-		newSpan.setAttribute('style', style);
+		newSpan.setAttribute('class', win__current_css[win]);
 		newSpan.appendChild(win__screen_doc.createTextNode(text));
 
 		if (appendPoint == -1) {
