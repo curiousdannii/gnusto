@@ -1,6 +1,6 @@
 // darii.js || -*- Mode: Java; tab-width: 2; -*-
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.1 2003/04/20 12:24:06 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.2 2003/04/24 18:42:10 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -24,30 +24,30 @@
 function dispatch(what) {
 
     try{
-	var args = [];
+				var args = [];
 
-	switch (typeof(what)) {
-	case "string":
-	    args = what.split(' ');
-	    break;
+				switch (typeof(what)) {
+				case "string":
+						args = what.split(' ');
+						break;
 
-	case "array":
-	    args = what;
-	    break;
+				case "array":
+						args = what;
+						break;
 
-	default:
-	    args = what.toString().split(' ');
-	}
+				default:
+						args = what.toString().split(' ');
+				}
 
-	var func = 'command_' + args[0];
+				var func = 'command_' + args[0];
 
-	if (func in this)
-	    darii_print(this[func](args));
-	else
-	    darii_print('Unknown command: '+args[0]+'. Try "help".');
+				if (func in this)
+						darii_print(this[func](args));
+				else
+						darii_print('Unknown command: '+args[0]+'. Try "help".');
 
     } catch(e) {
-	deal_with_exception(e); // fixme
+				gnusto_error(307, e);
     }
 }
 
