@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.23 2003/07/25 21:08:39 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.24 2003/08/05 01:41:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -54,7 +54,11 @@ function barbara_init() {
 }
 
 ////////////////////////////////////////////////////////////////
-
+//
+// barbara_start_game
+//
+// Called at the start of a game.
+//
 function barbara_start_game() {
 
 		barbara__holder = null;
@@ -66,16 +70,38 @@ function barbara_start_game() {
 }
 
 ////////////////////////////////////////////////////////////////
-
+//
+// barbara_clear
+//
+// Clears the Barbara window and resets the whole background
+// to the current CSS colours.
 function barbara_clear() {
 		bocardo_collapse();
 
-		barbarix_clear(document.getElementById('barbara'));
+		// Collapse the Barbara window by cloning it (but not its
+		// children) and then killing the old one (including its
+		// children). That's not only faster, it works around a
+		// bug in Firebird (but not in Seamonkey).
+
+		var oldBarbara = document.getElementById('barbara');
+		var newBarbara = oldBarbara.cloneNode(0);
+		oldBarbara.parentNode.replaceChild(newBarbara, oldBarbara);
+
+		// Put the CSS in, both on the background and the actual
+		// text box itself.
+
 		document.getElementById('barbarabox').setAttribute('class',
 																											 barbara__current_css);
-		document.getElementById('barbara').setAttribute('class',
-																										barbara__current_css);
+		newBarbara.setAttribute('class',
+														barbara__current_css);
+
+		// Trash barbara__holder to force ourselves to create
+		// a new one next time around.
+
 		barbara__holder = null;
+
+		// Reset the [MORE] handling.
+
 		barbara__set_viewport_top(0);
 		barbara__most_seen = 0;
 }
