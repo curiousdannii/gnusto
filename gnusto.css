@@ -1,18 +1,14 @@
 /* CSS for Gnusto */
 
-body {
+div {
 	font-family: serif;
-	font-size: 14pt;
-}
-
-vbox#pad {
-	background-color: #337733;
+	font-size: 12pt;
 }
 
 window {
-        font-family: "clean", sans-serif;
-	font-size: 15px;
+        font-family: serif;
 	border: 0;
+	background-color: #FFFFFF;
 }
 
 description {
