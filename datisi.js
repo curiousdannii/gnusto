@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.8 2003/04/24 21:41:06 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.9 2003/04/25 18:46:01 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -204,6 +204,8 @@ function command_open(a) {
 																							 "nsILocalFile",
 																							 "initWithPath")(a[1]);
 				filename = a[1];
+                                filename = filename.replace('\\','\\\\', 'g');
+
 				break;
 		}
 
