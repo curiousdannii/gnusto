@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.86 2003/06/16 18:32:07 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.87 2003/06/19 17:29:14 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -118,186 +118,181 @@ function glue_set_answer(answer) {
 
 function command_exec(args) {
 
-		var p; // variable to hold parameters temporarily below
-
 		// If we stopped on a breakpoint last time, fix it up.
 		if (glue__reason_for_stopping == GNUSTO_EFFECT_BREAKPOINT && breakpoints[pc]) {
 				breakpoints[pc]=2; // So it won't trigger immediately we run.
 		}
-	
-		glue__reason_for_stopping = engine_run(glue__answer_for_next_run);
 
-		burin('effect', glue__reason_for_stopping.toString(16));
-
-		glue_print(engine_console_text());
-
-		switch (glue__reason_for_stopping) {
-
-		case GNUSTO_EFFECT_WIMP_OUT:
-				if (!single_step) {
-						// Well, just go round again.
-						glue_set_answer(0);
-						dispatch('exec');
-				}
-				break;
-
-		case GNUSTO_EFFECT_FLAGS_CHANGED:
-				var flags = zGetByte(0x11);
-
-				if (!glue__set_transcription(flags & 1)) {
-						// they cancelled the dialogue:
-						// clear the bit
-						zSetByte(zGetByte(0x11) & ~0x1);
-				}
-
-				win_force_monospace(flags & 2);
-
-				if (!single_step) {
-						glue_set_answer(0);
-						dispatch('exec');
-				}
-				break;
-
-		case GNUSTO_EFFECT_INPUT_CHAR:
-				// we know how to do this.
-				// Just bail out of here.
-				win_relax();
-				break;
-
-		case GNUSTO_EFFECT_INPUT:
-				win_relax();
-				var eep = engine_effect_parameters();
-				for (var i in engine__effect_parameters) burin('geep '+i,engine__effect_parameters[i]);
-				glue__input_buffer_max_chars = eep.maxchars;
-				win_set_input([win_recaps(eep.recaps), '']);
-				break;
-
-		case GNUSTO_EFFECT_SAVE:
-				// nope
-				alert("Saving of games isn't implemented yet.");
-				glue_set_answer(0);
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_RESTORE:
-				// nope here, too
-				alert("Loading saved games isn't implemented yet.");
-				glue_set_answer(0);
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_QUIT:
-				win_relax();
-				win_show_status("Game over.");
-				break;
-
-		case GNUSTO_EFFECT_PIRACY:
-				// "Interpreters are asked to be gullible and
-				// to unconditionally branch."
-				//
-				// One day, we should perhaps have a preference
-				// that the user can set to influence the result.
-				glue_set_answer(0);
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_VERIFY:
-				// FIXME: Here we should verify the game.
-				// There are many more important things to fix first,
-				// though. So let's just say "yes" for now.
-
-				alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
-				glue_set_answer(1);
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_BREAKPOINT:
-				// Ooh, a breakpoint! Lovely!
+		var looping;
+		do {
 				looping = 0;
-				tossio_notify_breakpoint_hit();
-				break;
 
-		case GNUSTO_EFFECT_STYLE:
-				p = engine_effect_parameters();
-				win_set_text_style(p[0], p[1], p[2]);
-				dispatch('exec');
-				break;
+				glue__reason_for_stopping = engine_run(glue__answer_for_next_run);
 
-		case GNUSTO_EFFECT_SOUND:
-				p = engine_effect_parameters();
-				glue__sound_effect(p[0], p[1], p[2], p[3], p[4]);
-				dispatch('exec');
-				break;
+				burin('effect', glue__reason_for_stopping.toString(16));
 
-		case GNUSTO_EFFECT_SPLITWINDOW:
-				win_set_top_window_size(engine_effect_parameters());
-				dispatch('exec');
-				break;
+				glue_print(engine_console_text());
 
-		case GNUSTO_EFFECT_SETWINDOW:
-				current_window = engine_effect_parameters();
+				switch (glue__reason_for_stopping) {
 
-				// reset the css style variable to reflect the current
-				// state of text in the new window
-				win_set_text_style(-1, 0, 0);
+				case GNUSTO_EFFECT_WIMP_OUT:
+						if (!single_step) looping = 1; // Well, just go round again.
+						break;
 
-				if (current_window!=0 && current_window!=1)
-						gnusto_error(303, current_window);
+				case GNUSTO_EFFECT_FLAGS_CHANGED:
+						var flags = zGetByte(0x11);
+						
+						if (!glue__set_transcription(flags & 1)) {
+								// they cancelled the dialogue:
+								// clear the bit
+								zSetByte(zGetByte(0x11) & ~0x1);
+						}
 
-				dispatch('exec');
-				break;
+						win_force_monospace(flags & 2);
 
-		case GNUSTO_EFFECT_ERASEWINDOW:
-				win_clear(engine_effect_parameters());
-				dispatch('exec');
-				break;
+						if (!single_step) looping = 1;
+						break;
 
-		case GNUSTO_EFFECT_ERASELINE:
-				// FIXME: this appears to be unimplemented!
-				gnusto_error(101);
+				case GNUSTO_EFFECT_INPUT_CHAR:
+						// we know how to do this.
+						// Just bail out of here.
+						win_relax();
+						break;
 
-				dispatch('exec');
-				break;
+				case GNUSTO_EFFECT_INPUT:
+						win_relax();
+						var eep = engine_effect_parameters();
+						for (var i in engine__effect_parameters)
+								burin('geep '+i,engine__effect_parameters[i]);
+						glue__input_buffer_max_chars = eep.maxchars;
+						win_set_input([win_recaps(eep.recaps), '']);
+						break;
 
-		case GNUSTO_EFFECT_SETCURSOR:
+				case GNUSTO_EFFECT_SAVE:
+						// nope
+						alert("Saving of games isn't implemented yet.");
+						looping = 1;
+						break;
 
-				// FIXME: this looks prehistoric
-				if (current_window==1) {
+				case GNUSTO_EFFECT_RESTORE:
+						// nope here, too
+						alert("Loading saved games isn't implemented yet.");
+						looping = 1;
+						break;
 
-						// @set_cursor has no effect on the lower window.
+				case GNUSTO_EFFECT_QUIT:
+						win_relax();
+						win_show_status("Game over.");
+						break;
 
-						p = engine_effect_parameters();
-						win_gotoxy(current_window, p[1]-1, p[0]-1);
+				case GNUSTO_EFFECT_PIRACY:
+						// "Interpreters are asked to be gullible and
+						// to unconditionally branch."
+						//
+						// One day, we should perhaps have a preference
+						// that the user can set to influence the result.
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_VERIFY:
+						// FIXME: Here we should verify the game.
+						// There are many more important things to fix first,
+						// though. So let's just say "yes" for now.
+						
+						alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_BREAKPOINT:
+						// Ooh, a breakpoint! Lovely!
+						tossio_notify_breakpoint_hit();
+						break;
+
+				case GNUSTO_EFFECT_STYLE:
+						var eep = engine_effect_parameters();
+						win_set_text_style(eep[0], eep[1], eep[2]);
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_SOUND:
+						var eep = engine_effect_parameters();
+						glue__sound_effect(eep[0], eep[1], eep[2], eep[3], eep[4]);
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_SPLITWINDOW:
+						win_set_top_window_size(engine_effect_parameters());
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_SETWINDOW:
+						current_window = engine_effect_parameters();
+						
+						// reset the css style variable to reflect the current
+						// state of text in the new window
+						win_set_text_style(-1, 0, 0);
+						
+						if (current_window!=0 && current_window!=1)
+								gnusto_error(303, current_window);
+						
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_ERASEWINDOW:
+						win_clear(engine_effect_parameters());
+						looping = 1;
+						break;
+						
+				case GNUSTO_EFFECT_ERASELINE:
+						// FIXME: this appears to be unimplemented!
+						gnusto_error(101);
+						
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_SETCURSOR:
+						
+						// FIXME: this looks prehistoric
+						if (current_window==1) {
+								
+								// @set_cursor has no effect on the lower window.
+								
+								eep = engine_effect_parameters();
+								win_gotoxy(current_window, eep[1]-1, eep[0]-1);
+						}
+						
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_SETBUFFERMODE:
+						// We should really do something with this to make
+						// the printing prettier, but we haven't yet.
+						looping = 1;
+						break;
+						
+				case GNUSTO_EFFECT_SETINPUTSTREAM:
+						// FIXME: stub at present. See bug 3470.
+						looping = 1;
+						break;
+
+				case GNUSTO_EFFECT_PRINTTABLE:
+						win_print_table(current_window,
+														engine_effect_parameters());
+						looping = 1;
+						break;
+						
+				default:
+						// give up: it's nothing we know
+						gnusto_error(304, "0x"+glue__reason_for_stopping.toString(16));
 				}
 
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_SETBUFFERMODE:
-				// We should really do something with this to make
-				// the printing prettier, but we haven't yet.
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_SETINPUTSTREAM:
-				// FIXME: stub at present. See bug 3470.
-				dispatch('exec');
-				break;
-
-		case GNUSTO_EFFECT_PRINTTABLE:
-				win_print_table(current_window,
-												engine_effect_parameters());
-				dispatch('exec');
-				break;
-
-		default:
-				// give up: it's nothing we know
-				gnusto_error(304, "0x"+glue__reason_for_stopping.toString(16));
-		}
-
+		} while (looping);
+		
 		if (debug_mode) {
 				tossio_debug_instruction(['status']);
 		}
+		
+		win_set_status_line('done'); // temp
 }
 
 ////////////////////////////////////////////////////////////////
@@ -420,7 +415,6 @@ function start_up() {
 function glue_play(memory) {
 
     engine_start_game(memory);
-
 		win_start_game();
 		barbara_start_game();
 		bocardo_start_game();
