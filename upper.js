@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.22 2003/04/11 19:47:26 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.23 2003/04/11 20:41:46 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -170,7 +170,7 @@ function win_chalk(win, style, text) {
 				}
     }
 
-		return 0; // We didn't have to scroll more than a screenful.
+		return ''; // We didn't have to scroll more than a screenful.
 }
 
 ////////////////////////////////////////////////////////////////
