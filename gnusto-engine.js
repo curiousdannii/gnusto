@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.8 2003/09/15 06:48:48 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.9 2003/09/15 07:21:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 06:48:48 $';
+const CVS_VERSION = '$Date: 2003/09/15 07:21:43 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -28,7 +28,6 @@ const PARENT_REC = 6;
 const SIBLING_REC = 8;
 const CHILD_REC = 10;
 
-// FIXME: @@@ is the current extent of Pythonistaring.
 // FIXME: Result eaters now take TWO parameters (engine and value)
 // FIXME: Some of the indep. fns should really be methods (e.g. gosub)
 
@@ -246,9 +245,9 @@ function handler_zOut(engine, text, is_return) {
   var setter;
 
   if (is_return) {
-    setter = '_func_return(this,1)';
+    setter = '_func_return(1)';
   } else {
-    setter = 'this.m_pc=0x'+engine.m_pc.toString(16);
+    setter = 'm_pc=0x'+engine.m_pc.toString(16);
   }
 
   return 'if(zOut('+text+')){' + setter +
@@ -379,7 +378,7 @@ function handleZ_inc_chk(engine, a) {
 
 function handleZ_jin(engine, a) {
     //VERBOSE burin('jin',a[0] + ',' + a[1]);
-    return engine._brancher("obj_in(this,"+a[0]+','+a[1]+')');
+    return engine._brancher("_obj_in("+a[0]+','+a[1]+')');
   }
 function handleZ_test(engine, a) {
     //VERBOSE burin('test','t='+a[1]+';br(' + a[0] + '&t)==t)');
@@ -395,15 +394,15 @@ function handleZ_and(engine, a) {
   }
 function handleZ_test_attr(engine, a) {
     //VERBOSE burin('test_attr',a[0] + ',' + a[1]);
-    return engine._brancher('test_attr(this,'+a[0]+','+a[1]+')');
+    return engine._brancher('_test_attr('+a[0]+','+a[1]+')');
   }
 function handleZ_set_attr(engine, a) {
     //VERBOSE burin('set_attr',a[0] + ',' + a[1]);
-    return 'set_attr(this,'+a[0]+','+a[1]+')';
+    return '_set_attr('+a[0]+','+a[1]+')';
   }
 function handleZ_clear_attr(engine, a) {
     //VERBOSE burin('clear_attr',a[0] + ',' + a[1]);
-    return 'clear_attr(this,'+a[0]+','+a[1]+')';
+    return '_clear_attr('+a[0]+','+a[1]+')';
   }
 function handleZ_store(engine, a) {
     //VERBOSE burin('store',a[0] + ',' + a[1]);
@@ -411,27 +410,27 @@ function handleZ_store(engine, a) {
   }
 function handleZ_insert_obj(engine, a) {
     //VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
-    return "insert_obj("+a[0]+','+a[1]+")";
+    return "_insert_obj("+a[0]+','+a[1]+")";
   }
 function handleZ_loadw(engine, a) {
     //VERBOSE burin('loadw',"this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
-    return engine._storer("this.getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+    return engine._storer("getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
   }
 function handleZ_loadb(engine, a) {
     //VERBOSE burin('loadb',"this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
-    return engine._storer("this.getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+    return engine._storer("getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
   }
 function handleZ_get_prop(engine, a) {
     //VERBOSE burin('get_prop',a[0]+','+a[1]);
-    return engine._storer("get_prop(this,"+a[0]+','+a[1]+')');
+    return engine._storer("_get_prop("+a[0]+','+a[1]+')');
   }
 function handleZ_get_prop_addr(engine, a) {
     //VERBOSE burin('get_prop_addr',a[0]+','+a[1]);
-    return engine._storer("get_prop_addr(this,"+a[0]+','+a[1]+')');
+    return engine._storer("_get_prop_addr("+a[0]+','+a[1]+')');
   }
 function handleZ_get_next_prop(engine, a) {
     //VERBOSE burin('get_next_prop',a[0]+','+a[1]);
-    return engine._storer("get_next_prop(this,"+a[0]+','+a[1]+')');
+    return engine._storer("_get_next_prop("+a[0]+','+a[1]+')');
   }
 function handleZ_add(engine, a) { 
     //VERBOSE burin('add',a[0]+'+'+a[1]);
@@ -444,7 +443,7 @@ function handleZ_mul(engine, a) {
     return engine._storer(a[0]+'*'+a[1]); }
 function handleZ_div(engine, a) {
     //VERBOSE burin('div',a[0]+'/'+a[1]);
-    return engine._storer('trunc_divide('+a[0]+','+a[1]+')');
+    return engine._storer('_trunc_divide('+a[0]+','+a[1]+')');
   }
 function handleZ_mod(engine, a) { 
     //VERBOSE burin('mod',a[0]+'%'+a[1]);
@@ -458,7 +457,7 @@ function handleZ_call_2n(engine, a) {
     //VERBOSE burin('call2n','gosub(('+a[0]+'&0xFFFF)*4),'+ a[1]+','+pc +',0');
     // can we use handler_call here, too?
     engine.m_compilation_running=0; // Got to stop after this.
-    return "_func_gosub("+pc_translate_for_routine(a[0])+",["+a[1]+"],"+pc+",0)";
+    return "_func_gosub("+engine.m_pc_translate_for_routine(a[0])+",["+a[1]+"],"+engine.m_pc+",0)";
   }
 function handleZ_set_colour(engine, a) {
     //VERBOSE burin('set_colour',a[0] + ',' + a[1]);
@@ -467,7 +466,7 @@ function handleZ_set_colour(engine, a) {
 function handleZ_throw(engine, a) {
     //VERBOSE burin('throw','throw_stack_frame('+a[0]+');return');
     engine.m_compilation_running = 0;
-    return "throw_stack_frame(this,"+a[0]+");return";
+    return "_throw_stack_frame("+a[0]+");return";
   }
 function handleZ_js(engine, a) {
     //VERBOSE burin('js',a[0]+'==0');
@@ -485,19 +484,19 @@ function handleZ_get_child(engine, a) {
   }
 function handleZ_get_parent(engine, a) {
     //VERBOSE burin('get_parent',"get_parent("+a[0]+");");
-    return engine._storer("get_parent("+a[0]+")");
+    return engine._storer("_get_parent("+a[0]+")");
   }
 function handleZ_get_prop_len(engine, a) {
     //VERBOSE burin('get_prop_len',"get_prop_len("+a[0]+");");
-    return engine._storer("get_prop_len(engine,"+a[0]+')');
+    return engine._storer("_get_prop_len(engine,"+a[0]+')');
   }
 function handleZ_inc(engine, a) {
     //VERBOSE burin('inc',c + '+1');
-    return "t="+a[0]+';_varcode_set(_varcode_get(this,t)+1, t)';
+    return "t="+a[0]+';_varcode_set(_varcode_get(t)+1, t)';
   }
 function handleZ_dec(engine, a) {
     //VERBOSE burin('dec',c + '-1');
-    return "t="+a[0]+';_varcode_set(_varcode_get(this,t)-1, t)';
+    return "t="+a[0]+';_varcode_set(_varcode_get(t)-1, t)';
   }
 function handleZ_print_addr(engine, a) {
     //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
@@ -526,13 +525,13 @@ function handleZ_jump(engine, a) {
       a[0] = (~0xFFFF) | a[0];
     }
 				
-    var addr=(a[0] + pc) - 2;
+    var addr=(a[0] + engine.m_pc) - 2;
     //VERBOSE burin('jump',"pc="+addr+";return");
     return "pc="+addr+";return";
   }
 function handleZ_print_paddr(engine, a) {
     //VERBOSE burin('print_paddr',"zscii_from((("+a[0]+")&0xFFFF)*4)");
-    return handler_zOut("zscii_from("+pc_translate_for_string(a[0])+")",0);
+    return handler_zOut("zscii_from("+engine.m_pc_translate_for_string(a[0])+")",0);
   }
 function handleZ_load(engine, a) {
     //VERBOSE burin('load',"store " + c);
@@ -542,7 +541,7 @@ function handleZ_call_1n(engine, a) {
     // can we use handler_call here, too?
     engine.m_compilation_running=0; // Got to stop after this.
     //VERBOSE burin('call_1n',"gosub(" + a[0] + '*4)');
-    return "_func_gosub("+pc_translate_for_routine(a[0])+",[],"+pc+",0)"
+    return "_func_gosub("+engine.m_pc_translate_for_routine(a[0])+",[],"+pc+",0)"
       }
 		
 function handleZ_rtrue(engine, a) {
@@ -638,7 +637,7 @@ function handleZ_storeb(engine, a) {
 
 function handleZ_putprop(engine, a) {
     //VERBOSE burin('putprop',"put_prop("+a[0]+','+a[1]+','+a[2]+')');
-    return "put_prop(this,"+a[0]+','+a[1]+','+a[2]+')';
+    return "_put_prop("+a[0]+','+a[1]+','+a[2]+')';
   }
 function handleZ_read(engine, a) {
 				
@@ -656,7 +655,7 @@ function handleZ_read(engine, a) {
     engine.m_compilation_running = 0;
 				
     var setter = "rebound=function(n){" +
-      engine._storer("aread(this, n, a0," + a[1] + ")") +
+      engine._storer("_aread(n, a0," + a[1] + ")") +
       "};";
 
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
@@ -676,7 +675,7 @@ function handleZ_read(engine, a) {
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
-    return handler_zOut('zscii_char_to_ascii(this,'+a[0]+')',0);
+    return handler_zOut('_zscii_char_to_ascii('+a[0]+')',0);
   }
 function handleZ_print_num(engine, a) {
     //VERBOSE burin('print_num','handler_zout('+a[0]+')');
@@ -807,7 +806,7 @@ function handleZ_call_vn(engine, a) {
 		
 function handleZ_tokenise(engine, a) {
     //VERBOSE burin('tokenise',"tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")");
-    return "tokenise(this,("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
+    return "_tokenise(("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
   }
 		
 function handleZ_encode_text(engine, a) {
@@ -831,7 +830,7 @@ function handleZ_print_table(engine, a) {
 		
 function handleZ_check_arg_count(engine, a) {
     //VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
-    return engine._brancher(a[0]+'<=this._param_count()');
+    return engine._brancher(a[0]+'<=_param_count()');
   }
 		
 function handleZ_save(engine, a) {
@@ -1183,9 +1182,11 @@ GnustoEngine.prototype = {
 
     while(!stopping) {
 
-      if (turns++ >= turns_limit)
+				if (turns++ >= turns_limit) {
 					// Wimp out for now.
-					return GNUSTO_EFFECT_WIMP_OUT;
+						dump(' *** wimping out ***');
+						return GNUSTO_EFFECT_WIMP_OUT;
+				}
 
       start_pc = this.m_pc;
 
@@ -1205,8 +1206,6 @@ GnustoEngine.prototype = {
       //burin('eng pc', start_pc);
       //burin('eng this.m_jit', jscode);
     
-			dump(jscode);
-			dump('\n');
       stopping = jscode();
     }
 
@@ -1312,7 +1311,7 @@ GnustoEngine.prototype = {
 
     this.m_separator_count = this.getByte(this.m_dict_start);
     for (var i=0; i<this.m_separator_count; i++) {		  
-      this.m_separators[i]=this._zscii_char_to_ascii(this, this.getByte(this.m_dict_start + i+1));
+      this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
     }	
 	
     // If there is a header extension...
@@ -1462,7 +1461,7 @@ GnustoEngine.prototype = {
 			
 					// Check for a breakpoint.
 					if (this.m_pc in this.m_breakpoints) {
-							code = code + 'if(is_valid_breakpoint(this,'+this.m_pc+'))return 0x510;';
+							code = code + 'if(_is_valid_breakpoint('+this.m_pc+'))return 0x510;';
 							//VERBOSE burin(code,'');
 					}
 
@@ -1568,7 +1567,7 @@ GnustoEngine.prototype = {
 					} else {
 							gnusto_error(200, instr, this.m_pc.toString(16)); // no handler
 					}
-					
+
 			} while(this.m_compilation_running);
 
 			// When we're not in debug mode, dissembly only stops at places where
@@ -1577,7 +1576,7 @@ GnustoEngine.prototype = {
 			// set it automatically at the end of each fragment.
 			
 			if (this.m_single_step||this.m_debug_mode) {
-					code = code + 'this.m_pc='+this.m_pc; 
+					code = code + 'm_pc='+this.m_pc; 
 					//VERBOSE burin(code,'');
 			}
 
@@ -1587,7 +1586,7 @@ GnustoEngine.prototype = {
 	},
 
 	_param_count: function ge_param_count() {
-		return m_param_counts[0];
+			return this.m_param_counts[0];
 	},
 
 	_set_output_stream: function ge_set_output_stream(target, address) {
@@ -1947,7 +1946,7 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_addr: function ge_get_prop_addr(object, property) {
-			var result = property_search(object, property, -1);
+			var result = this._property_search(object, property, -1);
 			if (result[2]) {
 					return result[0];
 			} else {
@@ -2013,7 +2012,7 @@ GnustoEngine.prototype = {
 			
 			if (object==0) return 0; // Kill that V0EFH before it starts.
 
-			var temp = this.property_search(object, property, -1);
+			var temp = this._property_search(object, property, -1);
 
 			if (temp[1]==2) {
 					return this.getWord(temp[0]);
@@ -2059,7 +2058,7 @@ GnustoEngine.prototype = {
 	//          |previous_property|, and 0 otherwise. At all other times it will
 	//          be 0.
 	_property_search: function ge_property_search(object, property, previous_property) {
-			var props_address = this.getUnsignedWord(objs_start + 124 + object*14);
+			var props_address = this.getUnsignedWord(this.m_objs_start + 124 + object*14);
 
 			props_address = props_address + this.getByte(props_address)*2 + 1;
 			
@@ -2088,7 +2087,7 @@ GnustoEngine.prototype = {
 
 							if (property>0)
 									// Yes, because it's a real property.
-									return [objs_start + (property-1)*2,
+									return [this.m_objs_start + (property-1)*2,
 													2, 0, property, 0];
 							else
 									// No: they didn't specify a particular
@@ -2109,7 +2108,7 @@ GnustoEngine.prototype = {
 	_set_attr: function ge_set_attr(object, bit) {
 			if (object==0) return; // Kill that V0EFH before it starts.
 			
-			var address = objs_start + 112 + object*14 + (bit>>3);
+			var address = this.m_objs_start + 112 + object*14 + (bit>>3);
 			var value = this.getByte(address);
 			this.setByte(value | (128>>(bit%8)), address);
 	},
@@ -2117,7 +2116,7 @@ GnustoEngine.prototype = {
 	_clear_attr: function ge_clear_attr(object, bit) {
 			if (object==0) return; // Kill that V0EFH before it starts.
 
-			var address = objs_start + 112 + object*14 + (bit>>3);
+			var address = this.m_objs_start + 112 + object*14 + (bit>>3);
 			var value = this.getByte(address);
 			this.setByte(value & ~(128>>(bit%8)), address);
 	},
@@ -2125,7 +2124,7 @@ GnustoEngine.prototype = {
 	_test_attr: function ge_test_attr(object, bit) {
 			if (object==0) return 0; // Kill that V0EFH before it starts.
 
-			if ((this.getByte(objs_start + 112 + object*14 +(bit>>3)) &
+			if ((this.getByte(this.m_objs_start + 112 + object*14 +(bit>>3)) &
 					 (128>>(bit%8)))) {
 					return 1;
 			} else {
@@ -2135,7 +2134,7 @@ GnustoEngine.prototype = {
 
 	_put_prop: function put_prop(object, property, value) {
 
-			var address = property_search(object, property, -1);
+			var address = this._property_search(object, property, -1);
 
 			if (!address[2]) {
 					gnusto_error(704); // undefined property
@@ -2153,7 +2152,7 @@ GnustoEngine.prototype = {
 
 	_get_older_sibling: function ge_get_older_sibling(object) {
 			// Start at the eldest child.
-			var candidate = this.get_child(this.get_parent(object));
+			var candidate = this._get_child(this._get_parent(object));
 
 			if (object==candidate) {
 					// evidently nothing doing there.
@@ -2161,7 +2160,7 @@ GnustoEngine.prototype = {
 			}
 
 			while (candidate) {
-					next_along = this.get_sibling(candidate);
+					next_along = this._get_sibling(candidate);
 					if (next_along==object) {
 							return candidate; // Yay! Got it!
 					}
@@ -2176,61 +2175,61 @@ GnustoEngine.prototype = {
 
 			// First, remove mover from wherever it is in the tree now.
 
-			var old_parent = this.get_parent(mover);
-			var older_sibling = this.get_older_sibling(mover);
-			var younger_sibling = this.get_sibling(mover);
+			var old_parent = this._get_parent(mover);
+			var older_sibling = this._get_older_sibling(mover);
+			var younger_sibling = this._get_sibling(mover);
 
-			if (old_parent && get_child(old_parent)==mover) {
-					this.set_child(old_parent, younger_sibling);
+			if (old_parent && this._get_child(old_parent)==mover) {
+					this._set_child(old_parent, younger_sibling);
 			}
 
 			if (older_sibling) {
-					this.set_sibling(older_sibling, younger_sibling);
+					this._set_sibling(older_sibling, younger_sibling);
 			}
 
 			// Now, slip it into the new place.
 			
-			set_parent(mover, new_parent);
+			this._set_parent(mover, new_parent);
 
 			if (new_parent) {
-					this.set_sibling(mover, get_child(new_parent));
-					this.set_child(new_parent, mover);
+					this._set_sibling(mover, this._get_child(new_parent));
+					this._set_child(new_parent, mover);
 			}
 	},
 
 	// FIXME: Why the new_parent?!
 	_remove_obj: function ge_remove_obj(mover, new_parent) {
-			this.insert_obj(mover, 0);
+			this._insert_obj(mover, 0);
 	},
 
 	_get_family: function ge_get_family(from, relationship) {
-			return this.getUnsignedWord(objs_start + 112 +
+			return this.getUnsignedWord(this.m_objs_start + 112 +
 																	relationship + from*14);
 	},
 
 	_get_parent:  function ge_get_parent(from)
-	{ return this.get_family(from, PARENT_REC); },
+	{ return this._get_family(from, PARENT_REC); },
 
 	_get_child:   function ge_get_child(from)
-  { return this.get_family(from, CHILD_REC); },
+  { return this._get_family(from, CHILD_REC); },
 
   _get_sibling: function ge_get_sibling(from)
-	{ return this.get_family(from, SIBLING_REC); },
+	{ return this._get_family(from, SIBLING_REC); },
 
 	_set_family: function ge_set_family(from, to, relationship)
-	{ this.setWord(to, objs_start + 112 + relationship + from*14); },
+	{ this.setWord(to, this.m_objs_start + 112 + relationship + from*14); },
 
 	_set_parent: function ge_set_parent(from, to)
-	{ return set_family(from, to, PARENT_REC); },
+	{ return this._set_family(from, to, PARENT_REC); },
 
 	_set_child: function ge_set_child(from, to)
-	{ return set_family(from, to, CHILD_REC); },
+	{ return this._set_family(from, to, CHILD_REC); },
 
 	_set_sibling: function ge_set_sibling(from, to)
-	{ return set_family(from, to, SIBLING_REC); },
+	{ return this._set_family(from, to, SIBLING_REC); },
 
 	_obj_in: function ge_obj_in(child, parent)
-	{ return get_parent(child) == parent; },
+	{ return this._get_parent(child) == parent; },
 
 	////////////////////////////////////////////////////////////////
 
@@ -2751,7 +2750,7 @@ GnustoEngine.prototype = {
 			// if there's no code there, we should mark that we want it later.
 			//  [ if (!this.m_jit[target_address]) this.m_jit[target_address]=0; ]
 
-			return if_statement + '{this.m_pc='+(target_address)+';return;}';
+			return if_statement + '{m_pc='+(target_address)+';return;}';
 	},
 
 	_storer: function ge_storer(rvalue) {
