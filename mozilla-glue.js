@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.75 2003/05/15 20:19:55 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.76 2003/05/15 21:34:06 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -81,6 +81,18 @@ function glue__sound_effect(number, effect, volume, callback) {
 
 function glue_print(text) {
 		win_chalk(current_window, text);
+
+		if (glue__transcription_file && current_window==0) {
+				if (!glue__transcription_file) {
+						if (!glue__set_transcription(1)) {
+								// bah, couldn't create the file;
+								// clear the bit
+								setbyte(getbyte(0x11) & ~0x1);
+						}
+				}
+				glue__transcription_file.write(text, text.length);
+				glue__transcription_file.flush();
+		}
 }
 
 function go_wrapper(answer) {
@@ -113,7 +125,12 @@ function go_wrapper(answer) {
 				case GNUSTO_EFFECT_FLAGS_CHANGED:
 						var flags = getbyte(0x11);
 
-						// if (flags & 1) ... transcripting. FIXME
+						if (!glue__set_transcription(flags & 1)) {
+								// they cancelled the dialogue:
+								// clear the bit
+								setbyte(getbyte(0x11) & ~0x1);
+						}
+
 						win_force_monospace(flags & 2);
 
 						if (!single_step) {
@@ -541,20 +558,37 @@ function gnusto_error(n) {
 		if (n<500) throw -1;
 }
 
-var transcription_file = 0;
+var glue__transcription_file = 0;
 
 // Here we ask for a filename if |whether|, and we don't
 // already have a filename. Returns 0 if transcription
 // shouldn't go ahead (e.g. the user cancelled.)
-function gnustoglue_notify_transcription(whether) {
+function glue__set_transcription(whether) {
 
 		if (whether) {
-				if (!transcription_file) {
-						var target_filename = '/tmp/TRANSCRIPT'; // fixme
+				if (!glue__transcription_file) {
 
-						transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")(target_filename), 0xA, 0600, 0);
+						var target_filename;
 
-						if (!transcription_file) {
+						var ifp = Components.interfaces.nsIFilePicker;
+						var picker = Components.classes["@mozilla.org/filepicker;1"].
+								createInstance(ifp);
+
+						picker.init(window, "Create a transcript", ifp.modeSave);
+						picker.appendFilter("Transcripts", "*.txt");
+
+						if (picker.show()==ifp.returnOK) {
+						
+								target_filename = picker.file.path;
+								target_filename = target_filename.replace('\\','\\\\', 'g');
+
+						} else {
+								return 0;
+						}
+
+						glue__transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")(target_filename), 0xA, 0600, 0);
+
+						if (!glue__transcription_file) {
 								return 0;
 						} else {
 								return 1;
@@ -562,18 +596,6 @@ function gnustoglue_notify_transcription(whether) {
 				}
 		}
 		return 1;
-}
-
-function gnustoglue_transcribe(text) {
-		if (current_window==0) {
-				if (!transcription_file) {
-						if (!gnustoglue_notify_transcription(1)) {
-								gnusto_error(308);
-						}
-				}
-				transcription_file.write(text, text.length);
-				transcription_file.flush();
-		}
 }
 
 function doTranscript() {
