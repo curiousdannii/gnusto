@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.47 2003/08/04 05:55:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.48 2003/08/08 08:21:38 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -271,6 +271,7 @@ function bocardo_clear(win) {
 
 function bocardo_print_table(win, lines) {
 
+	if (win==1) {
 		var temp_x = bocardo__current_x[win];
 		var temp_y = bocardo__current_y[win];
 
@@ -284,6 +285,13 @@ function bocardo_print_table(win, lines) {
 
 				bocardo_chalk(win, lines[i]);
 		}
+	} else {
+		for (i=0; i<lines.length; i++) {
+
+				barbara_chalk(lines[i]);
+		}
+		
+	}
 
 }
 
