@@ -8,11 +8,15 @@
         title="Settings"
         width="300" height="335">
 
+<!-- functions -->
+<script type="application/x-javascript" src="chrome://gnusto/content/exUnregisterer.js" />
+
     <groupbox flex="1">
         <caption label="Gnusto Options" />
             <description>
                 Settings go here ...
             </description>
+            <button label="Uninstall" oncommand="var unreg = new exUnregisterer('chrome://gnusto/content/contents.rdf', 'chrome://gnusto/skin/contents.rdf', 'chrome://gnusto/locale/en-US/contents.rdf'); unreg.unregister(); unreg.removePrefs('gnusto'); alert('Uninstall will finish when you close and restart the browser.');"/>            
     </groupbox>
 
 </dialog>
