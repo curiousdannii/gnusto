@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.24 2003/10/14 03:24:05 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.25 2003/10/14 03:34:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/14 03:24:05 $';
+const CVS_VERSION = '$Date: 2003/10/14 03:34:31 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1155,6 +1155,11 @@ GnustoEngine.prototype = {
 			content = content.concat(tag_UMem);
 			content = content.concat(int_to_bytes(this.m_stat_start, 4));
  			content = content.concat(this.m_memory.slice(0, this.m_stat_start));
+
+			if ((this.m_stat_start % 2) != 0) {
+					// Odd number of bytes in the memory. Add one more.
+					content = content.concat([0]);
+			}
 
 			/*
 
