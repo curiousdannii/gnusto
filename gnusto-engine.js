@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.84 2003/07/21 05:49:46 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.85 2003/07/21 06:08:16 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1430,7 +1430,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		var position = 2;
 
 		for (var i in words) {
-
+                         if ((words[i] != '') && (words[i] != ' ')) {
 				var lexical = look_up(words[i], dictionary);
 
 				// burin('token', words[i]+' '+lexical);
@@ -1445,6 +1445,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		
 				position += words[i].length+1;
 				zSetByte(zGetByte(words_count)+1, words_count);
+			}
 		}
 }
 
