@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.55 2003/04/20 15:06:04 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.56 2003/04/20 15:13:44 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1896,9 +1896,21 @@ var default_unicode_translation_table = {
 var zalphabet2 = '\n0123456789.,!?_#\'"/\\-:()';
 
 function zscii_from(address, max_length, tell_length) {
+
+		if (address in jit) {
+
+				// Already seen this one.
+
+				if (tell_length)
+						return jit[address];
+				else
+						return jit[address][0];
+		}
+
 		var temp = '';
 		var alph = 0;
 		var running = 1;
+		var start_address = address;
 
 		// Should be:
 		//   -2 if we're not expecting a ten-bit character
@@ -1953,6 +1965,8 @@ function zscii_from(address, max_length, tell_length) {
 						}
 				}
 		}
+
+		jit[start_address] = [temp, address];
 
 		if (tell_length) {
 				return [temp, address];
