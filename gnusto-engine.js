@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.52 2003/04/14 18:50:14 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.53 2003/04/14 19:44:51 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -833,22 +833,12 @@ var handlers = {
 
 		1002: function Z_log_shift(a) {
 				// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
-				if (a[1] < 0) {		
-						return storer(a[0]+">>> (-1*"+a[1] + ')');
-				}
-				else {
-						return storer(a[0]+"<<"+a[1]);
-				}
+                                return storer("log_shift("+a[0]+','+a[1]+')');
 		},
 
 		1003: function Z_art_shift(a) {
 				// arithmetic-bit-shift.  Right shifts are sign-extended
-				if (a[1] < 0) {		
-					return storer(a[0]+">> (-1*"+a[1] + ')');
-				}
-				else {
-					return storer(a[0]+"<<"+a[1]);
-				}	
+                                return storer("art_shift("+a[0]+','+a[1]+')');
 		},
 
 		1004: function Z_set_font(a) {
@@ -893,6 +883,26 @@ function get_unsigned_word(addr) {
 function setword(value, addr) {
 		setbyte((value>>8) & 0xFF, addr);
 		setbyte((value) & 0xFF, addr+1);
+}
+
+function log_shift(value, shiftbits) {
+		// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
+		if (shiftbits < 0) {		
+				return (value >>> (-1* shiftbits)) & 0x7FFF;
+		}
+		else {
+				return (value << shiftbits) & 0x7FFF;
+		}
+}
+
+function art_shift(value, shiftbits){
+		// arithmetic-bit-shift.  Right shifts are sign-extended
+		if (shiftbits < 0) {		
+			return (value >> (-1* shiftbits)) & 0x7FFF;
+		}
+		else {
+			return (value << shiftbits) &0x7FFF;
+		}	
 }
 
 // Called when we reach a possible breakpoint. |addr| is the opcode
