@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.88 2003/06/19 23:01:33 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.89 2003/06/22 07:22:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -185,6 +185,11 @@ function command_exec(args) {
 						win_show_status("Game over.");
 						break;
 
+				case GNUSTO_EFFECT_VERIFY:
+						glue_set_answer(glue__verify());
+						looping = 1;
+						break;
+
 				case GNUSTO_EFFECT_PIRACY:
 						// "Interpreters are asked to be gullible and
 						// to unconditionally branch."
@@ -291,6 +296,47 @@ function command_exec(args) {
 		if (debug_mode) {
 				tossio_debug_instruction(['status']);
 		}
+}
+
+////////////////////////////////////////////////////////////////
+//
+// glue__verify
+//
+// Returns true iff the memory verifies correctly for @verify
+// in the original file of this game (that is, if all bytes
+// after the header total to the checksum given in the header).
+// Returns false if anything stops us finding out (like the
+// original file having been deleted). We use the value
+// currently in the header for comparison, not the one in
+// the original file; this shouldn't make much of a difference.
+// (FIXME: should we?)
+//
+function glue__verify() {
+		
+		var localfile = new Components.
+				Constructor("@mozilla.org/file/local;1",
+										"nsILocalFile",
+										"initWithPath")(sys_current_filename());
+
+		if (!localfile.exists())
+				return 0;
+
+		var original_content = load_from_file(localfile);
+
+		if (!original_content)
+				// Can't get the file, so we can't say for sure,
+				// so say no.
+				return 0;
+
+		var total = 0;
+		
+		for (var i=0x40; i<original_content.length; i++)
+				total += original_content[i];
+
+		// FIXME: Why isn't there a constant somewhere
+		// for the header word address?
+
+		return (total & 0xFFFF) == zGetUnsignedWord(0x1c);
 }
 
 ////////////////////////////////////////////////////////////////
