@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.44 2003/07/25 08:12:00 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.45 2003/07/31 23:40:48 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -251,8 +251,7 @@ function bocardo_clear(win) {
 // Prints an array of strings, |lines|, on window |win|.
 // The first line will be printed at the current
 // cursor position, and each subsequent line will be printed
-// at the point immediately below the previous one. This function
-// leaves the cursor where it started.
+// at the point immediately below the previous one.
 
 function bocardo_print_table(win, lines) {
 
@@ -270,8 +269,6 @@ function bocardo_print_table(win, lines) {
 				bocardo_chalk(win, lines[i]);
 		}
 
-		bocardo__current_x[win] = temp_x;
-		bocardo__current_y[win] = temp_y;
 }
 
 ////////////////////////////////////////////////////////////////
