@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.7 2003/09/15 06:01:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.8 2003/09/15 06:48:48 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 06:01:31 $';
+const CVS_VERSION = '$Date: 2003/09/15 06:48:48 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -38,38 +38,6 @@ const CHILD_REC = 10;
 //
 //       STUFF FROM GNUSTO-LIB WHICH STILL NEEDS MERGING IN
 //
-////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////
-////// Golden trail handlers
-////
-////  function golden_print(text) {
-////  var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
-////  transcription_file.write(text, text.length);
-////  transcription_file.close();
-////  }
-////function golden_trail(addr) {
-////  var text = '\npc : '+addr.toString(16);
-////  print(text);
-////burin('gold',text);
-////
-////// Extra debugging information which may sometimes be useful
-////var v = 0;
-////
-////for (var jj=0; jj<16; jj++) {
-////v = locals[jj] & 65535;
-////text = text + ' '+jj.toString(16)+'='+v.toString(16);
-////}
-////
-////if (gamestack.length!=0) {
-////v = gamestack[gamestack.length-1] & 65535;
-////text = text + ' s='+v.toString(16);
-////}
-////
-////text = text + '\n';
-////golden_print(text);
-////}
-
 ////////////////////////////////////////////////////////////////
 
 var default_unicode_translation_table = {
@@ -1166,8 +1134,21 @@ GnustoEngine.prototype = {
   },
 
   get cvsVersion() {
-    return CVS_VERSION.substring(7, 26);
+			return CVS_VERSION.substring(7, 26);
   },
+
+	get goldenTrail() {
+			return this.m_goldenTrail;
+	},
+
+	set goldenTrail(value) {
+			if (value) {
+					this.m_jit = []; // Got to trash the JIT here.
+					this.m_goldenTrail = 1;
+			} else {
+					this.m_goldenTrail = 0;
+			}
+	},
 
   effect: function ge_effect(which) {
     throw "not implemented";
@@ -1188,7 +1169,6 @@ GnustoEngine.prototype = {
   // not answering an effect code, pass 0 here.
   run: function ge_run() {
    
-    dump('This is run.\n');
     // burin('run', answer);
     var start_pc = 0;
     var stopping = 0;
@@ -1221,18 +1201,18 @@ GnustoEngine.prototype = {
 					}
       }
 
-			dump('\n ** Run loop: **');
-			dump(jscode);
-			dump('\n');
-
       // Some useful debugging code:
       //burin('eng pc', start_pc);
       //burin('eng this.m_jit', jscode);
     
+			dump(jscode);
+			dump('\n');
       stopping = jscode();
-			dump('Loop done.\n');
     }
-		dump('STOPPED.\n');
+
+		dump('STOPPED. Effect would be 0x');
+		dump(stopping.toString(16));
+		dump('.\n');
 
     // so, return an effect code.
     return stopping;
@@ -1281,6 +1261,8 @@ GnustoEngine.prototype = {
 			this.m_locals_stack = [];
 			this.m_param_counts = [];
 			this.m_result_eaters = [];
+
+			this.m_goldenTrail = 0;
 
 			this.m_version     = this.getByte(0);
 
@@ -1484,9 +1466,11 @@ GnustoEngine.prototype = {
 							//VERBOSE burin(code,'');
 					}
 
-					// Golden Trail code. Usually commented out for efficiency.
-					//code = code + 'golden_trail('+this.m_pc+');';
-					//code = code + 'burin("gold","'+this.m_pc.toString(16)+'");';
+					if (this.m_goldenTrail) {
+							// for now.
+							// (Can we merge this with the breakpoint check?)
+							code = code + 'dump("'+this.m_pc.toString(16)+' ");';
+					}
 				
 					// So here we go...
 					// what's the opcode?
@@ -1766,7 +1750,6 @@ GnustoEngine.prototype = {
 					// Rare special case.
 					this._func_return(0);
 			}
-			dump('\nNow leaving F_G.\n');
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -2861,6 +2844,9 @@ GnustoEngine.prototype = {
   //       real code later.
   m_jit: [],
   
+	// If this is nonzero, the engine will report as it passes each instruction.
+	m_goldenTrail: 0,
+	
   // In ordinary use, compile() attempts to make the functions
   // it creates as long as possible. Sometimes, though, we have to
   // stop dissembling (for example, when we reach a RETURN) or it
