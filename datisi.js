@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.15 2003/06/13 21:13:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.16 2003/06/22 07:24:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -22,6 +22,10 @@
 
 ////////////////////////////////////////////////////////////////
 
+var sys__current_filename = '';
+
+////////////////////////////////////////////////////////////////
+
 function command_about(a) {
     // simple JS alert for now.
     alert('Gnusto v0.4.x\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
@@ -30,14 +34,16 @@ function command_about(a) {
 }
 
 ////////////////////////////////////////////////////////////////
-
+//
+// iff_parse
+//
 // Parses an IFF file entirely contained in the array |s|.
 // The return value is a list. The first element is the form type
 // of the file; subsequent elements represent chunks. Each chunk is
 // represented by a list whose first element is the chunk type,
 // whose second element is the starting offset of the data within
 // the array, and whose third element is the length.
-
+//
 function iff_parse(s) {
 
 		function num_from(offset) {
@@ -72,102 +78,193 @@ function iff_parse(s) {
 }
 
 ////////////////////////////////////////////////////////////////
+//
+// load_from_file
+//
+// Loads a file into a byte array and returns it.
+//
+// |file| is an nsILocalFile.
+//
+function load_from_file(file) {
 
-function command_open(a) {
+		// Based on test code posted by Robert Ginda <rginda@netscape.com> to
+		// bug 170585 on Mozilla's bugzilla.
 
-		// This could be a whole file on its own...
-		// (...and maybe should be.)
+		var IOS_CTR = "@mozilla.org/network/io-service;1";
+		var nsIIOService = Components.interfaces.nsIIOService;
 
-		function dealWith(content) {
+		var BUFIS_CTR = "@mozilla.org/network/buffered-input-stream;1";
+		var nsIBufferedInputStream = Components.interfaces.nsIBufferedInputStream;
 
-				function loadAsZCode(content) {
+		var BINIS_CTR = "@mozilla.org/binaryinputstream;1";
+		var nsIBinaryInputStream = Components.interfaces.nsIBinaryInputStream;
+		
+		var ios = Components.classes[IOS_CTR].getService(nsIIOService);
 
-						// We're required to modify some bits
-						// according to what we're able to supply.
-						content[0x01]  = 0x1D; // Flags 1
-						content[0x11] &= 0x47;
+		var uri = ios.newFileURI(file);
+		var is = ios.newChannelFromURI(uri).open();
 
-						// It's not at all clear what architecture
-						// we should claim to be. We could decide to
-						// be the closest to the real machine
-						// we're running on (6=PC, 3=Mac, and so on),
-						// but the story won't be able to tell the
-						// difference because of the thick layers of
-						// interpreters between us and the metal.
-						// At least, we hope it won't.
+		// create a buffered input stream
+		var buf = Components.classes[BUFIS_CTR].createInstance(nsIBufferedInputStream);
+		buf.init(is, file.fileSize);
 
-						content[0x1E] = 1;   // uh, let's be a vax.
-						content[0x1F] = 103; // little "g" for gnusto
+		if (!(BINIS_CTR in Components.classes)) {
+		    // Fall back to slow-load method for pre-1.4 compatibility
+		    
+		    // But warn the user first...
+		    if (confirm("Loading binary files in javascript is extremely slow "+
+										"in Mozilla 1.3 and earlier.  Loading this file may take "+
+										"from 20 seconds to 2 minutes depending on the speed "+
+										"of your machine.  It is strongly recommended that you "+
+										"use Gnusto under Mozilla 1.4 or later. Gnusto "+
+										"(and Mozilla) will appear to lock up while the file "+
+										"is loading.")) {
+		    
+						var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
+   		      fc.init(file, 1, 0, 0);
 
-						// Put in some default screen values here until we can
-						// set them properly later.
-						// For now, units are characters. Later they'll be pixels.
+						var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1", "nsIScriptableInputStream")();
+						sis.init(fc);
 
-						content[0x20] = 25; // screen height, characters
-						content[0x21] = 80; // screen width, characters
-						content[0x22] = 25; // screen width, units
-						content[0x23] = 0;
-						content[0x24] = 80; // screen height, units
-						content[0x25] = 0;
-						content[0x26] = 1; // font width, units
-						content[0x27] = 1; // font height, units
+						var fileContents = sis.read(file.fileSize);
+		
+	  	      var ss = fc.QueryInterface(Components.interfaces.nsISeekableStream);
 
-						glue_play(content);
+						// Due to the fact that the pre-1.4 method reads the contents of the file as a string,
+						// every time it hits a null, it thinks it's done.  So if we've stopped but aren't at
+						// the end of the file, tack on a null, seek past the null, keep reading.
+						// Lather, Rinse, Repeat.
+						while (fileContents.length!=file.fileSize) {
+								ss.seek(0, fileContents.length + 1);  
+								fileContents += "\0" + sis.read(file.fileSize);
+						}
+                      
+						// We just got a string but all our functions are expecting an array of bytes.
+						// So we do some faux-typecasting.  (I'd just like to take this opportunity to
+						// suggest that loosely-typed languages are a really, really stupid idea.)
+						var TransContents = [];
+						TransContents.length = fileContents.length;
+						for (var i=0; i < fileContents.length; i++){
+								TransContents[i] = fileContents[i].charCodeAt();
+						}
+						fc.close();
+						
+						returnTransContents;
 
-						return 1;
-				}
-
-				// Okay. Our task now is to find what kind of file we've been handed,
-				// and to deal with it accordingly.
-
-				if (content[0]==5) {
-
-						// Looks like a .z5 file, so let's go ahead.
-						return loadAsZCode(content);
-
-				} else if (content[0]==70 && content[1]==79 &&
-									 content[2]==82 && content[3]==77) {
-						// "F, O, R, M". An IFF file, then...
-
-						var iff_details = iff_parse(content);
-
-						if (iff_details[0]=='IFZS') {
-									
-								// Quetzal saved file.
-								// Can't deal with these yet.
-
-								alert("Sorry, Gnusto can't yet load saved games.");
-								return 0;
-
-							} else if (iff_details[0]=='IFRS') {
-
-									// Blorb resources file, possibly containing
-									// Z-code.
-
-									// OK, so go digging for it.
-									for (var j=1; j<iff_details.length; j++) {
-											if (iff_details[j][0]=='ZCOD') {
-													alert("Should be able to read this... still need to implement scooping the middle out.");
-													return 0;
-											}
-									}
-									alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
-									return 0;
-							} else {
-
-									// Some other IFF file type which we don't know.
-							
-									gnusto_error(309,'IFF '+iff_details[0]);
-									return 0;
-							}
 				} else {
-						// Don't know. Complain.
-						gnusto_error(309);
+						// They bailed out; return a nonsensical flag value.
 						return 0;
 				}
+
+		}	else {
+				
+				// now wrap the buffered input stream in a binary stream
+				var bin = Components.classes[BINIS_CTR].
+						createInstance(nsIBinaryInputStream);
+				bin.setInputStream(buf);
+				
+				return bin.readByteArray(file.fileSize);
+		}
+		
+		// Eek.
+		gnusto_error(170);
+		return 0;
+}
+
+////////////////////////////////////////////////////////////////
+
+function dealWith(content) {
+
+		function loadAsZCode(content) {
+						
+				// We're required to modify some bits
+				// according to what we're able to supply.
+				content[0x01]  = 0x1D; // Flags 1
+				content[0x11] &= 0x47;
+
+				// It's not at all clear what architecture
+				// we should claim to be. We could decide to
+				// be the closest to the real machine
+				// we're running on (6=PC, 3=Mac, and so on),
+				// but the story won't be able to tell the
+				// difference because of the thick layers of
+				// interpreters between us and the metal.
+				// At least, we hope it won't.
+
+				content[0x1E] = 1;   // uh, let's be a vax.
+				content[0x1F] = 103; // little "g" for gnusto
+
+				// Put in some default screen values here until we can
+				// set them properly later.
+				// For now, units are characters. Later they'll be pixels.
+
+				content[0x20] = 25; // screen height, characters
+				content[0x21] = 80; // screen width, characters
+				content[0x22] = 25; // screen width, units
+				content[0x23] = 0;
+				content[0x24] = 80; // screen height, units
+				content[0x25] = 0;
+				content[0x26] = 1; // font width, units
+				content[0x27] = 1; // font height, units
+
+				glue_play(content);
+				
+				return 1;
 		}
 
-		////////////////////////////////////////////////////////////////
+		// Okay. Our task now is to find what kind of file we've been handed,
+		// and to deal with it accordingly.
+
+		if (content[0]==5) {
+				
+				// Looks like a .z5 file, so let's go ahead.
+				return loadAsZCode(content);
+
+		} else if (content[0]==70 && content[1]==79 &&
+							 content[2]==82 && content[3]==77) {
+				// "F, O, R, M". An IFF file, then...
+
+				var iff_details = iff_parse(content);
+
+				if (iff_details[0]=='IFZS') {
+						
+						// Quetzal saved file.
+						// Can't deal with these yet.
+
+						alert("Sorry, Gnusto can't yet load saved games.");
+						return 0;
+
+				} else if (iff_details[0]=='IFRS') {
+
+						// Blorb resources file, possibly containing
+						// Z-code.
+
+						// OK, so go digging for it.
+						for (var j=1; j<iff_details.length; j++) {
+								if (iff_details[j][0]=='ZCOD') {
+										alert("Should be able to read this... still need to implement scooping the middle out.");
+										return 0;
+								}
+						}
+						alert("Sorry, that Blorb file doesn't contain any Z-code, so Gnusto can't deal with it yet.");
+						return 0;
+				} else {
+						
+						// Some other IFF file type which we don't know.
+						
+						gnusto_error(309,'IFF '+iff_details[0]);
+						return 0;
+				}
+		} else {
+				// Don't know. Complain.
+				gnusto_error(309);
+				return 0;
+		}
+}
+
+////////////////////////////////////////////////////////////////
+
+function command_open(a) {
 
 		var localfile = 0;
 		var filename = null;
@@ -188,8 +285,8 @@ function command_open(a) {
 				if (picker.show()==ifp.returnOK) {
 						
 						localfile = picker.file;
-                                                filename = localfile.path;
-                                                filename = filename.replace('\\','\\\\', 'g');
+						filename = localfile.path;
+						filename = filename.replace('\\','\\\\', 'g');
 				} else
 						return null;
 				
@@ -201,7 +298,7 @@ function command_open(a) {
 																							 "nsILocalFile",
 																							 "initWithPath")(a[1]);
 				filename = a[1];
-                                filename = filename.replace('\\','\\\\', 'g');
+				filename = filename.replace('\\','\\\\', 'g');
 
 				break;
 		}
@@ -215,81 +312,10 @@ function command_open(a) {
 				return;
 		}
 
-		////////////////////////////////////////////////////////////////
-
-		// Actually do the loading.
-		// Based on test code posted by Robert Ginda <rginda@netscape.com> to
-		// bug 170585 on Mozilla's bugzilla.
-
-		var IOS_CTR = "@mozilla.org/network/io-service;1";
-		var nsIIOService = Components.interfaces.nsIIOService;
-
-		var BUFIS_CTR = "@mozilla.org/network/buffered-input-stream;1";
-		var nsIBufferedInputStream = Components.interfaces.nsIBufferedInputStream;
-
-		var BINIS_CTR = "@mozilla.org/binaryinputstream;1";
-		var nsIBinaryInputStream = Components.interfaces.nsIBinaryInputStream;
-		
-		var ios = Components.classes[IOS_CTR].getService(nsIIOService);
-
-		var uri = ios.newFileURI(localfile);
-		var is = ios.newChannelFromURI(uri).open();
-
-		// create a buffered input stream
-		var buf = Components.classes[BUFIS_CTR].createInstance(nsIBufferedInputStream);
-		buf.init(is, localfile.fileSize);
-
-		if (!(BINIS_CTR in Components.classes)) {
-		    // Fall back to slow-load method for pre-1.4 compatibility
-		    
-		    // But warn the user first...
-		    if (confirm("Loading binary files in javascript is extremely slow in Mozilla 1.3 and earlier.  " +
-		        "Loading this file may take from 20 seconds to 2 minutes depending on the speed of " +
-		        "your machine.  It is strongly recommended that you use Gnusto under Mozilla 1.4 or later.  " +
-		        "Gnusto (and Mozilla) will appear to lock up while the file is loading.")) {
-		    
-		      var fc = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
-   		      fc.init(localfile, 1, 0, 0);
-
-		      var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1", "nsIScriptableInputStream")();
-		      sis.init(fc);
-
-                      var fileContents = sis.read(localfile.fileSize);
-		
-	  	      var ss = fc.QueryInterface(Components.interfaces.nsISeekableStream);
-
-                      // Due to the fact that the pre-1.4 method reads the contents of the file as a string,
-                      // every time it hits a null, it thinks it's done.  So if we've stopped but aren't at
-                      // the end of the file, tack on a null, seek past the null, keep reading.
-                      // Lather, Rinse, Repeat.
-                      while (fileContents.length!=localfile.fileSize) {
-                          ss.seek(0, fileContents.length + 1);  
-                          fileContents += "\0" + sis.read(localfile.fileSize);
-                      }
-                      
-                      // We just got a string but all our functions are expecting an array of bytes.
-                      // So we do some faux-typecasting.  (I'd just like to take this opportunity to
-                      // suggest that loosely-typed languages are a really, really stupid idea.)
-                      var TransContents = [];
-                      TransContents.length = fileContents.length;
-                      for (var i=0; i < fileContents.length; i++){
-                        TransContents[i] = fileContents[i].charCodeAt();
-                      }
-                      fc.close();
-                      result = dealWith(TransContents);
-                    }
-		}
-		else {
-
-    		  // now wrap the buffered input stream in a binary stream
-		  var bin = Components.classes[BINIS_CTR].createInstance(nsIBinaryInputStream);
-		  bin.setInputStream(buf);
-
-		  result = dealWith(bin.readByteArray(localfile.fileSize));
-		}
+		var content = load_from_file(localfile);
+		var result = dealWith(content);
 
 		if (filename && result==1) {
-
 				sys_notify_of_load(filename);
 				sys_show_story_title(filename);
 		}
@@ -369,9 +395,11 @@ function sys_get_recent_list() {
 
 function sys_notify_of_load(filename) {
 
-		var recent = sys_get_recent_list();
+		sys__current_filename = filename;
 
 		/////////////////////////////////////
+
+		var recent = sys_get_recent_list();
 
 		var j=0;
 		while (j<recent.length) {
@@ -487,6 +515,12 @@ function sys_show_story_title(newname) {
 		} else {
 				window.title = sys__story_name + " - Gnusto";
 		}
+}
+
+////////////////////////////////////////////////////////////////
+
+function sys_current_filename() {
+		return sys__current_filename;
 }
 
 ////////////////////////////////////////////////////////////////
