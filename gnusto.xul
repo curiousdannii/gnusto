@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.50 2003/06/16 06:03:29 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.51 2003/06/16 06:04:47 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -175,7 +175,7 @@ function ensureHappiness() {
 
 <!-- Usually invisible: detection of font sizes. -->
 <html:div top="0" left="0" width="640" height="480">
-<vbox class="bocardoid" id="fontsize" hidden="true"-->
+<vbox class="bocardoid" id="fontsize" hidden="true">
 <hbox>
 <description value="012" class="bocardo"/>
 <description value="34" class="bocardo sb"/>
