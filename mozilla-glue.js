@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.73 2003/05/07 06:40:13 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.74 2003/05/12 01:28:20 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -81,7 +81,7 @@ function glue__sound_effect(number, effect, volume, callback) {
 
 // Convenience wrapper for win_chalk().
 function glue_print(text) {
-		return win_chalk(current_window, text);
+		win_chalk(current_window, text);
 }
 
 function go_wrapper(answer) {
@@ -114,11 +114,11 @@ function go_wrapper(answer) {
 				case GNUSTO_EFFECT_INPUT_CHAR:
 						// we know how to do this.
 						// Just bail out of here.
-						win_reset_scroll_count();
+						win_relax();
 						break;
 
 				case GNUSTO_EFFECT_INPUT:
-						win_reset_scroll_count();
+						win_relax();
 						win_set_input(['','']);
 						break;
 
@@ -325,7 +325,7 @@ function gotInput(e) {
 
 				if (e.keyCode==0) {
 						// Any ordinary character is OK for us to scroll.
-						win_more();
+						win_show_more();
 				}
 
 				return false;

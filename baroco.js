@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.10 2003/05/05 02:31:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.11 2003/05/12 01:28:20 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -97,15 +97,8 @@ function win_resize() {
 		glue_store_screen_size(width_in_chars, height_in_chars);
 
 		// Re-scroll Barbara, as needed
-
-		barbara_scroll_to_end();
-}
-
-////////////////////////////////////////////////////////////////
-
-function win_reset_scroll_count() {
-		bocardo_reset_scroll_count();
-		barbara_scroll_to_end();
+		// FIXME: think how this pans out with [MORE]
+		barbara_relax();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -285,14 +278,30 @@ function win_set_text_style(style, foreground, background) {
 
 ////////////////////////////////////////////////////////////////
 
-function win_more() {
-		barbara_more();
+function win_relax() {
+		if (baroco__enable_barbara) {
+				barbara_relax();
+		} else {
+				bocardo_relax();
+		}
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_show_more() {
+		barbara_show_more();
 }
 
 ////////////////////////////////////////////////////////////////
 
 function win_waiting_for_more() {
 		return barbara_waiting_for_more();
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_show_status(text) {
+		document.getElementById('status').setAttribute('label', text);
 }
 
 ////////////////////////////////////////////////////////////////

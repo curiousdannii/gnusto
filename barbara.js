@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.9 2003/05/05 02:31:58 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.10 2003/05/12 01:28:20 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -27,6 +27,10 @@ var barbara__current_css = '';
 var barbara__before_cursor = null;
 var barbara__after_cursor = null;
 
+// Y-coordinate of the most the user's seen, in pixels.
+// (For example, when the screen's cleared, this becomes 0px.)
+var barbara__most_seen = 0;
+
 ////////////////////////////////////////////////////////////////
 
 function barbara_init() {
@@ -37,7 +41,7 @@ function barbara_init() {
 
 function barbara_start_game() {
 
-		// Does nothing yet.
+		barbara__most_seen = 0;
 
 }
 
@@ -53,27 +57,6 @@ function barbara_clear() {
 function barbara_set_text_style(css_class) {
 		barbara__holder = 0;
 		barbara__current_css = css_class;
-}
-
-////////////////////////////////////////////////////////////////
-
-// Scroll to the end.
-function barbara_scroll_to_end() {
-
-		var h = parseInt(document.defaultView.getComputedStyle(document.getElementById('barbara'),'').getPropertyValue('height'));
-
-		var scrollable = document.getElementById('barbarabox').boxObject;
-		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
-		i.scrollTo(0, h*999);
-
-		var window_height = win_get_dimensions()[1];
-
-		if (h>window_height) {
-				document.getElementById('bocardobox').setAttribute('top', h - window_height);
-		} else {
-				document.getElementById('bocardobox').setAttribute('top', 0);
-		}
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -160,16 +143,102 @@ function barbara_chalk(text) {
 
 ////////////////////////////////////////////////////////////////
 
-function barbara_more() {
+function barbara_relax() {
+		if (barbara__get_page_height() > barbara__most_seen + barbara__get_viewport_height()) {
+				barbara__set_more(1);
+		} else {
+				barbara__set_viewport_top(barbara__get_page_height());
+				barbara__set_more(0);
+		}
+}
 
+////////////////////////////////////////////////////////////////
+
+var barbara__more_waiting = false;
+
+function barbara__set_more(whether) {
+		barbara__more_waiting = whether;
+
+		if (whether) {
+				win_show_status('Press any key for more...');
+		} else {
+				win_show_status('');
+		}
+}
+
+function barbara_show_more() {
+
+		// You shouldn't call this if there's no [MORE], but we'll
+		// check anyway...
+		if (!barbara__more_waiting) return;
+
+		barbara__set_viewport_top(barbara__get_viewport_top() + barbara__get_page_height());
 }
 
 ////////////////////////////////////////////////////////////////
 
 function barbara_waiting_for_more() {
-		// Stub function for stability:
-		return false;
+		return barbara__more_waiting;
 }
+
+////////////////////////////////////////////////////////////////
+
+function barbara__get_viewport_top() {
+		// Let's assume that the values used in scrolling are twips.
+		// Moz's nsUnitConversion.h claims that there are 20 twips per pixel, so
+		// we'll assume that too.
+
+		var cx = new Object();
+		var cy = new Object();
+		barbara__viewport().getPosition(cx, cy);
+
+		return cy.value / 20;
+}
+
+function barbara__set_viewport_top(y) {
+		barbara__most_seen = y + barbara__get_viewport_height();
+		barbara__viewport().scrollTo(0, y*20);
+}
+
+function barbara__get_viewport_height() {
+		return win_get_dimensions()[1];
+}
+
+function barbara__get_page_height() {
+		return parseInt(document.
+										defaultView.
+										getComputedStyle(document.getElementById('barbara'),'').
+										getPropertyValue('height'));
+}
+
+function barbara__viewport() {
+		var scrollable = document.getElementById('barbarabox').boxObject;
+		return scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+}
+
+////////////////////////////////////////////////////////////////
+
+/*
+// Scroll to the end -- to be merged into the above
+function barbara_scroll_to_end() {
+
+		var h = parseInt(document.defaultView.getComputedStyle(document.getElementById('barbara'),'').getPropertyValue('height'));
+
+		var scrollable = document.getElementById('barbarabox').boxObject;
+		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+		i.scrollTo(0, h*999);
+
+		var window_height = win_get_dimensions()[1];
+
+		if (h>window_height) {
+				document.getElementById('bocardobox').setAttribute('top', h - window_height);
+		} else {
+				document.getElementById('bocardobox').setAttribute('top', 0);
+		}
+
+}
+
+*/
 
 ////////////////////////////////////////////////////////////////
 var BARBARA_HAPPY = 1;

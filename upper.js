@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.38 2003/05/04 22:30:46 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.39 2003/05/12 01:28:20 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -87,7 +87,7 @@ function bocardo_set_screen_size(width, height) {
 
 var bocardo__screen_scroll_count = 0;
 
-function bocardo_reset_scroll_count() {
+function bocardo_relax() {
 		bocardo__screen_scroll_count = 0;
 }
 
