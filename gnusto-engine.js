@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.52 2003/11/24 18:51:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.53 2003/11/24 22:48:36 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/24 18:51:47 $';
+const CVS_VERSION = '$Date: 2003/11/24 22:48:36 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -466,7 +466,12 @@ function handleZ_catch(engine, a) {
     // to be the number of frames on the stack.
     //VERBOSE burin('catch',"store call_stack.length");
     return engine._storer("call_stack.length");
-  }
+}
+
+function handleZ_pop(engine, a) {
+    gnusto_error(101, "v3 feature not yet implemented");
+}
+
 function handleZ_quit(engine, a) {
     //VERBOSE burin('quit','');
     engine.m_compilation_running=0;
@@ -479,9 +484,8 @@ function handleZ_new_line(engine, a) {
 }
 		
 function handleZ_show_status(engine, a){ //(illegal from V4 onward)
-    //VERBOSE burin('illegalop','188');
-    gnusto_error(199);
-  }
+    gnusto_error(101, "v3 feature not yet implemented");
+}
 
 function handleZ_verify(engine, a) {
 		return engine._brancher('_verify()');
@@ -734,8 +738,12 @@ function handleZ_check_arg_count(engine, a) {
     //VERBOSE burin('check_arg_count',a[0]+'<=param_count()');
     return engine._brancher(a[0]+'<=_param_count()');
   }
-		
-function handleZ_save(engine, a) {
+
+function handleZ_saveV1234(engine, a) {
+    gnusto_error(101, "v3 feature not yet implemented");
+}
+
+function handleZ_saveV5678(engine, a) {
     //VERBOSE burin('save','');
     engine.m_compilation_running=0;
     var setter = "m_rebound=function() { " +
@@ -743,7 +751,11 @@ function handleZ_save(engine, a) {
     return "m_state_to_save=_saveable_state(3);m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
 }
 		
-function handleZ_restore(engine, a) {
+function handleZ_restoreV1234(engine, a) {
+    gnusto_error(101, "v3 feature not yet implemented");
+}
+
+function handleZ_restoreV5678(engine, a) {
     //VERBOSE burin('restore','');
     engine.m_compilation_running=0;
     var setter = "m_rebound=function(n) { " +
@@ -883,7 +895,7 @@ var handlers_v578 = {
     185: handleZ_catch,
     186: handleZ_quit,
     187: handleZ_new_line,
-    188: handleZ_show_status, //(illegal from V4 onward)
+    // 188: show_status -- illegal from V4 onward
     189: handleZ_verify,
     190: handleZ_illegal_extended,
     191: handleZ_piracy,
@@ -919,8 +931,8 @@ var handlers_v578 = {
     253: handleZ_copy_table,
     254: handleZ_print_table,
     255: handleZ_check_arg_count,
-    1000: handleZ_save,
-    1001: handleZ_restore,
+    1000: handleZ_saveV5678,
+    1001: handleZ_restoreV5678,
     1002: handleZ_log_shift,
     1003: handleZ_art_shift,
     1004: handleZ_set_font,
@@ -947,6 +959,56 @@ var handlers_v578 = {
     //1026: print_form (V6 opcode)
     //1027: make_menu (V6 opcode)
     //1028: picture_table (V6 opcode)
+};
+
+// Differences between each version and v5.
+// Set a whole version to 0 if it's not implemented.
+// When an opcode is illegal in the given version but not in v5,
+// it's marked with a zero. If you're working with a version which
+// doesn't support extended opcodes (below v5), don't worry about
+// zeroing out codes above 999-- they can't be accessed anyway.
+var handlers_fixups = {
+		1: 0, // not yet implemented
+		2: 0, // not yet implemented
+		3: {
+				25: 0, // call_2s
+				26: 0, // call_2n
+				27: 0, // set_colour
+				28: 0, // throw
+				136: 0, // call_1s
+				143: handleZ_not, // replaces call_1n
+				181: handleZ_saveV1234,
+				182: handleZ_restoreV1234,
+				185: handleZ_pop, // replaces catch
+				188: handleZ_show_status,
+				190: 0, // no extended opcodes
+				191: 0, // piracy
+				// 224 is shown in the ZMSD as being "call" before v4 and
+				// "call_vs" thence; this appears to be simply a name change
+				// 228, similarly, is "sread" and then "aread".
+				236: 0, // call_vs
+				237: 0, // erase_window
+				238: 0, // erase_line
+				239: 0, // set_cursor
+				240: 0, // get_cursor
+				241: 0, // set_text_style
+				242: 0, // buffer_mode
+				246: 0, // read_char,
+				247: 0, // scan_table, 
+				248: 0, // not,
+				249: 0, // call_vn,
+				250: 0, // call_vn, // call_vn2,
+				251: 0, // tokenise,
+				252: 0, // encode_text,
+				253: 0, // copy_table,
+				254: 0, // print_table,
+				255: 0, // check_arg_count,
+		},
+		4: 0, // not yet implemented
+		5: {}, // The base copy *is* v5
+		6: 0, // very complicated, and not yet implemented
+		7: {}, // Defined to be the same as 5
+		8: {}, // Defined to be the same as 5
 };
 
 ////////////////////////////////////////////////////////////////
@@ -1549,15 +1611,26 @@ GnustoEngine.prototype = {
 					gnusto_error(170, 'impossible: unknown z-version got this far');
 			}
 
-		// And pick up the relevant instruction set.
+			// And pick up the relevant instruction set.
 
-			if (this.m_version==5 || this.m_version==7 || this.m_version==8) {
-					this.m_handlers = handlers_v578;
-			} else if (this.m_version<9) {
-					gnusto_error(101, 'version not implemented');
-			} else {
-					gnusto_error(170, 'impossible: unknown z-version got this far');
+			this.m_handlers = handlers_v578;
+
+			if (!(this.m_version in handlers_fixups)) {
+					gnusto_error(311, 'unknown z-machine version');
 			}
+
+			var fixups = handlers_fixups[this.m_version];
+
+			if (typeof(fixups) != 'object') {
+					gnusto_error(101, 'z-machine version not implemented');
+			}
+
+			for (var opcode in fixups) {
+					// FIXME: if fixups[opcode]==0, delete the key
+					this.m_handlers[opcode] = fixups[opcode];
+			}
+
+			// Set up separators.
 
 			this.m_separator_count = this.getByte(this.m_dict_start);
 			for (var i=0; i<this.m_separator_count; i++) {		  
