@@ -17,11 +17,6 @@ window {
 
 #bocardo description {
 	font-family: monospace;
-
-	color: #ef8f00;
-	/* Orange, which isn't an ANSI colour
-	and so can't be displayed ordinarily.
-	So if you see it, something's up. */
 }
 
 /****************************************************************
