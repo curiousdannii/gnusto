@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
-<?xml-stylesheet href="chrome://gnusto/skin/gnusto.css" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://gnusto/skin" type="text/css"?>
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.43 2003/05/26 23:48:04 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.44 2003/06/04 02:16:24 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
