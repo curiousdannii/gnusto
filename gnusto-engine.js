@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.100 2003/08/28 19:55:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.101 2003/08/28 21:53:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -286,7 +286,9 @@ function brancher(condition) {
 
 ////////////////////////////////////////////////////////////////
 //
-// code_for_varcode is in the process of being replaced.
+// code_for_varcode
+//
+// should one day be replaced by varcode_[sg]et, probably.
 //
 function code_for_varcode(varcode) {
 		if (varcode==0)
@@ -325,6 +327,7 @@ function varcode_get(varcode) {
 }
 
 ////////////////////////////////////////////////////////////////
+//
 // varcode_set
 //
 // Retrieves the value specified by |varcode|, and returns it.
@@ -611,18 +614,12 @@ var handlers = {
 				return brancher(a[0]+'>'+a[1]); },
 
 		4: function Z_dec_chk(a) {
-				var value = code_for_varcode(a[0]);
 				//VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
-				return 't=('+value+')-1;'+
-				store_into(value,'t')+';'+
-				brancher('t<'+a[1]);
+				return 't='+a[0]+';t2=varcode_get(t)-1;varcode_set(t2,t);'+brancher('t2<'+a[1]);
 		},
 		5: function Z_inc_chk(a) {
-				var value = code_for_varcode(a[0]);
 				//VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
-				return 't=('+value+')+1;'+
-				store_into(value,'t')+';'+
-				brancher('t>'+a[1]);
+				return 't='+a[0]+';t2=varcode_get(t)+1;varcode_set(t2,t);'+brancher('t2>'+a[1]);
 		},
 		6: function Z_jin(a) {
 				//VERBOSE burin('jin',a[0] + ',' + a[1]);
