@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.45 2003/11/18 15:51:45 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.46 2003/11/19 21:46:42 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/18 15:51:45 $';
+const CVS_VERSION = '$Date: 2003/11/19 21:46:42 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -159,10 +159,6 @@ var GNUSTO_EFFECT_BREAKPOINT = '"BP"';
 // (or if either of them is set on first printing).
 // FIXME: This needs to be moved out of the private use area.
 var GNUSTO_EFFECT_FLAGS_CHANGED = '"XC"';
-
-// Returned if the story wants to verify its own integrity.
-// Answer 1 if its checksum matches, or 0 if it doesn't.
-var GNUSTO_EFFECT_VERIFY     = '"CV"';
 
 // Returned if the story wants to check whether it's been pirated.
 // Answer 1 if it is, or 0 if it isn't.
@@ -488,11 +484,8 @@ function handleZ_show_status(engine, a){ //(illegal from V4 onward)
   }
 
 function handleZ_verify(engine, a) {
-    engine.m_compilation_running = 0;
-    var setter = 'm_rebound=function(){'+engine._brancher('m_answers[0]')+'};';
-    //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
-    return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_VERIFY+"];return 1";
-  }
+		return engine._brancher('_verify()');
+}
 		
 function handleZ_illegal_extended(engine, a) {
     // 190 can't be generated; it's the start of an extended opcode
@@ -3215,6 +3208,13 @@ GnustoEngine.prototype = {
 
 			return result;
 	},
+
+	// Returns nonzero iff the checksum in the header of the copy
+	// of the original file in m_original_memory is correct.
+	_verify: function ge_verify() {
+			dump('Verify stub\n');
+			return 0;
+	},
 		
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
@@ -3472,7 +3472,7 @@ GnustoEngine.prototype = {
 	// Original state of the story file. Used when saving to produce
 	// a compressed image by comparison.
 	//
-	// FIXME: This should make the restart and verify effects redundant.
+	// FIXME: This should make the restart effect redundant.
 	// Make it so.
 	m_original_memory: [],
 
