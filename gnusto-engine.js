@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.23 2003/10/12 21:50:32 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.24 2003/10/14 03:24:05 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/12 21:50:32 $';
+const CVS_VERSION = '$Date: 2003/10/14 03:24:05 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2379,7 +2379,7 @@ GnustoEngine.prototype = {
 
 	_print_table: function ge_print_table(address, width, height, skip) {
 
-			var lines = [GNUSTO_EFFECT_PRINTTABLE];
+			var lines = [];
 
 			for (var y=0; y<height; y++) {
 
@@ -2388,13 +2388,16 @@ GnustoEngine.prototype = {
 					for (var x=0; x<width; x++) {
 							s=s+this._zscii_char_to_ascii(this.getByte(address++));
 					}
-
+					
 					lines.push(s);
 
 					address += skip;
 			}
 
-			return lines;
+			var result = ['PT', lines.length];
+			result.concat(lines);
+
+			return result;
 	},
 
 	_zscii_from: function ge_zscii_from(address, max_length, tell_length) {
@@ -2439,7 +2442,7 @@ GnustoEngine.prototype = {
 							var code = ((word>>(j*5))&0x1f);
 
 							if (abbreviation) {
-									temp = temp + this.zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+abbr_start)*2);
+									temp = temp + this._zscii_from(this.getUnsignedWord((32*(abbreviation-1)+code)*2+this.m_abbr_start)*2);
 									abbreviation = 0;
 							} else if (tenbit==-2) {
 
