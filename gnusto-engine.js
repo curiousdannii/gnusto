@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.49 2003/11/21 17:13:36 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.50 2003/11/24 16:19:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/21 17:13:36 $';
+const CVS_VERSION = '$Date: 2003/11/24 16:19:43 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1919,26 +1919,72 @@ GnustoEngine.prototype = {
 	},
 
 	_random_number: function ge_random_number(arg) {
+
 			if (arg==0) {
+
 					// zero returns to true random mode-- seed from system clock
-					this.m_use_seed = 0;
+					this.m_random_use_seed = this.m_random_use_sequence = 0;
+
 					return 0;
+
+			} else if (arg<-999) {
+
+					// Large negative numbers cause us to enter a predictable
+					// but non-sequential state. (In other words, the numbers
+					// always come in the same order, but can't be trivially
+					// predicted by humans.)
+
+					this.m_random_state = Math.abs(arg);
+					this.m_random_use_seed = 1;
+					this.m_random_use_sequence = 0;
+
+					return 0;
+
+			} else if (arg<0) {
+
+					// Small negative numbers cause us to enter a predictable sequential
+					// state: according to the spec, 1, 2, 3 ... arg, 1, 2, 3...
+					// (but according to Frotz, 1, 2, 3... arg-1, 1, 2, 3...)
+					// BTW, the spec says "lower than 1000", but this is clearly
+					// an error, because *all* negative numbers are lower than
+					// 1000. We follow Frotz's lead in treating this as -1000
+					// and using the absolute value of the argument as the
+					// sequence wrapping point.
+
+					this.m_random_sequence_max = Math.abs(arg)-1;
+					this.m_random_state = 0;
+					this.m_random_use_seed = 0;
+					this.m_random_use_sequence = 1;
+
+					return 0;
+					
 			} else {
-					if (arg>0) {
-							// return a random number between 1 and arg.
-							if (this.m_use_seed == 0) {
-									return 1 + Math.round((arg -1) * Math.random());
-							} else {
-									this.m_random_seed--;
-									return Math.round(Math.abs(Math.tan(this.m_random_seed))*8.71*arg)%arg;
+
+					// Positive argument. So they actually want a random number,
+					// between 1 and arg inclusive.
+
+					// Are we using any sort of predictable seeding?
+					if (this.m_random_use_seed) {
+							// Yes, given a particular seed.
+							this.m_random_state--;
+							return 1+(Math.round(Math.abs(Math.tan(this.m_random_state))*8.71*arg)%arg);
+					} else if (this.m_random_use_sequence) {
+							// Yes, given a particular sequence.
+							var previous = this.m_random_state;
+							this.m_random_state = this.m_random_state+1;
+							if (this.m_random_state > this.m_random_sequence_max) {
+									this.m_random_state = 0;
 							}
+							return 1 + (previous % arg);
 					} else {
-							// Else we should reseed the RNG and return 0.
-							this.m_random_seed = arg;
-							this.m_use_seed = 1;
-							return 0;
+							// No. Use JS's random numbers.
+							// (Hope these are generally good enough.)
+							return 1 + Math.round((arg -1) * Math.random());
 					}
 			}
+
+			gnusto_error(170); // impossible
+
 	},
 
 	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
@@ -3450,8 +3496,10 @@ GnustoEngine.prototype = {
 	// |answers| is a list of answers to an effect, given by the environment.
   m_answers: [],
 
-  m_random_seed: 0,
-  m_use_seed: 0,
+  m_random_state: 0,
+  m_random_use_seed: 0,
+  m_random_use_sequence: 0,
+	m_random_sequence_max: 0,
   
   // Values of the bottom two bits in Flags 2 (address 0x10),
   // used by the zOut function.
