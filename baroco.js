@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.2 2003/04/27 20:58:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.3 2003/04/27 21:50:59 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -87,7 +87,33 @@ function win_set_top_window_size(lines) {
 
 // Clears a window. |win| must be a valid window ID.
 function win_clear(win) {
-		bocardo_clear(win);
+
+		if (win>=-2 && win<=1) {
+				// valid parameters, so...
+
+				if (win!=0) {
+						// Clear upper window
+						bocardo_clear(1);
+				}
+
+				if (win!=1) {
+						// Clear lower window
+
+						if (baroco__enable_barbara)
+								barbara_clear();
+						else
+								bocardo_clear(0);
+				}
+
+				if (win==-1) {
+						// And also unsplit.
+						bocardo_set_top_window_size(0);
+				}
+
+		} else
+				// Weird parameter.
+				gnusto_error(303, w);
+
 }
 
 ////////////////////////////////////////////////////////////////
