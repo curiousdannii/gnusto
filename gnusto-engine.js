@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.45 2003/04/05 16:52:09 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.46 2003/04/09 20:19:30 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -825,8 +825,23 @@ var handlers = {
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
 		},
 
-		// 1002 -- log_shift -- we should implement this
-		// 1003 -- art_shift -- we should implement this
+		1002: function(a) {//log_shift logarithmic-bit-shift.  Right shifts are zero-padded
+				if (a[1] < 0) {		
+					return storer(a[0]+'>>>'+a[1]);
+				}
+				else {
+					return storer(a[0]+'<<'+a[1]);
+				}	
+		},
+
+		1003: function(a) {//art_shift arithmetic-bit-shift.  Right shifts are sign-extended
+				if (a[1] < 0) {		
+					return storer(a[0]+'>>'+a[1]);
+				}
+				else {
+					return storer(a[0]+'<<'+a[1]);
+				}	
+		},
 
 		1004: function(a) { // set_font
 				// We only provide font 1.
