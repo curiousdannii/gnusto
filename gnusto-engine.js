@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.22 2003/03/13 02:52:37 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.23 2003/03/14 02:53:11 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -145,6 +145,17 @@ var output_to_script;
 
 // If this is 1, go() will "wimp out" after every opcode.
 var debug_mode = 0;
+
+// Hash of breakpoints. If dissemble() reaches one of these, it will stop
+// before executing that instruction with GNUSTO_EFFECT_BREAKPOINT, and the
+// PC set to the address of that instruction.
+//
+// The keys of the hash are opcode numbers. The values are not yet stably
+// defined; at present, all values should be 1 except that:
+//    * A breakpoint's value may be 2. If it is, it won't trigger,
+//      but it will be reset to 1.
+//    * A breakpoint will automatically be set to 2 when it triggers.
+var breakpoints = {0x23A09: 1};
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -325,6 +336,10 @@ var GNUSTO_EFFECT_QUIT       = 0x400;
 //
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
+
+// Returned if we hit a breakpoint.
+// Any value may be used as an answer; it will be ignored.
+var GNUSTO_EFFECT_BREAKPOINT = 0x510;
 
 ////////////////////////////////////////////////////////////////
 //
@@ -735,6 +750,29 @@ function setword(value, addr) {
 		setbyte((value) & 0xFF, addr+1);
 }
 
+// Called when we reach a possible breakpoint. |addr| is the opcode
+// address. If we should break, sets |pc| to |addr| and returns true;
+// else returns false.
+function is_valid_breakpoint(addr) {
+		if (addr in breakpoints) {
+				if (breakpoints[addr]==2) {
+						// A breakpoint we've just reurned from.
+						breakpoints[addr]=1; // set it ready for next time
+						return 0; // it doesn't trigger again this time.
+				} else if (breakpoints[addr]==1) {
+						// a genuine breakpoint!
+						breakpoints[addr]=2; // disable for next time
+						pc = addr;
+						return 1;
+				}
+
+				gnusto_error(170); // not really impossible, though
+				return 0;
+		} else
+				// not listed in the breakpoints table
+				return 0; // Well, duh.
+}
+
 // dissemble() returns a string of JavaScript code representing the
 // instruction at the program counter (and possibly the next few
 // instructions, too). It will change the PC to point to the end of the
@@ -776,6 +814,11 @@ function dissemble() {
 						
 								types = (types << 2) | 0x3;
 						}
+				}
+
+				// Check for a breakpoint.
+				if (pc in breakpoints) {
+						code = code + 'if(is_valid_breakpoint('+pc+'))return 0x510;';
 				}
 				
 				// So here we go...
