@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.91 2004/02/28 03:16:51 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.92 2004/08/04 23:54:42 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/02/28 03:16:51 $';
+const CVS_VERSION = '$Date: 2004/08/04 23:54:42 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -2863,7 +2863,15 @@ GnustoEngine.prototype = {
 					return this.m_memory[temp[0]]; // should this be treated as signed?
 			} else {
 					// get_prop used on a property of the wrong length
-					gnusto_error(706, object, property);
+					// Christminster (and perhaps others) use this vaguely
+					// illegal hack to just check to see if a property exists
+					// for a particular object.  Evidently, only Zinc throws an
+					// error here, so we probably shouldn't either.  Also, currently
+					// calling gnusto_error here tanks the browser.  Don't yet know
+					// why.  So commenting it out for now.
+					
+					//gnusto_error(706, object, property);
+					
 					return this.getWord(temp[0]);
 			}
 
