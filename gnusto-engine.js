@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.97 2003/08/12 23:42:28 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.98 2003/08/25 16:53:47 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -2023,15 +2023,16 @@ function copy_table(first, second, size) {
 ////////////////////////////////////////////////////////////////
 // Implements @scan_table, as in the Z-spec.
 function scan_table(target_word, target_table, table_length, table_form) {
+
+		// TODO: Optimise this some.
 	                         
-		burin('Actually scanning table','');
 		var jumpby = table_form & 0x7F;
 		var usewords = ((table_form & 0x80) == 0x80);
-				
+		var lastlocation = target_table + (table_length*jumpby);
+
 		if (usewords) 
 				{ //if the table is in the form of word values
-						var lastlocation = target_table + (table_length << 1);
-						while (target_table < lastlocation) 
+						while (target_table < lastlocation)
 								{
 										if (((zGetByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
 												((zGetByte(target_table+1)&0xFF) == (target_word&0xFF))) 
@@ -2043,7 +2044,6 @@ function scan_table(target_word, target_table, table_length, table_form) {
 				}
 		else 
 				{ //if the table is in the form of byte values
-						var lastlocation = target_table + table_length;
 						while (target_table < lastlocation) 
 								{
 										if ((zGetByte(target_table)&0xFF) == (target_word&0xFFFF)) 
