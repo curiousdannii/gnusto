@@ -14,7 +14,7 @@
         chrome:author="marnanel@marnanel.org"
         chrome:authorURL="http://gnusto.mozdev.org/"
         chrome:name="gnusto"
-        chrome:description="[2003-05-15] Adds Gnusto application for playing
+        chrome:description="[2003-07-16] Adds Gnusto application for playing
         z-code games [http://gnusto.mozdev.org]"
         chrome:extension="true"
         chrome:settingsURL="chrome://gnusto/content/gnustosettings.xul">
