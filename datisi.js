@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.14 2003/05/30 13:31:39 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.15 2003/06/13 21:13:24 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -112,7 +112,7 @@ function command_open(a) {
 						content[0x26] = 1; // font width, units
 						content[0x27] = 1; // font height, units
 
-						glue_receive_zcode(content);
+						glue_play(content);
 
 						return 1;
 				}
@@ -123,12 +123,7 @@ function command_open(a) {
 				if (content[0]==5) {
 
 						// Looks like a .z5 file, so let's go ahead.
-						if (loadAsZCode(content)) {
-								play();
-								return 1;
-						} else {
-								return 0;
-						}
+						return loadAsZCode(content);
 
 				} else if (content[0]==70 && content[1]==79 &&
 									 content[2]==82 && content[3]==77) {
