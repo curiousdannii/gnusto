@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.32 2003/10/27 00:26:28 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.33 2003/10/27 18:39:10 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/27 00:26:28 $';
+const CVS_VERSION = '$Date: 2003/10/27 18:39:10 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1249,56 +1249,66 @@ GnustoEngine.prototype = {
 										 (state.m_pc    ) & 0xFF,
 										 0];                      // pad
 
-			content = content.concat(tag_UMem);
-			content = content.concat(int_to_bytes(this.m_stat_start, 4));
- 			content = content.concat(this.m_memory.slice(0, this.m_stat_start));
+			var use_compressed_memory = 1;
 
-			if ((this.m_stat_start % 2) != 0) {
-					// Odd number of bytes in the memory. Add one more.
-					content = content.concat([0]);
+			if (use_compressed_memory) {
+
+					var compressed = [];
+					var same_count = 0;
+
+					for (var i=0; i<this.m_stat_start; i++) {
+							if (state.m_memory[i] == this.m_original_memory[i]) {
+
+									same_count++;
+
+									if (same_count == 256) {
+											compressed.push(0);
+											compressed.push(255);
+											same_count = 0;
+									}
+
+							} else {
+
+									if (same_count!=0) {
+											compressed.push(0);
+											compressed.push(same_count-1);
+											same_count = 0;
+									}
+
+									compressed.push(state.m_memory[i]^this.m_original_memory[i]);
+							}
+					}
+
+					if (same_count != 0) {
+							// write out remaining same count
+							compressed.push(0);
+							compressed.push(same_count-1);
+					}
+
+					content = content.concat(tag_CMem);
+					content = content.concat(int_to_bytes(compressed.length, 4));
+					content = content.concat(compressed);
+
+					if ((compressed.length % 2) != 0) {
+							// Odd number of bytes in the memory. Add one more.
+							content.push(0);
+					}
+
+			} else {
+
+					// Not using compressed memory.
+
+					content = content.concat(tag_UMem);
+					content = content.concat(int_to_bytes(this.m_stat_start, 4));
+					content = content.concat(this.m_memory.slice(0, this.m_stat_start));
+
+					if ((this.m_stat_start % 2) != 0) {
+							// Odd number of bytes in the memory. Add one more.
+							content.push(0);
+					}
 			}
-
-//			// Experimental code to calculate compressed memory.
-//			// This is currently disabled.
-//
-//			content = content.concat(tag_CMem);
-//			var same_count = 0;
-//
-//			for (var i=0; i<this.m_stat_start; i++) {
-//					if (state.m_memory[i] == this.m_original_memory[i]) {
-//
-//							same_count ++;
-//
-//							if (same_count == 256) {
-//									dump('Dump intermediate same count: ');
-//									dump(same_count);
-//									dump('\n');
-//
-//									same_count = 0;
-//							}
-//
-//					} else {
-//
-//							dump('Dump same count: ');
-//							dump(same_count);
-//							dump('\n');
-//
-//							same_count = 0;
-//
-//							dump('Dump different: ');
-//							dump(state.m_memory[i] ^ this.m_original_memory[i]);
-//
-//					}
-//			}
-//
-//			if (same_count != 0) {
-//					dump('Dump remaining same count: ');
-//					dump(same_count);
-//					dump('\n');
-//					}
-
 			////////////////////////////////////////////////////////////////
-
+			
 			// Write out the stacks.
 
 			var stacks = [
