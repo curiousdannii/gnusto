@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.16 2003/03/09 00:33:49 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.17 2003/03/09 14:22:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -50,7 +50,6 @@ function loadMangledZcode(zcode) {
 																				 "nsIScriptableInputStream")();
 
     fixups = zcode.fileSize / 2;
-		alert(zcode.fileSize);
 
     fc.init(zcode, 1, 0);
     sis.init(fc.open());
@@ -280,9 +279,11 @@ function go_wrapper(answer) {
 				reasonForStopping = go(answer);
 		
 				if (reasonForStopping == GNUSTO_EFFECT_WIMP_OUT) {
-						// Well, just go round again.
-						answer = 0;
-						looping = 1;
+						if (!debug_mode) {
+								// Well, just go round again.
+								answer = 0;
+								looping = 1;
+						}
 				} else if (reasonForStopping == GNUSTO_EFFECT_INPUT) {
 						// we know how to do this.
 						// Just bail out of here.
@@ -310,6 +311,9 @@ function go_wrapper(answer) {
 								reasonForStopping.toString(16);
     } while (looping);
 
+		if (debug_mode) {
+				tossio_debug_instruction(['status']);
+		}
 }
 
 function set_upper_window() {
@@ -336,9 +340,11 @@ function start_up() {
 
 function play() {
 		start_up();
-
     setup();
-    go_wrapper(0);
+
+		if (!debug_mode) {
+				go_wrapper(0);
+		}
 }
 
 function deal_with_exception(e) {
@@ -506,19 +512,38 @@ function gnusto_error(n) {
 				}
 		}
 
+		if (debug_mode) {
+				gnustoglue_output('\n\n--- Error ---:\n'+m);
+		}
+
 		alert(m);
 
 		if (n<500) throw -1;
 }
 
+var transcription_file = 0;
+
+// Here we ask for a filename if |whether|, and we don't
+// already have a filename. Returns 0 if transcription
+// shouldn't go ahead (e.g. the user cancelled.)
 function gnustoglue_notify_transcription(whether) {
-		// here we'll ask for a filename if |whether|, and we don't
-		// already have a filename
+
+		alert(whether);
+
+		if (whether) {
+				if (!transcription_file) {
+						var target_filename = '/tmp/TRANSCRIPT'; // fixme
+
+						transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")(target_filename), 0xA, 0600, 0);
+				}
+		}
 }
 
 function gnustoglue_transcribe(text) {
+		alert('ts: '+current_window+text);
 		if (current_window==0) {
-				// alert('Transcribe: '+text);
+				transcription_file.write(text, text.length);
+				transcription_file.flush();
 		}
 }
 

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.17 2003/03/02 18:13:36 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.18 2003/03/09 14:22:54 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -39,7 +39,7 @@
 //    2) putting a flag value (probably zero) into this array will
 //       have the effect of 1), but won't stop us replacing it with
 //       real code later.
-var jit;
+var jit = [];
 
 // In ordinary use, dissemble() attempts to make the functions
 // it creates as long as possible. Sometimes, though, we have to
@@ -143,11 +143,8 @@ var streamthrees;
 // since we can't deal with it ourselves.
 var output_to_script;
 
-// If this is 1:
-//   * dissemble() won't group JS for more than one opcode together.
-//   * go() will "wimp out" after every opcode.
-// Note that this isn't properly tested yet, and may not work.
-var debug_mode;
+// If this is 1, go() will "wimp out" after every opcode.
+var debug_mode = 0;
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -744,8 +741,7 @@ function setword(value, addr) {
 // code it's dissembled.
 function dissemble() {
 
-		compiling = !debug_mode;
-		// compiling = 0;
+		compiling = 1;
 		code = '';
 		var starting_pc = pc;
 
@@ -864,7 +860,9 @@ function dissemble() {
 		// the PC must be reset; but in debug mode it's perfectly possible
 		// to have |code| not read or write to the PC at all. So we need to
 		// set it automatically at the end of each fragment.
-		if (debug_mode) code = code + 'pc='+pc;
+
+		// Commented out pending review of what "debug mode" really means.
+		// if (debug_mode) code = code + 'pc='+pc;
 
 		return 'function(){'+code+'}';
 }
@@ -1399,7 +1397,9 @@ function setup() {
 		set_transcribing(0);
 		streamthrees = [];
 		output_to_script = 0;
-		debug_mode = 0;
+
+		// We don't also reset the debugging variables, because
+		// they need to persist across re-creations of this object.
 
 		clear_locals();
 }
@@ -1419,7 +1419,7 @@ function go(answer) {
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
-		var turns_limit = debug_mode? 1: 1000;
+		var turns_limit = debug_mode? 1: 10000;
 
 		if (rebound) {
 				rebound(answer);

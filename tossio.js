@@ -590,6 +590,8 @@ function tossio_print(message) {
 		gnustoglue_output(message);
 }
 
+var show_js = 0;
+
 var tossio_verbs = {
 		'help': ['provide brief help on functions',
 						'Provides a brief rundown of what a function does. Use "help" on its own to get information on all functions. "help step" will give you more detailed help on the "step" command, and so on.',
@@ -603,15 +605,99 @@ var tossio_verbs = {
 		'open': ['load a (mangled) story file',
 						'Loads the named story file.',
 						function(a) {
+								//
+								// Time will be that the menu option calls this verb.
+								//
 								if (a.length==2) {
 										var zc = new Components.Constructor("@mozilla.org/file/local;1",
 																												"nsILocalFile",
 																												"initWithPath")(a[1]);
-										if (loadMangledZcode(zc)) play();
+										if (loadMangledZcode(zc)) {
+												if (debug_mode) {
+														tossio_print('Loaded OK (use /run or /step now).');
+												}
+												play();
+										} else {
+												tossio_print('Load failed.');
+										}
 								} else {
+										// FIXME: Should put up open dialogue if paramcount is 1.
 										tossio_print('Wrong number of parameters for open.');
 								}
 						}],
+		'status': ['print status',
+							'...',
+							function(a) {
+									var temp = '';
+									temp = '[PC='+pc.toString(16);
+
+									if (asm[pc]) {
+											temp = temp + ' || ' + asm[pc];
+									}
+									temp = temp+']';
+
+									if (show_js) {
+											if (!jit[pc]) {
+													var saved_pc = pc;
+													eval('jit[saved_pc]=' + dissemble());
+													pc = saved_pc;
+											}
+											temp = temp + '\n' + jit[pc];
+									}
+
+									tossio_print(temp);
+							}],
+		'on': ['turn on debug mode',
+							'...',
+							function(a) {
+									single_step = 1;
+									tossio_print('Debug mode on.');
+							}],
+		'showjs': ['show JS in status information',
+							'...',
+							function(a) {
+									show_js = 1;
+							}],
+		'dis': ['calculate dissembly information',
+					 '...',
+					 function(a) {
+							 asm = {};
+							 points = {};
+							 tossio_print('Scanning for dissembly information... ');
+							 tossio_scan(get_unsigned_word(0x06), 0);
+							 tossio_print('done.');
+					 }],
+		'step': ['step one place through',
+						'...',
+						function(a) {
+								single_step = 1;
+								go_wrapper(0);
+						}],
+		'run': ['run through until something happens worth stopping for',
+						'...',
+						function(a) {
+								single_step = 0;
+								go_wrapper(0);
+						}],
+		'context': ['show context around program counter',
+							 '...',
+							 function(a) {
+									 for (var i=pc-20; i<pc+20; i++) {
+											 if (points[i]==5) {
+													 tossio_print('\n=== Routine '+i.toString(16)+' ===\n');
+											 }
+											 if (asm[i]) {
+													 tossio_print(i.toString(16)+'  '+asm[i]);
+													 if (points[i]==2) {
+															 tossio_print(' (target)');
+													 }
+													 if (i==pc) {
+															 tossio_print(' <---******* PC');
+													 }
+													 tossio_print('\n');
+											 }
+									 }
+							 }],
 };
 
 function tossio_debug_instruction(command) {
