@@ -698,6 +698,14 @@ var tossio_verbs = {
 											 }
 									 }
 							 }],
+		'about': ['show the about box',
+						 '...',
+						 function (a) {
+								 // simple JS alert for now.
+								 alert('Gnusto v0.2.0\nby Thomas Thurman <thomas@thurman.org.uk>\n'+
+											 'Early prealpha\n\nhttp://gnusto.mozdev.org\nhttp://marnanel.org\n\n'+
+											 'Copyright (c) 2003 Thomas Thurman.\nDistrubuted under the GNU GPL.');
+						 }],
 };
 
 function tossio_debug_instruction(command) {
