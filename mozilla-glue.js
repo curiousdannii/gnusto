@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.62 2003/04/24 17:02:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.63 2003/04/27 18:11:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -274,33 +274,6 @@ function go_wrapper(answer, no_first_call) {
 }
 
 ////////////////////////////////////////////////////////////////
-// Font metrics.
-
-var glue__font_width = 1;
-var glue__font_height = 1;
-
-function glue__get_font_metrics() {
-
-		// Pick up the font height using the canary (it's a letter X
-		// inside a box that only we can see... rather more hacky than
-		// I like :/ )
-
-		var holder = document.getElementById('canaryHolder');
-		
-		holder.setAttribute('hidden', 'false');
-
-		var box = document.getElementById('canary').boxObject;
-		// Experimentation shows that there are no borders returned
-		// on this object's width. (If you check "XX", you get twice
-		// the width of "X".)
-		glue__font_width = box.width;
-		glue__font_height = box.height;
-
-		// And hide the canary away again.
-		holder.setAttribute('hidden', 'true');
-}
-
-////////////////////////////////////////////////////////////////
 
 function camenesbounce_catch(e) {
 		eval(e.target.toString().substring(13));
@@ -313,8 +286,6 @@ function glue_init() {
 
 		inputBox.onkeypress=gotInput;
 		inputBox.focus();
-
-		glue__get_font_metrics();
 
 		window.addEventListener('camenesbounce',
 														camenesbounce_catch,	0);

@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.28 2003/04/24 17:02:35 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.29 2003/04/27 18:11:02 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -113,7 +113,7 @@ function ensureHappiness() {
 <menuitem label="Save" disabled="true" accesskey="S"/>
 <menuitem label="Save as..." disabled="true" accesskey="A"/>
 <menuseparator/>
-<menuitem id="transcript" label="Start transcript..." accesskey="T" oncommand="alert(sys_get_recent_list());"/>
+<menuitem id="transcript" label="Start transcript..." accesskey="T" disabled="true"/>
 <menuseparator/>
 <menuitem label="Exit" accesskey="X" oncommand="dispatch('shutdown');"/>
 </menupopup>
@@ -145,11 +145,13 @@ function ensureHappiness() {
 
 <vbox flex="1">
 
-<hbox flex="0" id="canaryHolder" hidden="true">
-<description flex="0" id="canary" value="X" />
-</hbox>
+<vbox id="baroco" flex="1">
+<hbox><description id="a" value="1234567890All that I have I give to you...34567890123456789012345678901234567890" /></hbox>
+<hbox><description id="b" value="123456789012345678901234567890"/><description id="c" style="font-weight: bold;" value="1234567890"/><description id="d" value="1234567890123456789012345678901234567890" /></hbox>
+<hbox><description id="e" value="12345678901234567890123456789012345678901234567890123456789012345678901234567890" /></hbox>
+</vbox>
 
-<iframe flex="9" id="screen" type="content-primary" src="output.html"/>
+<iframe flex="9" id="screen" type="content-primary" src="output.html" hidden="true"/>
 
 <textbox flex="0" id="input"/>
 </vbox>

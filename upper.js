@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.30 2003/04/25 19:04:43 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.31 2003/04/27 18:11:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -42,28 +42,30 @@ function win_init() {
 
 function win_setup() {
 
-    win__screen_doc = barbarix_get_document(BARBARIX_INFOBOX);
+    win__screen_doc = document;
 
-		var body = win__screen_doc.getElementsByTagName('body')[0];
-		barbarix_clear(body);
-		win__screen_window = win__screen_doc.createElement('pre');
-		win__screen_window.setAttribute('class', 'bocardo');
-		win__screen_window.setAttribute('id', 'bocardomain');
-		body.appendChild(win__screen_window);
+		win__screen_window = win__screen_doc.getElementById('baroco');
+		barbarix_clear(win__screen_window);
 
     win__current_x[0] = win__current_y[0] = 0;
     win__current_x[1] = win__current_y[1] = 0;
 
 		win_set_top_window_size(0);
 
-		win_resize();
-		// Do that every time the size changes, actually.
-		window.addEventListener('resize', win_resize, 0);
+		// too complicated for now!
+		//win_resize();
+		//// Do that every time the size changes, actually.
+		//window.addEventListener('resize', win_resize, 0);
 }
 
 ////////////////////////////////////////////////////////////////
 
 function win_resize() {
+
+		// for now:
+		return;
+		/****************************************************************/
+
 		/*		win__screen_width = width;
 					win__screen_height = height; */
 
@@ -165,7 +167,7 @@ function win_chalk(win, text) {
 				do {
 
 						if (message.length > (win__screen_width - win__current_x[win])) {
-								
+
 								// The message is longer than the rest of this line.
 
 								var amount = win__screen_width - win__current_x[win];
@@ -185,7 +187,8 @@ function win_chalk(win, text) {
 
 								win__subchalk(win, message.substring(0, amount));
 								
-								message = message.substring(amount+1);
+								message = message.substring(amount);
+
 								newline();
 								if (paused_for_more) return message;
 						} else {
@@ -225,6 +228,13 @@ function win_set_top_window_size(lines) {
 
 // Clears a window. |win| must be a valid window ID.
 function win_clear(win) {
+
+		/* for now */
+
+		return;
+
+		/****************************************************************/
+
 		while (win__screen_window.childNodes.length!=0) {
 				win__screen_window.removeChild(win__screen_window.childNodes[0]);
 		}
@@ -235,8 +245,8 @@ function win_clear(win) {
 		if (win==1) {
 				// Clearing a window resets its "more" counter.
 				win__screen_scroll_count = 0;
-                                var body = win__screen_doc.getElementsByTagName('body')[0];
-                                body.setAttribute('class', 'b' + win__current_background);
+				var body = win__screen_doc.getElementsByTagName('body')[0];
+				body.setAttribute('class', 'b' + win__current_background);
 		}
 }
 
@@ -357,17 +367,17 @@ function win__subchalk(win, text) {
 
     // Let's get a handle on the line we want to modify.
 
-    var lines = win__screen_window.childNodes;
-
     // If the line doesn't yet exist, we must create it.
     // FIXME: possibly this will become redundant when we handle
     // dynamic screen resizing.
-    while (lines.length <= y) {
-				var newdiv = win__screen_doc.createElement('div');
+    while (win__screen_window.childNodes.length <= y) {
+				var newdiv = win__screen_doc.createElement('hbox');
 
-				newdiv.setAttribute('style', 'width: 100%;');
-				// Possibly the line above will become redundant
-				// once bug 3658 is fixed.
+				// Commenting out for now, since I don't know what
+				// the effect of this will be on the XUL
+				//newdiv.setAttribute('style', 'width: 100%;');
+				//// Possibly the line above will become redundant
+				//// once bug 3658 is fixed.
 
 				newdiv.setAttribute('class', win__current_css[current_window]);
 				win__screen_window.appendChild(newdiv);
@@ -376,7 +386,7 @@ function win__subchalk(win, text) {
     // We delete any bits of that line we're going to overwrite,
 		// and work out where to insert the new span. The line consists of a
 		// sequence of spans.
-    var current_line = lines[y];
+    var current_line = win__screen_window.childNodes[y];
 
 		var spans = current_line.childNodes;
 
@@ -385,8 +395,8 @@ function win__subchalk(win, text) {
 
 		// Go past all the spans before us.
 
-		while (cursor<spans.length && charactersSeen+spans[cursor].childNodes[0].data.length <= x) {
-				charactersSeen += spans[cursor].childNodes[0].data.length;
+		while (cursor<current_line.childNodes.length && charactersSeen+current_line.childNodes[cursor].getAttribute('value').length <= x) {
+				charactersSeen += current_line.childNodes[cursor].getAttribute('value').length;
 				cursor++;
 		} 
 
@@ -398,7 +408,7 @@ function win__subchalk(win, text) {
 		var doppelganger = 0;
 		var appendPoint = -1;
 
-		if (cursor==spans.length) {
+		if (cursor==current_line.childNodes.length) {
 
 				if (charactersSeen < x) {
 						// There aren't enough characters to go round. We
@@ -410,8 +420,8 @@ function win__subchalk(win, text) {
 								padding = padding + ' ';
 						}
 
-						doppelganger = win__screen_doc.createElement('span');
-						doppelganger.appendChild(win__screen_doc.createTextNode(padding));
+						doppelganger = win__screen_doc.createElement('description');
+						doppelganger.setAttribute('value', padding);
 				}
 
 				// Just append the text.
@@ -424,16 +434,25 @@ function win__subchalk(win, text) {
 
 						var amountToKeep = x - charactersSeen;
 
-						if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
+						if (text.length < current_line.childNodes[cursor].getAttribute('value').length-amountToKeep) {
+
 								// The whole of the new text fits within this node. Let's keep this
 								// node before the new text, and create another node to go after it.
-								doppelganger = spans[cursor].cloneNode(1);
-								doppelganger.childNodes[0].data = doppelganger.childNodes[0].data.substring(amountToKeep+text.length);
+								doppelganger = current_line.childNodes[cursor].cloneNode(1);
+								doppelganger.
+										setAttribute('value',
+
+																 doppelganger.getAttribute('value').
+																 substring(amountToKeep+text.length));
 						}
 
-						charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
+						charactersTrimmed =
+								current_line.childNodes[cursor].getAttribute('value').length - amountToKeep;
 
-						spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
+						current_line.childNodes[cursor].setAttribute('value',
+
+																			 current_line.childNodes[cursor].getAttribute('value').
+																			 substring(0, amountToKeep));
 
 						// And push them on one place; they insert *after* us.
 						cursor++;
@@ -441,20 +460,22 @@ function win__subchalk(win, text) {
 
 				appendPoint = cursor;
 
-				if (cursor<spans.length) {
+				if (cursor<current_line.childNodes.length) {
 						// Delete any spans which are hidden by our span.
 						var charactersDeleted = charactersTrimmed;
 						var spansToDelete = 0;
 
-						while (cursor<spans.length && charactersDeleted+spans[cursor].childNodes[0].data.length <= text.length) {
-								charactersDeleted += spans[cursor].childNodes[0].data.length;
+						while (cursor<current_line.childNodes.length && charactersDeleted+current_line.childNodes[cursor].getAttribute('value').length <= text.length) {
+								charactersDeleted += current_line.childNodes[cursor].getAttribute('value').length;
 								cursor++;
 								spansToDelete++;
 						}
 
 						// And trim the RHS of the first span after our new span.
-						if (cursor<spans.length) {
-								spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(text.length - charactersDeleted);
+						if (cursor<current_line.childNodes.length) {
+								current_line.childNodes[cursor].setAttribute('value',
+																					 current_line.childNodes[cursor].getAttribute('value').
+																					 substring(text.length-charactersDeleted));
 						}
 				}
 
@@ -462,26 +483,27 @@ function win__subchalk(win, text) {
 
 				// Delete the spans which are underneath our text...
 				for (var i=appendPoint; i<appendPoint+spansToDelete; i++) {
-						current_line.removeChild(spans[appendPoint]); // the others will slide up.
+						current_line.removeChild(current_line.childNodes[appendPoint]); // the others will slide up.
 				}
 
 		}
 
 		// ...add the broken span, if there was one...
 		if (doppelganger) {
-				current_line.insertBefore(doppelganger, spans[cursor]);
+				current_line.insertBefore(doppelganger, current_line.childNodes[cursor]);
 		}
 
 		// ..and append our text.
-		var newSpan = win__screen_doc.createElement('span');
+		var newSpan = win__screen_doc.createElement('description');
 		newSpan.setAttribute('class', win__current_css[win]);
-		newSpan.appendChild(win__screen_doc.createTextNode(text));
+		newSpan.setAttribute('value', text);
 
 		if (appendPoint == -1) {
 				current_line.appendChild(newSpan);
 		} else {
-				current_line.insertBefore(newSpan, spans[appendPoint]);
+				current_line.insertBefore(newSpan, current_line.childNodes[appendPoint]);
 		}
+
 }
 
 ////////////////////////////////////////////////////////////////

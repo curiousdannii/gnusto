@@ -1,6 +1,6 @@
 // darii.js || -*- Mode: Java; tab-width: 2; -*-
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.2 2003/04/24 18:42:10 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.3 2003/04/27 18:11:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -23,7 +23,7 @@
 
 function dispatch(what) {
 
-    try{
+		/*    try{*/
 				var args = [];
 
 				switch (typeof(what)) {
@@ -46,9 +46,10 @@ function dispatch(what) {
 				else
 						darii_print('Unknown command: '+args[0]+'. Try "help".');
 
-    } catch(e) {
+				/*    } catch(e) {
 				gnusto_error(307, e);
-    }
+				throw e;
+				}*/
 }
 
 function darii_print(message) {

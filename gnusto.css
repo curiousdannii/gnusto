@@ -6,8 +6,9 @@ window {
 	border: 0;
 }
 
-description#canary {
+description {
 	font-family: monospace;
+	background-color: #FFFF33; /* for testing */
 }
 
 body {
