@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.21 2003/10/03 13:57:17 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.22 2003/10/12 05:05:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/03 13:57:17 $';
+const CVS_VERSION = '$Date: 2003/10/12 05:05:35 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1112,35 +1112,162 @@ GnustoEngine.prototype = {
 	//
   saveGame: function ge_saveGame() {
 
+			// Returns an array of |bytecount| integers, each
+			// representing a byte of |number| in network byte order.
+			function int_to_bytes(number, bytecount) {
+					var result = [];
+
+					result.length = bytecount;
+
+					for (var i=0; i<bytecount; i++) {
+							result[(bytecount-i)-1] = number & 0xFF;
+							number >>= 8;
+					}
+
+					return result;
+			}
+
 			var state = this.m_state_to_save;
 
 			var tag_FORM = [0x46, 0x4f, 0x52, 0x4d];
-			var tag_IFZS = [0x49, 0x46, 0x5a, 0x53];
 			var tag_CMem = [0x43, 0x4d, 0x65, 0x6d];
+			var tag_UMem = [0x55, 0x4d, 0x65, 0x6d];
 			var tag_Stks = [0x53, 0x74, 0x6b, 0x73];
 
-			var IF_header = [0x49, 0x46, 0x68, 0x64, // IFhd
-											 0x00, 0x00, 0x00, 0x0d, // fixed length of 13 bytes
-											 this.m_memory[0x02],    // Release number
-											 this.m_memory[0x03],
-											 this.m_memory[0x12],    // Serial
-											 this.m_memory[0x13],
-											 this.m_memory[0x14],
-											 this.m_memory[0x15],
-											 this.m_memory[0x16],
-											 this.m_memory[0x17],
-											 this.m_memory[0x1C],    // Checksum
-											 this.m_memory[0x1D],
-											 (state.m_pc>>16) & 0xFF,
-											 (state.m_pc>> 8) & 0xFF,
-											 (state.m_pc    ) & 0xFF,
-											 0];
+			var content = [0x49, 0x46, 0x5a, 0x53,  // IFZS
+										 0x49, 0x46, 0x68, 0x64,  // IFhd
+										 0x00, 0x00, 0x00, 0x0d,  // fixed length of 13 bytes
+										 state.m_memory[0x02],    // Release number
+										 state.m_memory[0x03],
+										 state.m_memory[0x12],    // Serial
+										 state.m_memory[0x13],
+										 state.m_memory[0x14],
+										 state.m_memory[0x15],
+										 state.m_memory[0x16],
+										 state.m_memory[0x17],
+										 state.m_memory[0x1C],    // Checksum
+										 state.m_memory[0x1D],
+										 (state.m_pc>>16) & 0xFF, // PC
+										 (state.m_pc>> 8) & 0xFF,
+										 (state.m_pc    ) & 0xFF,
+										 0];                      // pad
+
+			content = content.concat(tag_UMem);
+			content = content.concat(int_to_bytes(this.m_stat_start, 4));
+ 			content = content.concat(this.m_memory.slice(0, this.m_stat_start));
+
+			/*
+
+			// Experimental code to calculate compressed memory.
+			// This is currently disabled.
+
+			content = content.concat(tag_CMem);
+			var same_count = 0;
+
+			for (var i=0; i<this.m_stat_start; i++) {
+					if (state.m_memory[i] == this.m_original_memory[i]) {
+
+							same_count ++;
+
+							if (same_count == 256) {
+									dump('Dump intermediate same count: ');
+									dump(same_count);
+									dump('\n');
+
+									same_count = 0;
+							}
+
+					} else {
+
+							dump('Dump same count: ');
+							dump(same_count);
+							dump('\n');
+
+							same_count = 0;
+
+							dump('Dump different: ');
+							dump(state.m_memory[i] ^ this.m_original_memory[i]);
+
+					}
+			}
+
+			if (same_count != 0) {
+					dump('Dump remaining same count: ');
+					dump(same_count);
+					dump('\n');
+					}*/
+
+			////////////////////////////////////////////////////////////////
+
+			// Write out the stacks.
+
+			var stacks = [
+										// Firstly, the dummy first record
+										0x00, 0x00, 0x00, // PC
+										0x00, // flags
+										0x00, // varcode
+										0x00]; // args
+
+			// And top it off with the amount of eval stack used.
+			stacks = stacks.concat(int_to_bytes(this.m_gamestack_callbreaks[0],
+																					2));
+
+			var locals_cursor = this.m_locals.length - 17;
+
+			for (var j=0; j<this.m_call_stack.length; j++) {
+
+					stacks = stacks.concat(int_to_bytes(this.m_call_stack[j],
+																							3));
+
+					// m_locals_stack is back to front so that we can always
+					// refer to the current frame as m_l_s[x].
+					var local_count = this.m_locals_stack[this.m_locals_stack.length - (j+1)]-1;
+					var flags = local_count;
+					var target = this.m_result_targets[j];
+					// FIXME: This is ugly too. Why is m_p_c back to front?
+					var args_supplied = this.m_param_counts[this.m_param_counts.length - (j+1)];
+					var eval_taken = this.m_gamestack_callbreaks[j+1];
+
+					if (target==-1) {
+
+							// This is a call-and-throw-away rather than a
+							// call-and-store. We represent that with a magic
+							// varcode of -1, but Quetzal sets a flag instead.
+
+							target = 0;
+							flags |= 0x10;
+					}
+
+					stacks = stacks.concat([flags,
+																	target,
+																	// I'm assuming that once a bit is set here,
+																	// all bits to its right are set too.
+																	// So we raise 2 to the power of the number
+																	// and subtract one.
+																	(1<<args_supplied)-1,
+																	(eval_taken>>8) & 0xFF,
+																	(eval_taken   ) & 0xFF]);
+
+					locals_cursor -= local_count;
+
+					for (var k=0; k<local_count; k++) {
+							stacks = stacks.concat(int_to_bytes(this.m_locals[locals_cursor+k],
+																									2));
+					}
+
+					for (var m=0; m<eval_taken; m++) {
+							// FIXME
+							stacks = stacks.concat([0xb1, 0xb1]);
+					}
+			}
+
+			content = content.concat(tag_Stks);
+			content = content.concat(int_to_bytes(stacks.length, 4));
+			content = content.concat(stacks);
 
 			var quetzal = tag_FORM;
-
-			quetzal = quetzal.concat([0, 0, 0x03, 0x38]); // hacked in; remove
-			quetzal = quetzal.concat(tag_IFZS);
-			quetzal = quetzal.concat(IF_header);
+			quetzal = quetzal.concat(int_to_bytes(content.length, 4));
+			quetzal = quetzal.concat(content);
 
 			this.m_quetzal_image = quetzal;
 			return this.m_quetzal_image.length;
@@ -1187,6 +1314,7 @@ GnustoEngine.prototype = {
 			this.m_jit = [];
 			this.m_compilation_running = 0;
 			this.m_gamestack = [];
+			this.m_gamestack_callbreaks = [];
 
 			this.m_call_stack = [];
 			this.m_locals = [];
@@ -1631,25 +1759,26 @@ GnustoEngine.prototype = {
 		}
 	},
 
-	_func_prologue: function ge_func_prologue(actuals) {
+	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
+
+			this.m_call_stack.push(from_address);
+			this.m_pc = to_address;
+
 			var count = this.getByte(this.m_pc++);
-			for (var i=count; i>=0; i--) {
-					if (i<actuals.length) {
-							this.m_locals.unshift(actuals[i]);
+
+			for (var i=count; i>0; i--) {
+					if (i<=actuals.length) {
+							this.m_locals.unshift(actuals[i-1]);
 					} else {
 							this.m_locals.unshift(0); // except in v.3, but hey
 					}
 			}
-			this.m_locals_stack.unshift(count+1);
-	},
+			this.m_locals_stack.unshift(count);
 
-	_func_gosub: function ge_gosub(to_address, actuals, from_address, result_target) {
-			this.m_call_stack.push(from_address);
-			this.m_pc = to_address;
-			// FIXME: func_prologue only called here. Refactor.
-			this._func_prologue(actuals);
 			this.m_param_counts.unshift(actuals.length);
 			this.m_result_targets.push(result_target);
+
+			this.m_gamestack_callbreaks.push(this.m_gamestack.length);
 
 			if (to_address==0) {
 					// Rare special case.
@@ -1834,16 +1963,19 @@ GnustoEngine.prototype = {
 	// It can also be null, in which case the store
 	// won't happen (useful for returning from @throw).
 	_func_return: function ge_func_return(value) {
+
 			for (var i=this.m_locals_stack.shift(); i>0; i--) {
 					this.m_locals.shift();
 			}
 			this.m_param_counts.shift();
 			this.m_pc = this.m_call_stack.pop();
+			this.m_gamestack_callbreaks.pop();
 
 			var target = this.m_result_targets.pop();
 			if (target!=-1 && value!=null) {
 					this._varcode_set(value, target);
 			}
+
 	},
 
 	_throw_stack_frame: function throw_stack_frame(cookie) {
@@ -2909,7 +3041,11 @@ GnustoEngine.prototype = {
   
   // |gamestack| is the Z-machine's stack.
   m_gamestack: 0,
-  
+
+  // Stack which stores the depths of |m_gamestack| at each function call
+	// on the function stack. (Quetzal needs to know this.)
+  m_gamestack_callbreaks: [],
+
   // |himem| is the high memory mark. This is rarely used in practice;
   // we might stop noting it.
   m_himem: 0,
