@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.3 2003/04/27 21:50:59 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.4 2003/04/27 22:49:30 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -40,6 +40,7 @@ function win_start_game() {
 		barbara_start_game();
 		bocardo_start_game();
 
+		win_set_text_style(-1, 0, 0);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -133,8 +134,81 @@ function win_print_table(win, lines) {
 
 ////////////////////////////////////////////////////////////////
 
-function win_set_text_style(win, style, foreground, background) {
-		bocardo_set_text_style(win, style, foreground, background);
+var baroco__current_style = 0;
+var baroco__current_foreground = 1;
+var baroco__current_background = 1;
+
+// Set the current text style, foreground and background colours
+// of a given window.
+function win_set_text_style(style, foreground, background) {
+
+		// List of CSS classes we want.
+		var css = '';
+
+		////////////////////////////////////////////////////////////////
+
+		// Examine the parameters, and set the internal variables
+		// which store the text style and colours of this window.
+		//
+		// The value -1 (for style) and 0 (for bg/fg) mean that we
+		// shouldn't change the current value. Style also has the
+		// particular oddity that it needs to be ORed with the
+		// current style, except when it's zero (==roman text),
+		// when it should set the current style to zero too.
+
+		if (style==-1) // Don't change
+				style = baroco__current_style;
+		else if (style==0)
+				baroco__current_style = 0;
+		else {
+				baroco__current_style |= style;
+				style = baroco__current_style;
+		}
+
+		if (foreground==0) // Don't change
+				foreground = baroco__current_foreground;
+		else
+				baroco__current_foreground = foreground;
+
+		if (background==0) // Don't change
+				background = baroco__current_background;
+		else
+				baroco__current_background = background;
+
+		////////////////////////////////////////////////////////////////
+
+		// Handle colours:
+
+		var fg_code;
+		var bg_code;
+
+		if (foreground==1)
+				fg_code = 'f';
+		else
+				fg_code = foreground.toString();
+
+		if (background==1)
+				bg_code = 'b';
+		else
+				bg_code = background.toString();
+
+		// Handle styles:
+
+		if (style & 0x1) // Reverse video.
+				css = 'b' + fg_code + ' f'+bg_code;
+		else
+				css = 'f' + fg_code + ' b'+bg_code;
+
+		if (style & 0x2) css = css + ' sb'; // bold
+		if (style & 0x4) css = css + ' si'; // italic
+		if (style & 0x8) css = css + ' sm'; // monospace
+
+		////////////////////////////////////////////////////////
+
+		// OK, now do something with it...
+
+		barbara_set_text_style(css);
+		bocardo_set_text_style(css);
 }
 
 ////////////////////////////////////////////////////////////////
