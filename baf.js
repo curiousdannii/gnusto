@@ -1,5 +1,9 @@
 // baf.js || -*- Mode: Java; tab-width: 2; -*-
 
+// This file will be split in two in the great renaming:
+// one half will handle Baf's Guide access, and the other
+// will handle updating the screen.
+
 var BAF_HAPPY = 0;
 
 ////////////////////////////////////////////////////////////////
@@ -34,57 +38,117 @@ function baf_id_to_name(n) {
 
 function baf_describe_genre(which) {
 
+		var doc = barbarix_get_document(BARBARIX_INFOBOX);
+		var infobox = doc.getElementsByTagName('body')[0];
+
+		barbarix_clear(infobox);
+
 		function genre_to_name(n) {
-				return baf__genres_list.GetStringFromName('baf.genre.'+n);
+				if (n==0) return 'Genres';
+
+				try {
+						return baf__genres_list.GetStringFromName('baf.genre.'+n);
+				} catch(e) {
+						return 'Genre '+n;
+				}
 		}
 
-		function genre_to_desc(n) {
-				return baf__genres_list.GetStringFromName('baf.genre.'+n+'.desc');
+		function genre_to(n, something) {
+				try {
+						return baf__genres_list.GetStringFromName('baf.genre.'+n+'.'+something);
+				} catch(e) {
+						return '';
+				}
 		}
 
-		function genre_to_members(n) {
-				return baf__genres_list.GetStringFromName('baf.genre.'+n+'.members');
+		function genre_list(n, something) {
+				var temp = genre_to(n, something);
+				if (temp=='')
+						return [];
+				else
+						return temp.split(' ');
 		}
 
-		baf__prepare_window();
-
-		var holder = document.createElementNS(baf_HTML,'html:div');
+		var holder = doc.createElementNS(baf_HTML,'html:div');
 		holder.setAttribute('class', 'baf');
-		document.getElementById('infobox').appendChild(holder);
+		infobox.appendChild(holder);
 
-		var heading = document.createElementNS(baf_HTML,'html:h1');
+		var heading = doc.createElementNS(baf_HTML,'html:h1');
+		var ancestors = genre_list(which, 'ancestors');
+
+		if (which!=0) {
+				// stick "genres" in at the start
+				ancestors.unshift(0);
+		}
+
+		for (i=0; i<ancestors.length; i++) {
+				var link = doc.createElementNS(baf_HTML,'html:a');
+				link.setAttribute('href', "javascript://verb('bafgenre "+ancestors[i]+"')");
+				link.setAttribute('onclick', "camenesbounce_throw(this);");
+				link.appendChild(document.createTextNode(genre_to_name(ancestors[i])));
+
+				heading.appendChild(link);
+				heading.appendChild(document.createTextNode(' > '));
+		}
+
 		heading.appendChild(document.createTextNode(genre_to_name(which)));
 		holder.appendChild(heading);
 
-		holder.appendChild(document.createTextNode(genre_to_desc(which)));
+		holder.appendChild(document.createTextNode(genre_to(which, 'desc')));
 
-		var members = genre_to_members(which).split(' ');
+		var children = genre_list(which, 'children');
 
-		var list = document.createElementNS(baf_HTML,'html:ul');
+		var list = doc.createElementNS(baf_HTML,'html:ul');
+
+		for (i=0; i<children.length; i++) {
+				var item = doc.createElementNS(baf_HTML,'html:li');
+
+				var link = doc.createElementNS(baf_HTML,'html:a');
+				link.setAttribute('href', "javascript://verb('bafgenre "+children[i]+"')");
+				link.setAttribute('onclick', "camenesbounce_throw(this);");
+				link.appendChild(document.createTextNode(genre_to_name(children[i])));
+
+				item.appendChild(link);
+
+				list.appendChild(item);
+		}
+
+		holder.appendChild(list);
+
+		holder.appendChild(doc.createElementNS(baf_HTML,'html:hr'));
+
+		var members = genre_list(which, 'members');
+
+		list = doc.createElementNS(baf_HTML,'html:ul');
 
 		for (i=0; i<members.length; i++) {
-				var item = document.createElementNS(baf_HTML,'html:li');
+				var item = doc.createElementNS(baf_HTML,'html:li');
 				item.appendChild(document.createTextNode(baf_id_to_name(members[i])));
 				list.appendChild(item);
 		}
 
-		holder.appendChild(list);		
+		holder.appendChild(list);
+
+		var credit = doc.createElementNS(baf_HTML,'html:p');
+		credit.appendChild(document.createTextNode('Review information from '));
+		var link = doc.createElementNS(baf_HTML,'html:a');
+		link.setAttribute('href','http://wurb.com/if/');
+		link.setAttribute('target','_blank');
+		link.appendChild(document.createTextNode("Baf's Guide to the IF Archive"));
+		credit.appendChild(link);
+		credit.appendChild(document.createTextNode(', copyright Carl Muckenhoupt. Used with permission.'));
+		holder.appendChild(credit);
 }
 
 ////////////////////////////////////////////////////////////////
 // Private functions
 ////////////////////////////////////////////////////////////////
 
-function baf__prepare_window() {
-		document.getElementById('screen').setAttribute('hidden','true');
-		document.getElementById('infobox').setAttribute('hidden','false');
-}
-
 ////////////////////////////////////////////////////////////////
 
 // temporary...
 
-function get_Baf_things() {
+/*
 		alert('gbt');
 
 		var f = new Components.Constructor("@mozilla.org/file/local;1",
@@ -108,7 +172,8 @@ function get_Baf_things() {
 		alert('is='+sis);
 
 		alert('read: '+sis.read(10));
-}
+
+*/
 
 
 ////////////////////////////////////////////////////////////////
