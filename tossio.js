@@ -813,7 +813,7 @@ var tossio_verbs = {
 					function(a) {
 							window_current_x[0] = 25;
 							window_current_y[0] = 0;
-							chalk(0, 0, 0, 0, 'XxxxxxX');
+							chalk(0, 0, 0, 0, 'X');
 					}],
 		'about': ['show the about box',
 						 '...',

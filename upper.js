@@ -2,7 +2,7 @@
 // upper.js -- upper window handler.
 //
 // Currently doesn't allow for formatted text. Will do later.
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.5 2003/03/30 05:00:27 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.6 2003/03/30 06:19:53 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -151,14 +151,22 @@ function subchalk(win, fg, bg, style, text) {
 		// point. In the latter case, we must break it.
 
 		var charactersTrimmed = 0;
-		if (charactersSeen < window_current_x[win]) {
-				var amountToKeep = window_current_x[win] - charactersSeen;
-				charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
-				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
+		var doppelganger = 0;
 
-				// FIXME: This fails when spans[cursor] entirely contains the overwritten text.
-				// What we should probably do is check for this here, clone the node, insert it,
-				// and get the end-trimmer to trim the cloned node.
+		if (charactersSeen < window_current_x[win]) {
+
+				var amountToKeep = window_current_x[win] - charactersSeen;
+
+				if (text.length < spans[cursor].childNodes[0].data.length-amountToKeep) {
+						// The whole of the new text fits within this node. Let's keep this
+						// node before the new text, and create another node to go after it.
+						doppelganger = spans[cursor].cloneNode(1);
+						doppelganger.childNodes[0].data = doppelganger.childNodes[0].data.substring(amountToKeep+text.length);
+				}
+
+				charactersTrimmed = spans[cursor].childNodes[0].data.length - amountToKeep;
+
+				spans[cursor].childNodes[0].data = spans[cursor].childNodes[0].data.substring(0, amountToKeep);
 
 				// And push them on one place; they insert *after* us.
 				cursor++;
@@ -191,11 +199,15 @@ function subchalk(win, fg, bg, style, text) {
 				current_line.removeChild(spans[appendPoint]); // the others will slide up.
 		}
 
+		// ...add the broken span, if there was one...
+		if (doppelganger) {
+				current_line.insertBefore(doppelganger, spans[cursor]);
+		}
+
 		// ..and append our text.
 		var newSpan = window_documents[win].createElement('span');
 		newSpan.appendChild(window_documents[win].createTextNode(text));
 		current_line.insertBefore(newSpan, spans[appendPoint]);
-
 }
 
 ////////////////////////////////////////////////////////////////
