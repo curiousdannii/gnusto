@@ -4,7 +4,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.60 2003/08/01 17:27:29 naltrexone42 Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.61 2003/08/05 06:24:41 naltrexone42 Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -58,8 +58,6 @@ function ensureHappiness() {
       'TOSSIO',
       'UPPER',
       'VENKMAN_MSG',
-      'BAF',
-      'BARBARIX',
       'BAROCO',
       'BARBARA',
       'DARII',
@@ -71,7 +69,7 @@ function ensureHappiness() {
       var check = parts[i] + "_HAPPY";
 
       try {
-         if (!(check in window) || eval(check)!=1)
+         if (!(check in window) || eval(check)!=1) 
             complain(check);
       } catch (e) {
          if (e!=-1)
