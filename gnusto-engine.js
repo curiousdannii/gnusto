@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.35 2003/10/29 04:31:26 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.36 2003/10/30 09:10:27 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/29 04:31:26 $';
+const CVS_VERSION = '$Date: 2003/10/30 09:10:27 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -784,10 +784,11 @@ function handleZ_save_undo(engine, a) {
 }
 
 function handleZ_restore_undo(engine, a) {
-    //VERBOSE burin('restore_undo','unsupported');
-    gnusto_error(700); // spurious restore_undo
-    return engine._storer('0');
-  }
+		// If the restore was successful, return from this block immediately
+		// so that execution can continue with the new PC value. If that
+		// doesn't happen, it must have failed, so store zero.
+    return 'if(_restore_undo(3))return;'+engine._storer('0');
+}
 
 function handleZ_print_unicode(engine, a) {
     //VERBOSE burin('print_unicode',"String.fromCharCode(" +a[0]+")");
@@ -982,6 +983,11 @@ function pc_translate_v8(p)   { return '(('+p+')&0xFFFF)*8'; }
 function gnusto_error(number, message) {
 		// FIXME: Look into how to do this in a more standard way.
 		// FIXME: Support multiple parameters!
+		dump('-- Temporary burin error: ');
+		dump(number);
+		dump(' ');
+		dump(message);
+		dump('\n');
 		throw 'Error '+number+': '+message;
 }
 
@@ -1038,7 +1044,7 @@ GnustoEngine.prototype = {
 
 							if (cursor_original >= this.m_original_memory.length) {
 									// FIXME: proper error message
-									throw "overshoot in decompression";
+									gnusto_error(999, "overshoot in decompression");
 							}
 
 							var candidate = mem[cursor_compressed++];
@@ -1154,11 +1160,11 @@ GnustoEngine.prototype = {
 	},
 
   get version() {
-    throw "not implemented";
+    gnusto_error(101, "'version' not implemented");
   },
 
   get signature() {
-    throw "not implemented";
+    gnusto_error(101, "'signature' not implemented");
   },
 
   get cvsVersion() {
@@ -1242,7 +1248,7 @@ GnustoEngine.prototype = {
   },
   
   walk: function ge_walk(answer) {
-    throw "not implemented";
+    gnusto_error(101, "'walk' not implemented");
   },
 
 	////////////////////////////////////////////////////////////////
@@ -1778,7 +1784,9 @@ GnustoEngine.prototype = {
 							//VERBOSE burin(code,'');
 
 					} else {
-							gnusto_error(200, instr, this.m_pc.toString(16)); // no handler
+							gnusto_error(200,
+													 //instr, //marnanel removed temporarily
+													 this.m_pc.toString(16)); // no handler
 					}
 
 			} while(this.m_compilation_running);
@@ -3126,14 +3134,50 @@ GnustoEngine.prototype = {
 	},
 
 	_save_undo: function ge_save_undo(varcode_offset) {
-
 			this.m_undo = this._saveable_state(varcode_offset);
-
 			return 1;
 	},
 
+	////////////////////////////////////////////////////////////////
+	//
+	// _restore_undo
+	//
+	// Restores the undo information saved in m_undo.
+	//
+	// Returns zero if the restore failed, nonzero if it succeeded.
+	// (If the function returns nonzero, the caller should return
+	// control immediately rather than continuing on with the current
+	// block of instructions: the PC is already set up. Think of it as
+	// a particularly funky kind of goto.)
+	//
 	_restore_undo: function ge_restore_undo() {
-			// ...
+
+			if (typeof this.m_undo != 'object') {
+					// No undo information is saved in m_undo.
+					return 0;
+			}
+
+			this.m_call_stack = this.m_undo.m_call_stack;
+			this.m_locals = this.m_undo.m_locals;
+			this.m_locals_stack = this.m_undo.m_locals_stack;
+			this.m_param_counts = this.m_undo.m_param_counts;
+			this.m_result_targets = this.m_undo.m_result_targets;
+			this.m_gamestack = this.m_undo.m_gamestack;
+
+			var mem = this.m_undo.m_memory;
+			this.m_memory = mem.concat(this.m_memory.slice(mem.length));
+
+			// The PC we're given is actually pointing at the varcode
+			// into which the success code must be stored. It should be 2.
+			// (This is specified by section 5.8 of the Quetzal document,
+			// version 1.4.)
+			this._varcode_set(2, this.m_memory[this.m_undo.m_pc]);
+			this.m_pc = this.m_undo.m_pc+1;
+
+			// OK, clear that out so we can't un-undo.
+			this.undo = 0;
+
+			return 1;
 	},
 
 	_saveable_state: function ge_saveable_state(varcode_offset) {
