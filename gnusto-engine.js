@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.79 2004/01/03 03:46:24 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.80 2004/01/11 06:30:01 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2004/01/03 03:46:24 $';
+const CVS_VERSION = '$Date: 2004/01/11 06:30:01 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -317,8 +317,7 @@ function handleZ_loadw(engine, a) {
     return engine._storer("getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
   }
 function handleZ_loadb(engine, a) {
-    //VERBOSE burin('loadb',"getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
-    return engine._storer("getByte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
+    return engine._storer("m_memory[0xFFFF&(1*"+a[0]+"+1*"+a[1]+")]");
   }
 function handleZ_get_prop(engine, a) {
     //VERBOSE burin('get_prop',a[0]+','+a[1]);
@@ -594,12 +593,12 @@ function handleZ_read(engine, a) {
 		if (engine.m_version>=5) {
 				// In z5-z8, @read is a store instruction.
 				rebound_for_no_timeout = engine._storer(rebound_for_no_timeout);
-				recaps_getter = "getByte(a0+1)";
-				char_count_getter = "getByte(a0)";
+				recaps_getter = "m_memory[0xFFFF&a0+1]";
+				char_count_getter = "m_memory[0xFFFF&a0]";
 		} else {
 				// z1-z4.
 				recaps_getter = '0';
-				char_count_getter = "getByte(a0)+1";
+				char_count_getter = "m_memory[0xFFFF&a0]+1";
 		}
 
     if (a[2] && a[3] && (engine.m_version>=4)) {
@@ -1780,7 +1779,7 @@ GnustoEngine.prototype = {
       this.m_goldenTrail = 0;
       this.m_copperTrail = 0;
 
-      this.m_version     = this.getByte(0);
+      this.m_version     = this.m_memory[0];
       
       this.m_himem       = this.getUnsignedWord(0x4);
       this.m_pc          = this.getUnsignedWord(0x6);
@@ -1870,9 +1869,9 @@ GnustoEngine.prototype = {
 
       // Set up separators.
       
-      this.m_separator_count = this.getByte(this.m_dict_start);
+      this.m_separator_count = this.m_memory[this.m_dict_start];
       for (var i=0; i<this.m_separator_count; i++) {		  
-	  this.m_separators[i]=this._zscii_char_to_ascii(this.getByte(this.m_dict_start + i+1));
+					this.m_separators[i]=this._zscii_char_to_ascii(this.m_memory[this.m_dict_start + i+1]);
       }	
       
       // If there is a header extension...
@@ -1880,7 +1879,7 @@ GnustoEngine.prototype = {
 	  // get start of custom unicode table, if any
 	  this.m_unicode_start = this.getUnsignedWord(this.m_hext_start+6);
 	  if (this.m_unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
-	      this.m_custom_unicode_charcount = this.getByte(this.m_unicode_start);
+	      this.m_custom_unicode_charcount = this.m_memory[this.m_unicode_start];
 	      this.m_unicode_start += 1;
 	  }
       }		
@@ -1911,7 +1910,7 @@ GnustoEngine.prototype = {
 	  for (var alpharow=0; alpharow<3; alpharow++){
 	      var alphaholder = '';
 	      for (var alphacol=0; alphacol<26; alphacol++) {	
-		  newcharcode = this.getByte(this.m_alpha_start + (alpharow*26) + alphacol);
+		  newcharcode = this.m_memory[this.m_alpha_start + (alpharow*26) + alphacol];
 		  if ((newcharcode >=155) && (newcharcode <=251)) {		     
 		      // Yes, custom alphabets can refer to custom unicode tables.  Whee...
 		      if (this.m_unicode_start == 0) {
@@ -1945,7 +1944,7 @@ GnustoEngine.prototype = {
       this.m_leftovers = '';
   },
 
-  getByte: function ge_getByte(address) {
+  getByte: function ge_getbyte(address) {
     if (address<0) { address &= 0xFFFF; }
     return this.m_memory[address];
   },
@@ -1996,9 +1995,9 @@ GnustoEngine.prototype = {
 							args[argcursor++] = this.getWord(this.m_pc);
 							this.m_pc+=2;
 					} else if (current==0x4000) {
-							args[argcursor++] = this.getByte(this.m_pc++);
+							args[argcursor++] = this.m_memory[this.m_pc++];
 					} else if (current==0x8000) {
-							args[argcursor++] = this._code_for_varcode(this.getByte(this.m_pc++));
+							args[argcursor++] = this._code_for_varcode(this.m_memory[this.m_pc++]);
 					} else {
 							gnusto_error(171); // impossible
 					}
@@ -2029,7 +2028,7 @@ GnustoEngine.prototype = {
 
 					// So here we go...
 					// what's the opcode?
-					var instr = this.getByte(this.m_pc++);
+					var instr = this.m_memory[this.m_pc++];
 			
 					if (instr==0) {
 							// If we just get a zero, we've probably
@@ -2038,9 +2037,9 @@ GnustoEngine.prototype = {
 					
 					} else if (instr==190) { // Extended opcode.
 							
-							instr = 1000+this.getByte(this.m_pc++);
+							instr = 1000+this.m_memory[this.m_pc++];
 							this._handle_variable_parameters(args,
-																							 this.getByte(this.m_pc++),
+																							 this.m_memory[this.m_pc++],
 																							 1);
 					
 					} else if (instr & 0x80) {
@@ -2058,7 +2057,8 @@ GnustoEngine.prototype = {
 											this._handle_variable_parameters(args, types, 2);
 									} else
 											this._handle_variable_parameters(args,
-																											 this.getByte(this.m_pc++), 1);
+																											 this.m_memory[this.m_pc++],
+																											 1);
 							
 							} else { // Short. All 1-OPs except for one 0-OP.
 									
@@ -2070,13 +2070,13 @@ GnustoEngine.prototype = {
 											break;
 											
 									case 0x10:
-											args[0] = this.getByte(this.m_pc++);
+											args[0] = this.m_memory[this.m_pc++];
 											instr = (instr & 0x0F) | 0x80;
 											break;
 									
 									case 0x20:
 											args[0] =
-													this._code_for_varcode(this.getByte(this.m_pc++));
+													this._code_for_varcode(this.m_memory[this.m_pc++]);
 											instr = (instr & 0x0F) | 0x80;
 											break;
 									
@@ -2091,15 +2091,15 @@ GnustoEngine.prototype = {
 					
 							if (instr & 0x40)
 									args[0] =
-											this._code_for_varcode(this.getByte(this.m_pc++));
+											this._code_for_varcode(this.m_memory[this.m_pc++]);
 							else
-									args[0] = this.getByte(this.m_pc++);
+									args[0] = this.m_memory[this.m_pc++];
 							
 							if (instr & 0x20)
 									args[1] =
-											this._code_for_varcode(this.getByte(this.m_pc++));
+											this._code_for_varcode(this.m_memory[this.m_pc++]);
 							else
-									args[1] = this.getByte(this.m_pc++);
+									args[1] = this.m_memory[this.m_pc++];
 					
 							instr &= 0x1F;
 					}
@@ -2152,7 +2152,7 @@ GnustoEngine.prototype = {
 			} else if (target==1) {
 					this.m_output_to_console = 1;
 			} else if (target==2) {
-					this.setByte(this.getByte(0x10) | 0x1);
+					this.m_memory[0x10] |= 0x1;
 			} else if (target==3) {
 					
 					if (this.m_streamthrees.length>15) {
@@ -2166,7 +2166,7 @@ GnustoEngine.prototype = {
 			} else if (target==-1) {
 					this.m_output_to_console = 0;
 			} else if (target==-2) {
-					this.setByte(this.getByte(0x10) & ~0x1);
+					this.m_memory[0x10] &= ~0x1;
 			} else if (target==-3) {
 					
 					if (this.m_streamthrees.length<1) {
@@ -2325,7 +2325,7 @@ GnustoEngine.prototype = {
 			this.m_call_stack.push(from_address);
 			this.m_pc = to_address;
 
-			var count = this.getByte(this.m_pc++);
+			var count = this.m_memory[this.m_pc++];
 
 			// Before version 5, Z-code put initial values for formal parameters
 			// into the code itself. If we're running a version earlier than z5,
@@ -2427,7 +2427,7 @@ GnustoEngine.prototype = {
 											return 0;
 									}
 									
-									mem_char = engine.getByte(mem_addr+j);
+									mem_char = engine.m_memory[mem_addr+j];
 									typed_char = typed.charCodeAt(j);
 									if (mem_char==typed_char) {
 											j++;
@@ -2440,7 +2440,7 @@ GnustoEngine.prototype = {
 							}
 					}
 
-					var entry_length = engine.getByte(dict_addr+engine.m_separator_count+1);
+					var entry_length = engine.m_memory[dict_addr+engine.m_separator_count+1];
 					var entries_count = engine.getWord(dict_addr+engine.m_separator_count+2);
 					var entries_start = engine.m_dict_start+engine.m_separator_count+4;
 
@@ -2530,7 +2530,7 @@ GnustoEngine.prototype = {
 			// Prepare |source|, a string containing all the characters in
 			// text_buffer. (FIXME: Why don't we just work out of text_buffer?)
 
-			var max_chars = this.getByte(text_buffer);
+			var max_chars = this.m_memory[text_buffer];
 			var source = '';
 
 			if (dictionary==0) {
@@ -2545,14 +2545,14 @@ GnustoEngine.prototype = {
 					var copycursor = text_buffer + 1;
 
 					while(1) {
-							var ch = this.getByte(copycursor++);
+							var ch = this.m_memory[copycursor++];
 							if (ch==0) break;
 							source += String.fromCharCode(ch);
 					}
 
 			} else {
-					for (var i=0;i<this.getByte(text_buffer + 1);i++) {
-							source += String.fromCharCode(this.getByte(text_buffer + 2 + i));
+					for (var i=0;i<this.m_memory[text_buffer + 1];i++) {
+							source += String.fromCharCode(this.m_memory[text_buffer + 2 + i]);
 					}
 			}
 
@@ -2624,7 +2624,7 @@ GnustoEngine.prototype = {
 
 					// In z1-z4, the array is null-terminated.
 			
-					max_chars = this.getByte(text_buffer)+1;
+					max_chars = this.m_memory[text_buffer]+1;
 					result = entered.substring(0,max_chars);
 
 					for (var i=0;i<result.length;i++) {
@@ -2637,7 +2637,7 @@ GnustoEngine.prototype = {
 
 					// In z5-z8, the array starts with a size byte.
 
-					max_chars = this.getByte(text_buffer);
+					max_chars = this.m_memory[text_buffer];
 					result = entered.substring(0,max_chars);
 
 					this.setByte(result.length, text_buffer + 1);
@@ -2671,7 +2671,7 @@ GnustoEngine.prototype = {
 					
 					var result = '\r';
 					while(1) {
-							var ch = this.getByte(terms_address++);
+							var ch = this.m_memory[terms_address++];
 							if (ch==0) {
 									// Zero is a terminator.
 									break;
@@ -2740,14 +2740,15 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_len: function ge_get_prop_len(address) {
+			address &= 0xFFFF;
 			if (this.m_version<4) {
-					return 1+(this.getByte(address-1) >> 5);
+					return 1+(this.m_memory[address-1] >> 5);
 			} else {
 					// The last byte before the data is either the size byte of a 2-byte
 					// field, or the only byte of a 1-byte field. We can tell the
 					// difference using the top bit.
 
-					var value = this.getByte(address-1);
+					var value = this.m_memory[address-1];
 
 					if (value & 0x80) {
 							// A two-byte field, so we take the bottom five bits.
@@ -2807,7 +2808,7 @@ GnustoEngine.prototype = {
 			if (temp[1]==2) {
 					return this.getWord(temp[0]);
 			} else if (temp[1]==1) {
-					return this.getByte(temp[0]); // should this be treated as signed?
+					return this.m_memory[temp[0]]; // should this be treated as signed?
 			} else {
 					// get_prop used on a property of the wrong length
 					gnusto_error(706, object, property);
@@ -2854,7 +2855,7 @@ GnustoEngine.prototype = {
 																							 object*this.m_object_size);
 
 			// Skip the property table's header.
-			props_address = props_address + this.getByte(props_address)*2 + 1;
+			props_address = props_address + this.m_memory[props_address]*2 + 1;
 			
 			// Now loop over each property and consider it.
 
@@ -2862,7 +2863,7 @@ GnustoEngine.prototype = {
 
 			while(1) {
 					var len = 1;
-					var prop = this.getByte(props_address++);
+					var prop = this.m_memory[props_address++];
 
 					if (this.m_version < 4) {
 							len = (prop>>5)+1;
@@ -2870,7 +2871,7 @@ GnustoEngine.prototype = {
 					} else {
 							if (prop & 0x80) {
 									// Long format.
-									len = this.getByte(props_address++) & 0x3F;
+									len = this.m_memory[props_address++] & 0x3F;
 									if (len==0) len = 64;
 							} else {
 									// Short format.
@@ -2909,7 +2910,7 @@ GnustoEngine.prototype = {
 			if (object==0) return; // Kill that V0EFH before it starts.
 
 			var address = this.m_object_tree_start + object*this.m_object_size + (bit>>3);
-			var value = this.getByte(address);
+			var value = this.m_memory[address];
 			this.setByte(value | (128>>(bit%8)), address);
 	},
 
@@ -2917,14 +2918,14 @@ GnustoEngine.prototype = {
 			if (object==0) return; // Kill that V0EFH before it starts.
 
 			var address = this.m_object_tree_start + object*this.m_object_size + (bit>>3);
-			var value = this.getByte(address);
+			var value = this.m_memory[address];
 			this.setByte(value & ~(128>>(bit%8)), address);
 	},
 
 	_test_attr: function ge_test_attr(object, bit) {
 			if (object==0) return 0; // Kill that V0EFH before it starts.
 
-			if ((this.getByte(this.m_object_tree_start + object*this.m_object_size +(bit>>3)) &
+			if ((this.m_memory[this.m_object_tree_start + object*this.m_object_size +(bit>>3)] &
 					 (128>>(bit%8)))) {
 					return 1;
 			} else {
@@ -3006,9 +3007,9 @@ GnustoEngine.prototype = {
 
 			if (this.m_version < 4) {
 
-					return this.getByte(this.m_object_tree_start +
-															4+relationship +
-															from*this.m_object_size);
+					return this.m_memory[this.m_object_tree_start +
+															 4+relationship +
+															 from*this.m_object_size];
 			} else {
 					// v4 and above.
 
@@ -3090,11 +3091,11 @@ GnustoEngine.prototype = {
 
 					if (copy_forwards) {
 							for (var i=0; i<size; i++) {
-									this.setByte(this.getByte(first+i), second+i);
+									this.setByte(this.m_memory[first+i], second+i);
 							}
 					} else {
 							for (var i=size-1; i>=0; i--) {
-									this.setByte(this.getByte(first+i), second+i);
+									this.setByte(this.m_memory[first+i], second+i);
 							}
 					}
 			}
@@ -3115,8 +3116,8 @@ GnustoEngine.prototype = {
 			if (usewords) {
 					//if the table is in the form of word values
 					while (target_table < lastlocation) {
-							if (((this.getByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
-									((this.getByte(target_table+1)&0xFF) == (target_word&0xFF))) {
+							if (((this.m_memory[0xFFFF&target_table]&0xFF) == ((target_word>>8)&0xFF)) &&
+									((this.m_memory[0xFFFF&target_table+1]&0xFF) == (target_word&0xFF))) {
 
 									return target_table;
 							}
@@ -3125,7 +3126,7 @@ GnustoEngine.prototype = {
 			} else {
 					//if the table is in the form of byte values
 					while (target_table < lastlocation) {
-							if ((this.getByte(target_table)&0xFF) == (target_word&0xFFFF)) {
+							if ((this.m_memory[0xFFFF&target_table]&0xFF) == (target_word&0xFFFF)) {
 									return target_table;
 							}
 							target_table += jumpby;
@@ -3167,7 +3168,7 @@ GnustoEngine.prototype = {
 					var s='';
 
 					for (var x=0; x<width; x++) {
-							s=s+this._zscii_char_to_ascii(this.getByte(address++));
+							s=s+this._zscii_char_to_ascii(this.m_memory[address++]);
 					}
 					
 					lines.push(s);
@@ -3272,11 +3273,11 @@ GnustoEngine.prototype = {
 	//   |coded_text|        is where to put the six bytes of encoded text.
 	_encode_text: function ge_encode_text(zscii_text, length, from, coded_text) {
 
-			zscii_text += from;
+			zscii_text = (zscii_text + from) & 0xFFFF;
 			var source = '';
 
 			while (length>0) {
-					var b = this.getByte(zscii_text);
+					var b = this.m_memory[zscii_text];
 		
 					if (b==0) break;
 
@@ -3424,7 +3425,7 @@ GnustoEngine.prototype = {
 					this.m_streamthrees[0][1] = address;
 			} else {
 
-					var bits = this.getByte(0x10) & 0x03;
+					var bits = this.m_memory[0x10] & 0x03;
 					var changed = bits != this.m_printing_header_bits;
 					effect_parameters = this.m_printing_header_bits; 
 					this.m_printing_header_bits = bits;
@@ -3545,7 +3546,7 @@ GnustoEngine.prototype = {
 	_brancher: function ge_brancher(condition) {
 
 			var inverted = 1;
-			var temp = this.getByte(this.m_pc++);
+			var temp = this.m_memory[this.m_pc++];
 			var target_address = temp & 0x3F;
 
 			if (temp & 0x80) {
@@ -3553,7 +3554,7 @@ GnustoEngine.prototype = {
 			}
 
 			if (!(temp & 0x40)) {
-					target_address = (target_address << 8) | this.getByte(this.m_pc++);
+					target_address = (target_address << 8) | this.m_memory[this.m_pc++];
 					// and it's signed...
 
 					if (target_address & 0x2000) {
@@ -3591,7 +3592,7 @@ GnustoEngine.prototype = {
 	},
 
 	_storer: function ge_storer(rvalue) {
-			var lvalue_varcode = this.getByte(this.m_pc++);
+			var lvalue_varcode = this.m_memory[this.m_pc++];
 
 			if (rvalue.substring && rvalue.substring(0,11)=='_func_gosub') {
 					// Special case: the results of gosubs can't
@@ -3648,7 +3649,7 @@ GnustoEngine.prototype = {
 			var varcode = -1;
 
 			if (get_varcode) {
-					varcode = this.getByte(this.m_pc++);
+					varcode = this.m_memory[this.m_pc++];
 			}
 
 			return '_func_gosub('+
