@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.8 2003/02/25 10:35:31 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.9 2003/02/25 16:58:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -723,17 +723,41 @@ function setword(value, addr) {
 // instructions, too). It will change the PC to point to the end of the
 // code it's dissembled.
 function dissemble() {
+
+		var args = [];
+		var argcursor = 0;
+
+		function handle_variable_parameters() {
+				var types = getbyte(pc++);
+				types = (types << 2) | 0x3;
+
+				while (1) {
+						var current = types & 0xC0;
+						if (current==0xC0) {
+								break;
+						} else if (current==0x00) {
+								args[argcursor++] = getword(pc);
+								pc+=2;
+						} else if (current==0x40) {
+								args[argcursor++] = getbyte(pc++);
+						} else if (current==0x80) {
+								args[argcursor++] =
+										code_for_varcode(getbyte(pc++));
+						} else {
+								gnusto_error(171); // impossible
+						}
+				}
+		}
+
 		compiling = !debug_mode;
 		code = '';
 
 		while(compiling) {
+
+				args = [];
+				argcursor = 0;
+
 				var instr = getbyte(pc++);
-
-				var form = 'L';
-				var ops = 2;
-
-				// Types of operands.
-				var types = 0xFFFF;
 
 				if (instr==0) {
 						// If we just get a zero, we've probably
@@ -741,76 +765,61 @@ function dissemble() {
 
 						gnusto_error(201, pc-1); // lost in space
 				} else if (instr==190) {
-						form = 'E';
-						ops = -1;
+
+						// Extended opcode.
+
 						instr = 1000+getbyte(pc++);
+						handle_variable_parameters();
+
 				} else if (instr & 0x80) {
-						if (instr & 0x40) {
-								form = 'V';
-								if (instr & 0x20) {
-										ops = -1;
-								} else {
-										ops = 0;
-								}
-						} else {
-								form = 'S';
-								var optype = (instr & 0x30) >> 4;
-								if (optype==3) {
-										ops = 0;
-								} else {
-										ops = 1;
-										types = (optype << 14) | 0x3fff;
+						if (instr & 0x40) { // Variable
+
+								// if (instr & 0x20)... according to the z-spec.
+								// I haven't seen any evidence of this.
+								// (Ask on the list.)
+
+								handle_variable_parameters();
+
+								if (instr==250 || instr==236)
+										// We get more of them!
+										handle_variable_parameters();
+
+								instr = instr & 0x1F;
+
+						} else { // Short
+
+								switch(instr & 0x30) {
+								case 0x00:
+										args[0] = getword(pc);
+										pc+=2;
+										break;
+
+								case 0x10:
+										args[0] = getbyte(pc++);
+										break;
+
+								case 0x11:
+										args[0] =
+												code_for_varcode(getbyte(pc++));
+										break;
 								}
 						}
 				} else {
 						// Long opcodes.
 	
-						// Type information is stored weirdly here...
-	
-						types = 0xFFF;
-						if (instr & 0x20) types |= 0x2000;
-						else types |= 0x1000;
-						if (instr & 0x40) types |= 0x8000;
-						else types |= 0x4000;
-
-						instr = instr & 0x1F;
-				}
-
-				if (form=='V' || form=='E') {
-						types = (getbyte(pc++)<<8)
-
-								if (instr==250 || instr==236) {
-										types = types | getbyte(pc++);
-								} else {
-										types = types | 0xFF;
-								}
-				}
-
-				var args = [];
-				var argcursor = 0;
-
-				while(1) {
-						var current = (types & 0xC000);
-						if (current==0xC000) {
-								break;
-						} else if (current==0x0000) {
-								args[argcursor++] = getword(pc);
-								pc+=2;
-						} else if (current==0x4000) {
-								args[argcursor++] = getbyte(pc++);
-						} else if (current==0x8000) {
-								args[argcursor++] =
+						if (instr & 0x20)
+								args[0] =
 										code_for_varcode(getbyte(pc++));
-						} else {
-								gnusto_error(171); // impossible
-						}
-						types = (types << 2) + 0x3;
-				}
+						else
+								args[0] = getbyte(pc++);
 
-				// some adjustments for opcode blocks:
-				if (instr>=192 && instr<=223) { instr -= 192; }
-				else if (instr>=144 && instr<=159) { instr -= 16; }
-				else if (instr>=160 && instr<=175) { instr -= 32; }
+						if (instr & 0x40)
+								args[1] =
+										code_for_varcode(getbyte(pc++));
+						else
+								args[1] = getbyte(pc++);
+						
+				}
 
 				if (handlers[instr]) {
 						code = code + handlers[instr](args)+';';
@@ -826,8 +835,8 @@ function dissemble() {
 		// set it automatically at the end of each fragment.
 		if (debug_mode) code = code + 'pc='+pc;
 
-		return 'function(){'+code+'}'
-				}
+		return 'function(){'+code+'}';
+}
 
 ////////////////////////////////////////////////////////////////
 // Library functions
