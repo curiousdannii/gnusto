@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.8 2003/02/25 09:49:55 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.9 2003/02/25 10:35:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -447,3 +447,30 @@ function gnusto_error(n) {
 
 		if (n<500) throw -1;
 }
+
+function gnustoglue_notify_transcription(whether) {
+		alert('Transcription is now '+whether);
+}
+
+function gnustoglue_transcribe(text) {
+		if (current_window==0) {
+				// alert('Transcribe: '+text);
+		}
+}
+
+function doTranscript() {
+
+    var menuItem = document.getElementById("transcript");
+
+		if (is_transcribing()) {
+				set_transcribing(0);
+				//				menuItem.setProperty('label', 'Stop transcript');
+		} else {
+
+				alert('(ask for a filename...)');
+				set_transcribing(1);
+
+				//				menuItem.setProperty('label', 'Start transcript...');
+		}
+}
+

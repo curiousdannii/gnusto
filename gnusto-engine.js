@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.7 2003/02/25 09:40:55 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.8 2003/02/25 10:35:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1280,7 +1280,7 @@ function set_output_stream(target, address) {
 		} else if (target==1) {
 				output_to_console = 1;
 		} else if (target==2) {
-				output_to_transcript = 1;
+				set_transcribing(1);
 		} else if (target==3) {
 
 				if (streamthrees.length>15)
@@ -1293,7 +1293,7 @@ function set_output_stream(target, address) {
 		} else if (target==-1) {
 				output_to_console = 0;
 		} else if (target==-2) {
-				output_to_transcript = 0;
+				set_transcribing(0);
 		} else if (target==-3) {
 
 				if (streamthrees.length<1)
@@ -1306,6 +1306,22 @@ function set_output_stream(target, address) {
 				output_to_script = 0;
 		} else
 				gnusto_error(204, target); // weird output stream number
+}
+
+// Returns whether the Z-machine has transcription turned on.
+function is_transcribing() {
+		return output_to_transcript;
+}
+
+// Turns transcription on or off. Can be called by the environment.
+function set_transcribing(whether) {
+		if (whether)
+				output_to_transcript = 1;
+		else
+				output_to_transcript = 0;
+
+		// And notify the environment about it.
+		gnustoglue_notify_transcription(output_to_transcript);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1344,7 +1360,7 @@ function setup() {
 				rebound = 0;
 
 		output_to_console = 1;
-		output_to_transcript = 0;
+		set_transcribing(0);
 		streamthrees = [];
 		output_to_script = 0;
 		debug_mode = 0;
@@ -1538,6 +1554,6 @@ function output(text) {
 								streamthrees[0][1] = address;
 		} else {
 				if (output_to_console) gnustoglue_output(text);
-				if (output_to_transcript) gnustoglue_output('[ts:'+text+']');
+				if (output_to_transcript) gnustoglue_transcribe(text);
 		}
 }
