@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.13 2003/09/16 05:20:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.14 2003/09/20 03:20:22 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/16 05:20:14 $';
+const CVS_VERSION = '$Date: 2003/09/20 03:20:22 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -519,8 +519,7 @@ function handleZ_show_status(engine, a){ //(illegal from V4 onward)
 
 function handleZ_verify(engine, a) {
     engine.m_compilation_running = 0;
-
-    var setter = 'rebound=function(n){'+engine._brancher('n')+'};';
+    var setter = 'm_rebound=function(){'+engine._brancher('m_answers[0]')+'};';
     //VERBOSE burin('verify',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_VERIFY");
     return "m_pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
   }
@@ -534,7 +533,7 @@ function handleZ_illegal_extended(engine, a) {
 function handleZ_piracy(engine, a) {
     engine.m_compilation_running = 0;
 				
-    var setter = 'rebound=function(n){'+engine._brancher('(!n)')+'};';
+    var setter = 'm_rebound=function(){'+engine._brancher('(!m_answers[0])')+'};';
     //VERBOSE burin('piracy',"pc="+pc+";"+setter+"return GNUSTO_EFFECT_PIRACY");
     return "m_pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
   }
@@ -573,8 +572,8 @@ function handleZ_read(engine, a) {
 
     engine.m_compilation_running = 0;
 				
-    var setter = "rebound=function(n){" +
-      engine._storer("_aread(n, a0," + a[1] + ")") +
+    var setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
+      engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])") +
       "};";
 
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
@@ -690,8 +689,8 @@ function handleZ_read_char(engine, a) {
 				
     engine.m_compilation_running = 0;
 				
-    var setter = "rebound=function(n) { " +
-      engine._storer("n") +
+    var setter = "m_rebound=function() { " +
+      engine._storer("m_answers[0]") +
       "};";
 				
     return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_INPUT_CHAR+"];return 1";
@@ -750,16 +749,16 @@ function handleZ_check_arg_count(engine, a) {
 function handleZ_save(engine, a) {
     //VERBOSE burin('save','');
     engine.m_compilation_running=0;
-    var setter = "rebound=function(n) { " +
-      engine._storer('n') + "};";
+    var setter = "m_rebound=function() { " +
+      engine._storer('m_answers[0]') + "};";
     return "m_pc="+engine.m_pc+";"+setter+";m_effects=["+GNUSTO_EFFECT_SAVE+"];return 1";
   }
 		
 function handleZ_restore(engine, a) {
     //VERBOSE burin('restore','');
     engine.m_compilation_running=0;
-    var setter = "rebound=function(n) { " +
-      engine._storer('n') + "};";
+    var setter = "m_rebound=function(n) { " +
+      engine._storer('m_answers[0]') + "};";
     return "m_pc="+engine.m_pc+";"+setter+"m_effects=["+GNUSTO_EFFECT_RESTORE+"];return 1";
   }
 		
@@ -1065,7 +1064,7 @@ GnustoEngine.prototype = {
   },
 
   answer: function ge_answer(which, what) {
-    throw "not implemented";
+			this.m_answers[which] = what;
   },
 
   // Main point of entry for gnusto. Be sure to call start_game()
@@ -1086,16 +1085,16 @@ GnustoEngine.prototype = {
     var jscode;
     var turns_limit = this.m_single_step? 1: 10000;
 
-    //if (m_rebound) {
-    //m_rebound(0); // answer FIXME
-    //m_rebound = 0;
-		//}
+    if (this.m_rebound) {
+				this.m_rebound();
+				this.m_rebound = 0;
+				this.m_rebound_args = [];
+		}
 
     while(!stopping) {
 
 				if (turns++ >= turns_limit) {
 					// Wimp out for now.
-						dump(' *** wimping out ***');
 						return GNUSTO_EFFECT_WIMP_OUT;
 				}
 
@@ -1232,6 +1231,7 @@ GnustoEngine.prototype = {
     }		
     
     this.m_rebound = 0;
+    this.m_rebound_args = [];
     
     this.m_output_to_console = 1;
     this.m_streamthrees = [];
@@ -1678,9 +1678,9 @@ GnustoEngine.prototype = {
 
 			function look_up(engine, word, dict_addr) {
 
-					var entry_length = engine.getByte(dict_addr+separator_count+1);
-					var entries_count = engine.getWord(dict_addr+separator_count+2);
-					var entries_start = engine.m_dict_addr+separator_count+4;
+					var entry_length = engine.getByte(dict_addr+engine.m_separator_count+1);
+					var entries_count = engine.getWord(dict_addr+engine.m_separator_count+2);
+					var entries_start = engine.m_dict_start+engine.m_separator_count+4;
 
 					// Whether the dictionary is sorted.
 					// We don't use this at present (it would be a
@@ -1698,18 +1698,19 @@ GnustoEngine.prototype = {
 					}
 
 					var oldword = word;				
-					word = into_zscii(word);
+					word = engine._into_zscii(word);
 			
 					for (var i=0; i<entries_count; i++) {
 							//really ugly kludge until into_zscii is fixed properly
+							// FIXME: Is it?
 							var address = entries_start+i*entry_length;
-							if (zscii_from(address)==oldword) {
+							if (engine._zscii_from(address)==oldword) {
 									return address;
 							}
 							
 							var j=0;
 							while (j<word.length &&		
-										 this.getByte(address+j)==word.charCodeAt(j))
+										 engine.getByte(address+j)==word.charCodeAt(j))
 									j++;
 
 							if (j==word.length)return address;
@@ -1718,28 +1719,35 @@ GnustoEngine.prototype = {
 					return 0;
 			}
 
-			function add_to_parse_table(engine, curword, wordindex, wordpos) {
+			function add_to_parse_table(engine, dictionary, curword, words_count, wordpos) {
                        
 					var lexical = look_up(engine, curword, dictionary);
 
-					//alert(curword + ': index=' + wordindex + ' pos=' + wordpos + ' len=' + curword.length + ' cursor=' +cursor + ' lex=' + lexical);
 					if (!(overwrite && lexical==0)) {
-							this.setWord(lexical, cursor);
-			
+
+							engine.setWord(lexical, cursor);
 							cursor+=2;
+
 							engine.setByte(curword.length, cursor++);
 							engine.setByte(wordpos+2, cursor++);
 	
-					} else cursor +=4;
+					} else {
+
+							// In overwrite mode, if we don't know a word, we skip
+							// the corresponding record.
+
+							cursor +=4;
+
+					}
 		
-					this.setByte(this.getByte(words_count)+1, words_count);		
+					engine.setByte(engine.getByte(words_count)+1, words_count);		
 			
 					return 1;
 			}
 
 			if (dictionary==0) {
 					// Use the standard game dictionary.
-					dictionary = dict_start;
+					dictionary = this.m_dict_start;
 			}
 
 			var max_chars = this.getByte(text_buffer);
@@ -1750,32 +1758,32 @@ GnustoEngine.prototype = {
 					result += String.fromCharCode(this.getByte(text_buffer + 2 + i));
 			}
 
-			var words_count = this.parse_buffer + 1;
+			var words_count = parse_buffer + 1;
 			this.setByte(0, words_count);
 		
 			var words = [];
 			var curword = '';
 			var wordindex = 0;
-		
+
 			for (var cpos=0; cpos < result.length; cpos++) {
 					if (result[cpos]  == ' ') {
 							if (curword != '') {
 									words[wordindex] = curword;
-									add_to_parse_table(this, words[wordindex], wordindex,
+									add_to_parse_table(this, dictionary, words[wordindex], words_count,
 																		 cpos - words[wordindex].length);
 									wordindex++;
 									curword = '';
 							}
 					} else {
-							if (IsSeparator(result[cpos])) {
+							if (this._is_separator(result[cpos])) {
 									if (curword != '') {
 											words[wordindex] = curword;
-											add_to_parse_table(this, words[wordindex], wordindex,
+											add_to_parse_table(this, dictionary, words[wordindex], words_count,
 																				 cpos - words[wordindex].length);
 											wordindex++;
 									}
 									words[wordindex] = result[cpos];
-									add_to_parse_table(words[wordindex], wordindex, cpos);
+									add_to_parse_table(this, dictionary, words[wordindex], words_count, cpos);
 									wordindex++;
 									curword = '';		
 							} else {
@@ -1786,7 +1794,8 @@ GnustoEngine.prototype = {
 		
 			if (curword != '') {			
 					words[wordindex] = curword;
-					add_to_parse_table(words[wordindex], wordindex, cpos - words[wordindex].length);
+					add_to_parse_table(this, dictionary, words[wordindex], words_count,
+														 cpos - words[wordindex].length);
 			}
 		
 			//display the broken-up text for visual validation 
@@ -1807,14 +1816,14 @@ GnustoEngine.prototype = {
 			var max_chars = this.getByte(text_buffer);
 			var result = source.substring(0,max_chars);
 
-			setByte(result.length, text_buffer + 1);
+			this.setByte(result.length, text_buffer + 1);
 			
 			for (var i=0;i<result.length;i++) {
-					setByte(result.charCodeAt(i), text_buffer + 2 + i);
+					this.setByte(result.charCodeAt(i), text_buffer + 2 + i);
 			}
 
 			if (parse_buffer!=0) {
-					tokenise(text_buffer, parse_buffer, 0, 0);
+					this._tokenise(text_buffer, parse_buffer, 0, 0);
 			}
 
 			// Return the ASCII value for the Enter key. aread() is supposed
@@ -2477,6 +2486,7 @@ GnustoEngine.prototype = {
 	// which does all this for you.)
 
 	_zOut: function ge_zOut(text) {
+
 			if (this.m_streamthrees.length) {
 
 					// Stream threes disable any other stream while they're on.
@@ -2509,11 +2519,11 @@ GnustoEngine.prototype = {
 					} else {
 
 							if (this.m_output_to_console) {
-									console_buffer = console_buffer + text;
+									this.m_console_buffer = this.m_console_buffer + text;
 							}
 
 							if (bits & 1) {
-									transcript_buffer = transcript_buffer + text;
+									this.m_transcript_buffer = this.m_transcript_buffer + text;
 							}
 					}
 			}
@@ -2523,7 +2533,7 @@ GnustoEngine.prototype = {
 
 	////////////////////////////////////////////////////////////////
 
-	_console_text: function ge_console_text() {
+	consoleText: function ge_console_text() {
 			var temp = this.m_console_buffer;
 			this.m_console_buffer = '';
 			return temp;
@@ -2950,6 +2960,9 @@ GnustoEngine.prototype = {
   // happens.
   m_rebound: 0,
   
+	// Any extra arguments for m_rebound.
+  m_rebound_args: [],
+
   // Whether we're writing output to the ordinary screen (stream 1).
   m_output_to_console: 0,
   
