@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.15 2003/05/26 00:52:13 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.16 2003/05/27 05:02:23 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -20,11 +20,27 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-var barbara__holder = 0;
+////////////////////////////////////////////////////////////////
+//
+//                     PRIVATE VARIABLES
+//
+////////////////////////////////////////////////////////////////
+
+// The HTML <span> which we're adding text to at present.
+// Can be null, if there isn't one.
+var barbara__holder = null;
+
+// Namespace of HTML. Constant.
 var barbara__HTML = "http://www.w3.org/1999/xhtml";
+
+// CSS string to be used as the value of the "style" element
+// when we next create barbara__holder, in case that's null.
 var barbara__current_css = '';
 
+// The portion of the current command-line before the cursor.
 var barbara__before_cursor = null;
+
+// The portion of the current command-line after the cursor.
 var barbara__after_cursor = null;
 
 // Y-coordinate of the most the user's seen, in pixels.
@@ -41,21 +57,27 @@ function barbara_init() {
 
 function barbara_start_game() {
 
-		barbara__most_seen = 0;
+		barbara__holder = null;
 
+		barbara__before_cursor = null;
+		barbara__after_cursor = null;
+
+		barbara__most_seen = 0;
+		
+		barbara_clear();
 }
 
 ////////////////////////////////////////////////////////////////
 
 function barbara_clear() {
 		barbarix_clear(document.getElementById('barbara'));
-		barbara__holder = 0;
+		barbara__holder = null;
 }
 
 ////////////////////////////////////////////////////////////////
 
 function barbara_set_text_style(css_class) {
-		barbara__holder = 0;
+		barbara__holder = null;
 		barbara__current_css = css_class;
 }
 
