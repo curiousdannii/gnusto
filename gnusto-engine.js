@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.91 2003/08/08 23:30:47 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.92 2003/08/10 17:46:37 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1193,7 +1193,7 @@ function golden_trail(addr) {
 			var text = 'pc : '+addr.toString(16);
 			burin('gold',text);
 
-		/* Extra debugging information which may sometimes be useful
+		// Extra debugging information which may sometimes be useful
 		var v = 0;
 
 		for (var jj=0; jj<16; jj++) {
@@ -1263,7 +1263,7 @@ function dissemble() {
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
-				//code = code + 'golden_trail('+pc+');';
+				// code = code + 'golden_trail('+pc+');';
 				//code = code + 'burin("gold","'+pc.toString(16)+'");';
 				
 				// So here we go...
@@ -1516,13 +1516,13 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 				var oldword = word;				
 				word = into_zscii(word);
-		
+
 				for (var i=0; i<entries_count; i++) {
 						//really ugly kludge until into_zscii is fixed properly
 						var address = entries_start+i*entry_length;
 					 	if (zscii_from(address)==oldword) {
 					 		return address;}
-						
+
 						var j=0;
 						while (j<word.length &&		
 									 zGetByte(address+j)==word.charCodeAt(j))
@@ -1586,7 +1586,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
                          if ((words[i] != '') && (words[i] != ' ')) {
 				var lexical = look_up(words[i], dictionary);
 
-				// burin('token', words[i]+' '+lexical);
+        // burin('token', words[i]+' '+lexical);
 
 				if (!(overwrite && lexical==0)) {
 						zSetWord(lexical, cursor);
@@ -2397,9 +2397,9 @@ function zscii_from(address, max_length, tell_length) {
 //   |coded_text|        is where to put the six bytes of encoded text.
 function engine__encode_text(zscii_text, length, from, coded_text) {
 
-		var source = '';
-
 		zscii_text += from;
+
+		var source = '';
 
 		while (length>0) {
 				var b = zGetByte(zscii_text);
@@ -2408,7 +2408,7 @@ function engine__encode_text(zscii_text, length, from, coded_text) {
 
 				source = source + zscii_char_to_ascii(b);
 				zscii_text++;
-				i--;
+				length--;
 		}
 
 		var result = into_zscii(source);
@@ -2448,7 +2448,7 @@ function into_zscii(str) {
 		// Need to handle other alphabets. At present we only
 		// handle alphabetic characters (A0).
 		// Also need to handle ten-bit characters.
-
+		
 		var cursor = 0;
 
 		while (cursor<str.length && result.length<6) {
