@@ -555,6 +555,30 @@ function tossio_dump(start, end) {
 		}
 }
 
-// load('tossio.js');
-// loadI0();
-// tossio_scan(get_unsigned_word(0x6),0);
+var dissemblyWindow = 0;
+
+function viewDissembly() {
+	if (!dissemblyWindow)
+		dissemblyWindow=open('chrome://gnusto/content/dissembly.xul','dissembly','chrome,all,dialog=no');
+	var doc = dissemblyWindow.document;
+	alert(doc);
+
+	alert(dissemblyWindow);
+	alert(dissemblyWindow.document);
+  alert(dissemblyWindow.document.getElementById('details'));
+}
+
+/*function viewDissembly() {
+	if (!dissemblyWindow)
+		dissemblyWindow=open('chrome://gnusto/content/dissembly.xul','dissembly','chrome,all,dialog=no');
+
+	var row = dissemblyWindow.document.createElement('row');
+	var a = dissemblyWindow.document.createElement('label'); a.setAttribute('value', '420');
+	var b = dissemblyWindow.document.createElement('label');	b.setAttribute('value', 'man');
+
+	row.appendChild(a);
+	row.appendChild(b);
+
+  dissemblyWindow.document.getElementById('details').appendChild(row);
+}
+*/
