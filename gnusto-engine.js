@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.80 2003/07/09 22:12:52 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.81 2003/07/17 11:51:06 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -869,7 +869,15 @@ var handlers = {
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT_CHAR;
 		},
 
-		// not implemented:   * * VAR:247 17 4 scan_table x table len form -> (result)
+		247: function Z_scan_table(a) { burin('SCAN_TABLE','');
+		                if (a.length == 4) {
+                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + a[3]+");" +
+                                       storer("t") + ";" +  brancher('t');
+		                } else { // must use the default for Form, 0x86
+                                   return "t=scan_table("+a[0]+','+a[1]+"&0xFFFF,"+a[2]+"&0xFFFF," + 0x86 +");" +
+                                       storer("t") + ";" +  brancher('t');
+		                }
+		},
 
 		248: function Z_not(a) {
 				return storer('~'+a[1]+'&0xffff');
@@ -1790,6 +1798,43 @@ function copy_table(first, second, size) {
 						}
 				}
 		}
+}
+
+
+////////////////////////////////////////////////////////////////
+// Implements @scan_table, as in the Z-spec.
+function scan_table(target_word, target_table, table_length, table_form) {
+	                         
+	burin('Actually scanning table','');
+        var jumpby = table_form & 0x7F;
+	var usewords = ((table_form & 0x80) == 0x80);
+				
+	if (usewords) 
+	{ //if the table is in the form of word values
+		var lastlocation = target_table + (table_length << 1);
+		while (target_table < lastlocation) 
+		{
+			if (((zGetByte(target_table)&0xFF) == ((target_word>>8)&0xFF)) &&
+			((zGetByte(target_table+1)&0xFF) == (target_word&0xFF))) 
+			{
+			    return target_table;
+			}
+			target_table += jumpby;
+		}
+	}
+	else 
+	{ //if the table is in the form of byte values
+	    	var lastlocation = target_table + table_length;
+	    	while (target_table < lastlocation) 
+		{
+			if ((zGetByte(target_table)&0xFF) == (target_word&0xFFFF)) 
+			{
+				return target_table;
+			}
+			target_table += jumpby;
+		}
+	}
+	return 0;	
 }
 
 ////////////////////////////////////////////////////////////////
