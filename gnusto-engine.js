@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////
 //
-// gnusto v0.0.9
+// gnusto v0.0.10
 //
 // This is an early release of the Gnusto JavaScript
 // Z-machine library.
@@ -65,6 +65,10 @@ var vars_start;
 // We should probably remove it.
 var stat_start;
 
+// Address of the start of the abbreviations table in memory. (Can this
+// be changed? If not, we could decode them all first.)
+var abbr_start;
+
 // |call_stack| stores all the return addresses for all the functions
 // which are currently executing.
 var call_stack;
@@ -117,8 +121,12 @@ var output_to_console;
 // Whether we're writing output to a game transcript (stream 2).
 var output_to_transcript;
 
-// Streams writing out to main memory (collectively, stream 3).
-// fixme: need more detail as to the format of this variable.
+// A list of streams writing out to main memory (collectively, stream 3).
+// The stream at the start of the list is the current one.
+// Each stream is represented as a list with two elements: [|start|, |end|].
+// |start| is the address at the start of the memory block where the length
+// of the block will be stored after the stream is closed. |end| is the
+// current end of the block.
 var streamthrees;
 
 // Whether we're writing copies of input to a script file (stream 4).
@@ -140,13 +148,25 @@ var debug_mode;
 //
 ////////////////////////////////////////////////////////////////
 
+// Returns a string of JS code to set the PC to the address in
+// |packed_target|, based on the current architecture.
+function pc_translate(packed_target) {
+
+	// Well, we only support z5 at the moment.
+	// Numbers assigned to the PC in z5 are treated as unsigned
+	// and multiplied by four.
+	return '(('+packed_target+')&0xFFFF)*4';
+
+	// Would be good if we could pick up when it was a constant...
+}
+
 function call_vn(args, offset) {
 	compiling = 0;
 	var address = pc;
 	if (offset) { address += offset; }
 
 	return 'gosub('+
-		args[0]+'*4,'+
+		pc_translate(args[0])+','+
 		'['+args.slice(1)+'],'+
 		(address) + ',0)';
 }
@@ -242,7 +262,7 @@ function simple_call(target, arguments) {
 	compiling=0; // Got to stop after this.
 	var functino = "function(r){"+storer("r")+";});";
 	// (get it calculated so's the pc will be right)
-	return "t="+target+";gosub(t*4,["+arguments+"],"+pc+","+
+	return "gosub("+pc_translate(target)+",["+arguments+"],"+pc+","+
 		functino;
 }
 
@@ -408,7 +428,7 @@ var handlers = {
 	26: function(a) { // call_2n
 		// can we use simple_call here, too?
 		compiling=0; // Got to stop after this.
-		return "gosub("+a[0]+"*4,["+a[1]+"],"+pc+",0)"
+		return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)"
 	},
 	128: function(a) { // jz
 		return brancher(a[0]+'==0');
@@ -438,7 +458,7 @@ var handlers = {
 		return store_into(c, c+'-1');
 	},
 	135: function(a) { // print_addr
-		return "output(zscii_from("+a[0]+"*4))";
+		return "output(zscii_from("+pc_translate(a[0])+"))";
 	},
 	136: function(a) { // call_1s
 			return simple_call(a[0], '');
@@ -461,14 +481,14 @@ var handlers = {
 		return "pc="+addr+";return";
 		},
 	141: function(a) { // print_paddr
-		return "output(zscii_from("+a[0]+"*4))";
+		return "output(zscii_from("+pc_translate(a[0])+"))";
 		},
 	// code_for_varcode() problem!
 	// not implemented:  *     1OP:142 E       load (variable) -> (result)               load '"},
 	143: function(a) { // call_1n
 		// can we use simple_call here, too?
 		compiling=0; // Got to stop after this.
-		return "gosub("+a[0]+"*4,[],"+pc+",0)"
+		return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
 		},
 
 	176: function(a) { // rtrue
@@ -514,8 +534,8 @@ var handlers = {
 		return brancher("1");
 	},
 
-	224: function(args) { // call_vs
-		return storer(call_vn(args,1));
+	224: function(a) { // call_vs
+		return storer(call_vn(a,1));
 	},
 
 	225: function(a) { // storew
@@ -588,7 +608,9 @@ var handlers = {
 		return 'gnustoglue_set_text_style('+a[0]+')';
 	},
 		
-	// not implemented:   VAR:242 12 4 buffer_mode flag buffer_mode '"},
+	242: function(a) { // buffer_mode
+		return 'gnustoglue_set_buffer_mode('+a[0]+')';
+	},
 
 	243: function(a) { // output_stream
 		return 'set_output_stream('+a[0]+','+a[1]+')';
@@ -598,8 +620,7 @@ var handlers = {
 	// not implemented:   VAR:245 15 5/3 sound_effect number effect volume routine sound_effect '"},
 
 	246: function(a) { // read_char
-
-		// fixme: factor out "read" and this
+		// Maybe factor out "read" and this?
 
 		// a[0] is always 1; probably not worth checking for this
 
@@ -672,9 +693,12 @@ function unsigned2signed(value) {
 	return ((value & 0x8000)?~0xFFFF:0)|value;
 }
 
+function signed2unsigned(value) {
+	return value & 0xFFFF;
+}
+
 function get_unsigned_word(addr) {
-	var result = getbyte(addr)*256+getbyte(addr+1);
-	return result;
+	return getbyte(addr)*256+getbyte(addr+1);
 }
 
 function setword(value, addr) {
@@ -691,7 +715,6 @@ function dissemble() {
 	code = '';
 
 	while(compiling) {
-		// debug: gnustoglue_output(pc.toString(16)+' ');
 		var instr = getbyte(pc++);
 
 		var form = 'L';
@@ -780,6 +803,8 @@ function dissemble() {
 
 		if (handlers[instr]) {
 			code = code + handlers[instr](args)+';';
+//			var aaa = handlers[instr](args)+';';
+//			code = code + 'print("'+aaa.replace('"','`','g')+'");'+aaa;
 		} else {
 			throw "No handler for opcode "+instr+" at "+
 				pc.toString(16);
@@ -962,6 +987,32 @@ function get_prop_addr(object, property) {
 	}
 }
 
+function get_prop_len(address) {
+	// The last byte before the data is either the size byte of a 2-byte
+	// field, or the only byte of a 1-byte field. We can tell the
+	// difference using the top bit.
+
+	var value = getbyte(address-1);
+
+	if (value & 0x80) {
+		// A two-byte field, so we take the bottom five bits.
+		value = value & 0x1F;
+
+		if (value==0)
+			return 64;
+		else
+			return value;
+	} else {
+		// A one-byte field. Our choice rests on a single bit.
+		if (value & 0x40)
+			return 2;
+		else
+			return 1;
+	}
+
+	throw "impossible";
+}
+
 function get_next_prop(object, property) {
 
 	if (object==0) return 0; // Kill that V0EFH before it starts.
@@ -990,22 +1041,6 @@ function get_next_prop(object, property) {
 	throw "impossible";
 }
 
-function get_prop_len(address) {
-	var prop = getbyte(address++);
-	var len = 1;
-
-	if (prop & 0x80) {
-		// Long format.
-		len = getbyte(props_address++);
-		if (len==0) len = 64;
-	} else {
-		// Short format.
-		if (prop & 0x40) len = 2;
-	}
-
-	return len;
-}
-
 function get_prop(object, property) {
 
 	if (object==0) return 0; // Kill that V0EFH before it starts.
@@ -1020,6 +1055,28 @@ function get_prop(object, property) {
 		throw "get_prop used on a property of the wrong length";
 	}
 	throw "impossible";
+}
+
+// result:
+//   [0] property
+//   [1] length
+//   [2] new address
+function goat_property_block(where) {
+	var address = where;
+	var prop = getbyte(address++);
+	var len = 1;
+
+	if (prop & 0x80) {
+		// Long format.
+		len = getbyte(address++) & 0x3F;
+		if (len==0) len = 64;
+	} else {
+		// Short format.
+		if (prop & 0x40) len = 2;
+	}
+	prop = prop & 0x3F;
+
+	return [prop, len, address];
 }
 
 // This is the function which does all searching of property lists.
@@ -1060,12 +1117,13 @@ function property_search(object, property, previous_property) {
 	var previous_prop = 0;
 
 	while(1) {
-		var prop = getbyte(props_address++);
 		var len = 1;
+
+		var prop = getbyte(props_address++);
 
 		if (prop & 0x80) {
 			// Long format.
-			len = getbyte(props_address++);
+			len = getbyte(props_address++) & 0x3F;
 			if (len==0) len = 64;
 		} else {
 			// Short format.
@@ -1100,15 +1158,30 @@ function property_search(object, property, previous_property) {
 // Functions that modify the object tree
 
 function set_attr(object, bit) {
+	if (object==0) return; // Kill that V0EFH before it starts.
+
 	var address = objs_start + 112 + object*14 + (bit>>3);
 	var value = getbyte(address);
 	setbyte(value | (128>>(bit%8)), address);
 }
 
 function clear_attr(object, bit) {
+	if (object==0) return; // Kill that V0EFH before it starts.
+
 	var address = objs_start + 112 + object*14 + (bit>>3);
 	var value = getbyte(address);
 	setbyte(value & ~(128>>(bit%8)), address);
+}
+
+function test_attr(object, bit) {
+	if (object==0) return 0; // Kill that V0EFH before it starts.
+
+	if ((getbyte(objs_start + 112 + object*14 +(bit>>3)) &
+			(128>>(bit%8)))) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 function put_prop(object, property, value) {
@@ -1185,30 +1258,9 @@ function remove_obj(mover, new_parent) {
 
 ////////////////////////////////////////////////////////////////
 
-function test_attr(object, bit) {
-
-	if (object==0) return 0; // Kill that V0EFH before it starts.
-
-	var address = objs_start + 112 + object*14;
-
-	if (getbyte(address+(bit>>3)) & (128>>(bit%8)))
-		return 1;
-	else
-		return 0;
-}
-
 function get_family(from, relationship) {
 	return get_unsigned_word(
 		objs_start + 112 + relationship + from*14);
-//
-//	var reln = (relationship==PARENT_REC?"parent":
-//		(relationship==CHILD_REC?"child":"sibling"));
-//
-//	var res = get_unsigned_word(
-//		objs_start + 112 + relationship + from*14);
-//
-//	print('The',reln,'of',name_of_object(from),'is',name_of_object(res));
-//	return res;
 }
 
 function get_parent(from)  { return get_family(from, PARENT_REC); }
@@ -1298,6 +1350,7 @@ function setup() {
 	objs_start = get_unsigned_word(0xA)
 	vars_start = get_unsigned_word(0xC)
 	stat_start = get_unsigned_word(0xE)
+	abbr_start = get_unsigned_word(0x18)
 
 	rebound = 0;
 
@@ -1365,6 +1418,11 @@ function zscii_from(address, max_length, tell_length) {
 	//   n  if we've seen half of one, where n is what we've seen
 	var tenbit = -2;
 
+	// Should be:
+	//    0 if we're not expecting an abbreviation
+	//    z if we are, where z is the prefix
+	var abbreviation = 0;
+
 	if (!max_length) max_length = 65535;
 	var stopping_place = address + max_length;
 
@@ -1377,14 +1435,14 @@ function zscii_from(address, max_length, tell_length) {
 		for (var j=2; j>=0; j--) {
 			var code = ((word>>(j*5))&0x1f)
 
-			// FIXME: also need to handle:
-			//  * abbreviations
-
-			if (tenbit==-2) {
-				if (code==0) { temp = temp + ' '; alph=0; }
-				else if (code==4) { alph = 1; }
-				else if (code==5) { alph = 2; }
-				else if (code>5) {
+			if (abbreviation) {
+				temp = temp + zscii_from(get_unsigned_word((32*(abbreviation-1)+code)*2+abbr_start)*2);
+				abbreviation = 0;
+			} else if (tenbit==-2) {
+				if (code<1) { temp = temp + ' '; alph=0; }
+				else if (code<4) { abbreviation = code; }
+				else if (code<6) { alph = code-3; }
+				else {
 					if (alph==2 && code==6)
 						tenbit = -1;
 					else
@@ -1484,8 +1542,6 @@ function output(text) {
 
 		var current = streamthrees[0];
 		var address = streamthrees[0][1];
-
-		alert(text,'(to stream 3)',current);
 
 		for (var i=0; i<text.length; i++)
 			setbyte(text.charCodeAt(i), address++)
