@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.102 2003/08/28 22:00:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.103 2003/08/28 22:02:17 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -740,7 +740,6 @@ var handlers = {
 				return storer("get_prop_len("+a[0]+')');
 		},
 		133: function Z_inc(a) {
-				var c=code_for_varcode(a[0]);
 				//VERBOSE burin('inc',c + '+1');
 				return "t="+a[0]+';varcode_set(varcode_get(t)+1, t)';
 		},
