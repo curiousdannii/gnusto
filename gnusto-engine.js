@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.60 2003/11/28 17:14:16 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.61 2003/11/28 18:18:02 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/28 17:14:16 $';
+const CVS_VERSION = '$Date: 2003/11/28 18:18:02 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -2153,6 +2153,28 @@ GnustoEngine.prototype = {
 
 			function look_up(engine, word, dict_addr) {
 
+					function compare(engine, typed, mem_addr) {
+							var j=0;
+							var mem_char, typed_char;
+							while (1) {
+									if (j==typed.length) {
+											// then they're the same
+											return 0;
+									}
+									
+									mem_char = engine.getByte(mem_addr+j);
+									typed_char = typed.charCodeAt(j);
+									if (mem_char==typed_char) {
+											j++;
+									} else if (mem_char<typed_char) {
+											// less than...
+											return -1;
+									} else {
+											return 1;
+									}
+							}
+					}
+
 					var entry_length = engine.getByte(dict_addr+engine.m_separator_count+1);
 					var entries_count = engine.getWord(dict_addr+engine.m_separator_count+2);
 					var entries_start = engine.m_dict_start+engine.m_separator_count+4;
@@ -2175,16 +2197,39 @@ GnustoEngine.prototype = {
 					var oldword = word;				
 					word = engine._into_zscii(word);
 
-					for (var i=0; i<entries_count; i++) {
-							var address = entries_start+i*entry_length;
-							var j=0;
-							while (j<word.length &&
-										 engine.getByte(address+j)==word.charCodeAt(j)) {
-									j++;
-							}
+					if (is_sorted) {
+							var low=0, high=entries_count-1;
+							var median;
+							var median_address;
+							var comparison;
 
-							if (j==word.length) { 
-									return address;
+							while(1) {
+									median = low + Math.round((high-low)/2);
+									median_address = entries_start+median*entry_length;
+
+									comparison = compare(engine, word, median_address);
+									if (comparison<0) {
+											if (low==high) { return 0; }
+											low = median+1;
+									} else if (comparison>0) {
+											if (low==high) { return 0; }
+											high = median-1;
+									} else {
+											return median_address;
+									}
+
+									if (low>high) {
+											gnusto_error(170); // impossible. Just in case.
+									}
+							}
+					} else {
+							// Unsorted search. Much simpler, but slower 
+							for (var i=0; i<entries_count; i++) {
+									var address = entries_start+i*entry_length;
+									
+									if (compare(engine, word, address)==0) { 
+											return address;
+									}
 							}
 					}
 				
