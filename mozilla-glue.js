@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.69 2003/05/03 17:32:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.70 2003/05/03 18:39:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -42,10 +42,14 @@ function setbyte(value, address) { zbytes[address] = value; }
 
 ////////////////////////////////////////////////////////////////
 
-function glue__sound_effect(number, effect, volume, callback) {
-		// all sound-effects are just beeps to us at present.
+function glue__beep() {
 		var sound = new Components.Constructor("@mozilla.org/sound;1","nsISound")();
 		sound.beep();
+}
+
+function glue__sound_effect(number, effect, volume, callback) {
+		// all sound-effects are just beeps to us at present.
+		glue__beep();
 }
 
 var glue__chalk_overflow = 0;
@@ -93,6 +97,8 @@ function go_wrapper(answer, no_first_call) {
 								' [ Press space for more ]';
 						return;
 				}*/
+
+				document.title = reasonForStopping.toString(16);
 
 				switch (reasonForStopping) {
 
@@ -296,6 +302,7 @@ function gotInput(e) {
 						result = result.replace('\u00A0', ' ');
 
 						win_destroy_input();
+						bocardo_collapse();
 						glue_print(result+'\n');
 						go_wrapper(result);
 
@@ -314,7 +321,7 @@ function gotInput(e) {
 						// backspace
 						if (current[0].length>0) {
 								current[0] = current[0].substring(0, current[0].length-1);
-						}
+						} else glue__beep();
 						win_set_input(current);
 
 				} else if (e.keyCode==37) {
@@ -322,7 +329,7 @@ function gotInput(e) {
 						if (current[0].length>0) {
 								current[1] = current[0].substring(current[0].length-1)+current[1];
 								current[0] = current[0].substring(0, current[0].length-1);
-						}
+						} else glue__beep();
 						win_set_input(current);
 
 				} else if (e.keyCode==39) {
@@ -330,7 +337,14 @@ function gotInput(e) {
 						if (current[1].length>0) {
 								current[0] = current[0]+current[1].substring(0, 1);
 								current[1] = current[1].substring(1);
-						}
+						} else glue__beep();
+						win_set_input(current);
+
+				} else if (e.keyCode==46) {
+						// delete (to the right)
+						if (current[1].length>0) {
+								current[1] = current[1].substring(1);
+						} else glue__beep();
 						win_set_input(current);
 
 				}
@@ -347,6 +361,8 @@ function gotInput(e) {
 								go_wrapper(code);
 
 				}	else {
+
+						bocardo_collapse();
 
 						switch (e.keyCode) {
 

@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.6 2003/05/03 17:32:47 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.7 2003/05/03 18:39:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -53,6 +53,25 @@ function barbara_clear() {
 function barbara_set_text_style(css_class) {
 		barbara__holder = 0;
 		barbara__current_css = css_class;
+}
+
+////////////////////////////////////////////////////////////////
+
+// Scroll to the end.
+function barbara_scroll_to_end() {
+
+		var h = parseInt(document.defaultView.getComputedStyle(document.getElementById('barbara'),'').getPropertyValue('height'));
+
+		var scrollable = document.getElementById('barbarabox').boxObject;
+		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+ 		i.scrollTo(0, h*999);
+
+		if (h>480) {
+				document.getElementById('bocardobox').setAttribute('top', h - 480);
+		} else {
+				document.getElementById('bocardobox').setAttribute('top', 0);
+		}
+
 }
 
 ////////////////////////////////////////////////////////////////
@@ -134,23 +153,6 @@ function barbara_chalk(text) {
 
 				barbara__holder.
 						appendChild(document.createTextNode(lines[i]));
-		}
-
-		// And scroll to the end.
-		// (FIXME: Really we want to do this only when we're waiting
-		// for input; it's all tied up with [MORE], too)
-
-		var scrollable = document.getElementById('barbarabox').boxObject;
-		var i = scrollable.QueryInterface(Components.interfaces.nsIScrollBoxObject);
-		i.scrollTo(0, 99999);
-
-		var h = parseInt(document.defaultView.getComputedStyle(document.getElementById('barbara'),'').getPropertyValue('height'));
-		document.title = h;
-
-		if (h>480) {
-				document.getElementById('bocardobox').setAttribute('top', h - 480);
-		} else {
-				document.getElementById('bocardobox').setAttribute('top', 0);
 		}
 
 		return '';

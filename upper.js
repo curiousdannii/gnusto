@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.36 2003/05/02 22:14:43 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.37 2003/05/03 18:39:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -434,6 +434,21 @@ function bocardo__subchalk(win, text) {
 				current_line.insertBefore(newSpan, current_line.childNodes[appendPoint]);
 		}
 
+}
+
+////////////////////////////////////////////////////////////////
+
+// The upper window can be made smaller by the story, but usually it
+// doesn't want the contents of the part that was removed to vanish,
+// at least not until the next scroll of the lower screen.
+// This function makes the contents of the removed part vanish.
+// It should only be used in conjunction with Barbara (rather than
+// when Bocardo is running both windows).
+function bocardo_collapse() {
+
+		while (bocardo__screen_window.childNodes.length > bocardo__top_window_height) {
+				bocardo__screen_window.removeChild(bocardo__screen_window.childNodes[bocardo__screen_window.childNodes.length-1]);
+		}
 }
 
 ////////////////////////////////////////////////////////////////
