@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.21 2003/07/21 16:40:57 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.22 2003/07/25 09:00:48 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -279,15 +279,13 @@ function barbara__get_viewport_top() {
 
 function barbara__set_viewport_top(y) {
 
-		var height = barbara__get_viewport_height();
-
 		// burin('svt','now='+barbara__get_viewport_top());
 		// burin('svt','req='+y);
 
-		barbara__viewport().scrollTo(0, (y-height)*barbara__twips_per_pixel());
+		barbara__viewport().scrollTo(0, y*barbara__twips_per_pixel());
 
 		var new_top = barbara__get_viewport_top();
-		barbara__most_seen = new_top + height;
+		barbara__most_seen = new_top + barbara__get_viewport_height();
 		// burin('svt','got='+new_top);
 
 		document.getElementById('bocardobox').setAttribute('top', new_top);
