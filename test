@@ -1,6 +1,5 @@
 #!/usr/bin/env xpcshell
 
-dump('Loading story... ');
 f = new Components.Constructor('@mozilla.org/file/local;1',
 			       'nsILocalFile',
 			       'initWithPath')('troll.mz5');
@@ -14,23 +13,21 @@ var sis = new Components.Constructor("@mozilla.org/scriptableinputstream;1",
 sis.init(fc);
 var content = sis.read(f.fileSize); 	 
 fc.close(); 	 
-dump('done.\n');
 
 if (content.length!=f.fileSize) { 	 
   dump('\nYou seem to have opened an ordinary, non-encoded story file.\n\n');
   quit(1);
 }
 
-dump('In test. Game is '+content.length+' bytes.\n');
 var engine = Components.Constructor('@gnusto.org/engine;1',
 				    'gnustoIEngine',
 				    'loadStoryMZ5')(content);
 
-dump(engine.cvsVersion);
-dump('\n');
+dump('\n---- Gnusto starting (build of '+engine.cvsVersion+') ----\n');
 
-dump(engine.status);
-dump('\n');
+engine.run()
+
+
 
 
 

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.1 2003/09/11 04:40:36 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.2 2003/09/11 05:37:56 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/11 04:40:36 $';
+const CVS_VERSION = '$Date: 2003/09/11 05:37:56 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -43,23 +43,23 @@ const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
 function call_vn(args, offset) {
   //VERBOSE burin('call_vn','gosub(' + args[0] + '*4, args)');
   compiling = 0;
-  var address = pc;
+  var address = this.m_pc;
   if (offset) { address += offset; }
 
   return 'gosub('+
-    pc_translate_for_routine(args[0])+','+
+    this.m_pc_translate_for_routine(args[0])+','+
     '['+args.slice(1)+'],'+
     (address) + ',0)';
 }
 
 function brancher(condition) {
   var inverted = 1;
-  var temp = this.getByte(pc++);
+  var temp = this.getByte(this.m_pc++);
   var target_address = temp & 0x3F;
 
   if (temp & 0x80) inverted = 0;
   if (!(temp & 0x40)) {
-    target_address = (target_address << 8) | this.getByte(pc++);
+    target_address = (target_address << 8) | this.getByte(this.m_pc++);
     // and it's signed...
 
     if (target_address & 0x2000) {
@@ -86,13 +86,13 @@ function brancher(condition) {
   if (target_address == 1)
     return if_statement + '{gnusto_return(1);return;}';
 
-  target_address = (pc + target_address) - 2;
+  target_address = (this.m_pc + target_address) - 2;
 
   // This is an optimisation that's currently unimplemented:
   // if there's no code there, we should mark that we want it later.
-  //  [ if (!jit[target_address]) jit[target_address]=0; ]
+  //  [ if (!this.m_jit[target_address]) this.m_jit[target_address]=0; ]
 
-  return if_statement + '{pc='+
+  return if_statement + '{this.m_pc='+
     (target_address)+';return;}';
 }
 
@@ -195,7 +195,7 @@ function store_into(lvalue, rvalue) {
 }
 
 function storer(rvalue) {
-  return store_into(code_for_varcode(this.getByte(pc++)), rvalue);
+  return store_into(code_for_varcode(this.getByte(this.m_pc++)), rvalue);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -312,8 +312,8 @@ var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
 function handler_call(target, arguments) {
   compiling=0; // Got to stop after this.
   var functino = "function(r){"+storer("r")+";});";
-  // (get it calculated so's the pc will be right)
-  return "gosub("+pc_translate_for_routine(target)+",["+arguments+"],"+pc+","+
+  // (get it calculated so's the this.m_pc will be right)
+  return "gosub("+this.m_pc_translate_for_routine(target)+",["+arguments+"],"+this.m_pc+","+
     functino;
 }
 
@@ -332,7 +332,7 @@ function handler_zOut(text, is_return) {
   if (is_return) {
     setter = 'gnusto_return(1)';
   } else {
-    setter = 'pc=0x'+pc.toString(16);
+    setter = 'this.m_pc=0x'+this.m_pc.toString(16);
   }
 
   return 'if(zOut('+text+')){' + setter +
@@ -355,7 +355,7 @@ function handler_zOut(text, is_return) {
 // See the comments for that function for details.
 function handler_print(dummy, suffix, is_return) {
 		
-  var zf = zscii_from(pc,65535,1);
+  var zf = zscii_from(this.m_pc,65535,1);
   var message = zf[0];
 
   if (suffix) message = message + suffix;
@@ -364,7 +364,7 @@ function handler_print(dummy, suffix, is_return) {
     replace('\\','\\\\','g').
     replace('"','\\"','g').
     replace('\n','\\n','g'); // not elegant
-  pc=zf[1];
+  this.m_pc=zf[1];
   //VERBOSE burin('print',message);
   return handler_zOut('"'+message+'"', is_return);
 }
@@ -393,14 +393,14 @@ function art_shift(value, shiftbits){
 // address. If we should break, sets |pc| to |addr| and returns true;
 // else returns false.
 function is_valid_breakpoint(addr) {
-  if (addr in breakpoints) {
-    if (breakpoints[addr]==2) {
+  if (addr in this.m_breakpoints) {
+    if (this.m_breakpoints[addr]==2) {
       // A breakpoint we've just reurned from.
-      breakpoints[addr]=1; // set it ready for next time
+      this.m_breakpoints[addr]=1; // set it ready for next time
       return 0; // it doesn't trigger again this time.
-    } else if (breakpoints[addr]==1) {
+    } else if (this.m_breakpoints[addr]==1) {
       // a genuine breakpoint!
-      pc = addr;
+      this.m_pc = addr;
       return 1;
     }
 
@@ -439,170 +439,6 @@ text = text + ' s='+v.toString(16);
 text = text + '\n';
 golden_print(text);*/
 /*}*/
-
-// dissemble() returns a string of JavaScript code representing the
-// instruction at the program counter (and possibly the next few
-// instructions, too). It will change the PC to point to the end of the
-// code it's dissembled.
-function dissemble() {
-
-  compiling = 1;
-  code = '';
-  var starting_pc = pc;
-
-  do {
-
-    // List of arguments to the opcode.
-    var args = [];
-
-    // Inelegant function to load parameters according to a VAR byte (or word).
-    function handle_variable_parameters(types, bytecount) {
-      var argcursor = 0;
-
-      if (bytecount==1) {
-	types = (types<<8) | 0xFF;
-      }
-
-      while (1) {
-	var current = types & 0xC000;
-	if (current==0xC000) {
-	  return;
-	} else if (current==0x0000) {
-	  args[argcursor++] = this.getWord(pc);
-	  pc+=2;
-	} else if (current==0x4000) {
-	  args[argcursor++] = this.getByte(pc++);
-	} else if (current==0x8000) {
-	  args[argcursor++] =
-	    code_for_varcode(this.getByte(pc++));
-	} else {
-	  gnusto_error(171); // impossible
-	}
-						
-	types = (types << 2) | 0x3;
-      }
-    }
-
-      this_instr_pc = pc;
-
-    // Check for a breakpoint.
-    if (pc in breakpoints) {
-      code = code + 'if(is_valid_breakpoint('+pc+'))return 0x510;';
-      //VERBOSE burin(code,'');
-    }
-
-    // Golden Trail code. Usually commented out for efficiency.
-    //code = code + 'golden_trail('+pc+');';
-    //code = code + 'burin("gold","'+pc.toString(16)+'");';
-				
-    // So here we go...
-    // what's the opcode?
-    var instr = this.getByte(pc++);
-
-    if (instr==0) {
-      // If we just get a zero, we've probably
-      // been directed off into deep space somewhere.
-						
-      gnusto_error(201); // lost in space
-
-    } else if (instr==190) { // Extended opcode.
-						
-      instr = 1000+this.getByte(pc++);
-      handle_variable_parameters(this.getByte(pc++), 1);
-						
-    } else if (instr & 0x80) {
-      if (instr & 0x40) { // Variable params
-								
-	if (!(instr & 0x20))
-	  // This is a 2-op, despite having
-	  // variable parameters; reassign it.
-	  instr &= 0x1F;
-								
-	if (instr==250 || instr==236) {
-	  // We get more of them!
-	  var types = this.getUnsignedWord(pc);
-	  pc += 2;
-	  handle_variable_parameters(types, 2);
-	} else
-	  handle_variable_parameters(this.getByte(pc++), 1);
-								
-      } else { // Short. All 1-OPs except for one 0-OP.
-
-	switch(instr & 0x30) {
-	case 0x00:
-	  args[0] = this.getWord(pc);
-	  pc+=2;
-	  instr = (instr & 0x0F) | 0x80;
-	  break;
-										
-	case 0x10:
-	  args[0] = this.getByte(pc++);
-	  instr = (instr & 0x0F) | 0x80;
-	  break;
-										
-	case 0x20:
-	  args[0] =
-	    code_for_varcode(this.getByte(pc++));
-	  instr = (instr & 0x0F) | 0x80;
-	  break;
-
-	case 0x30:
-	  // 0-OP. We don't need to get parameters, but we
-	  // *do* need to translate the opcode.
-	  instr = (instr & 0x0F) | 0xB0;
-	  break;
-	}
-      }
-    } else { // Long
-						
-      if (instr & 0x40)
-	args[0] =
-	  code_for_varcode(this.getByte(pc++));
-      else
-	args[0] = this.getByte(pc++);
-						
-      if (instr & 0x20)
-	args[1] =
-	  code_for_varcode(this.getByte(pc++));
-      else
-	args[1] = this.getByte(pc++);
-
-      instr &= 0x1F;
-    }
-
-    if (handlers[instr]) {
-      code = code + handlers[instr](args)+';';
-      //VERBOSE burin(code,'');
-    } else if (instr>=1128 && instr<=1255 &&
-	       "special_instruction_EXT"+(instr-1000) in this) {
-
-      // ZMSD 14.2: We provide a hook for plug-in instructions.
-
-      code = code +
-	this["special_instruction_EXT"+(instr-1000)](args)+
-	';';
-      //VERBOSE burin(code,'');
-
-    } else {
-      gnusto_error(200, instr, pc.toString(16)); // no handler
-    }
-
-  } while(compiling);
-
-  // When we're not in debug mode, dissembly only stops at places where
-  // the PC must be reset; but in debug mode it's perfectly possible
-  // to have |code| not read or write to the PC at all. So we need to
-  // set it automatically at the end of each fragment.
-
-  if (single_step||debug_mode) {
-    code = code + 'pc='+pc; 
-    //VERBOSE burin(code,'');
-  }
-
-  // Name the function after the starting position, to make life
-  // easier for Venkman.
-  return 'function J'+starting_pc.toString(16)+'(){'+code+'}';
-}
 
 ////////////////////////////////////////////////////////////////
 // Library functions
@@ -683,7 +519,7 @@ function gnusto_random(arg) {
 }
 
 function func_prologue(actuals) {
-  var count = this.getByte(pc++);
+  var count = this.getByte(this.m_pc++);
   for (var i=count; i>=0; i--) {
     if (i<actuals.length) {
       locals.unshift(actuals[i]);
@@ -696,7 +532,7 @@ function func_prologue(actuals) {
 
 function gosub(to_address, actuals, ret_address, result_eater) {
   call_stack.push(ret_address);
-  pc = to_address;
+  this.m_pc = to_address;
   func_prologue(actuals);
   param_counts.unshift(actuals.length);
   result_eaters.push(result_eater);
@@ -876,7 +712,7 @@ function gnusto_return(value) {
     locals.shift();
   }
   param_counts.shift();
-  pc = call_stack.pop();
+  this.m_pc = call_stack.pop();
 
   var eater = result_eaters.pop();
   if (eater && (value!=null)) {
@@ -1421,15 +1257,15 @@ var default_unicode_translation_table = {
 
 function zscii_from(address, max_length, tell_length) {
 
-  if (address in jit) {
-    //VERBOSE burin('zscii_from ' + address,'already in JIT');
+  if (address in this.m_jit) {
+    //VERBOSE burin('zscii_from ' + address,'already in THIS.M_JIT');
 
     // Already seen this one.
 
     if (tell_length)
-      return jit[address];
+      return this.m_jit[address];
     else
-      return jit[address][0];
+      return this.m_jit[address][0];
   }
 
   var temp = '';
@@ -1488,7 +1324,7 @@ function zscii_from(address, max_length, tell_length) {
   }
 
   if (start_address >= stat_start) {
-    jit[start_address] = [temp, address];
+    this.m_jit[start_address] = [temp, address];
   }
 
   //VERBOSE burin('zscii_from ' + address,temp);
@@ -1778,13 +1614,8 @@ GnustoEngine.prototype = {
   },
 
   loadStoryMZ5: function ge_loadStory(story) {
-
     this.m_memory = unmz5(story);
     this._initial_setup();
-
-    dump('And in loadStoryMZ5. m_story is ');
-    dump(this.m_memory.length);
-    dump('\n');
   },
 
   loadSavedGame: function ge_loadSavedGame(savedGame) {
@@ -1800,7 +1631,7 @@ GnustoEngine.prototype = {
   },
 
   get cvsVersion() {
-    return CVS_VERSION;
+    return CVS_VERSION.substring(7, 26);
   },
 
   effect: function ge_effect(which) {
@@ -1828,32 +1659,32 @@ GnustoEngine.prototype = {
     var stopping = 0;
     var turns = 0;
     var jscode;
-    var turns_limit = single_step? 1: 10000;
+    var turns_limit = this.m_single_step? 1: 10000;
 
-    if (m_rebound) {
+    /*if (m_rebound) {
       m_rebound(0); // answer FIXME
       m_rebound = 0;
-    }
+			}*/
 
     while(!stopping) {
 
       if (turns++ >= turns_limit)
-	// Wimp out for now.
-	return GNUSTO_EFFECT_WIMP_OUT;
+					// Wimp out for now.
+					return GNUSTO_EFFECT_WIMP_OUT;
 
-      start_pc = pc;
+      start_pc = this.m_pc;
 
-      if (jit[start_pc]) {
-	jscode = jit[start_pc];
+      if (this.m_jit[start_pc]) {
+					jscode = this.m_jit[start_pc];
       } else {
-	eval('jscode=' + dissemble());
-	if (start_pc >= stat_start)
-	  jit[start_pc] = jscode;
+					eval('jscode=' + this._compile());
+					if (start_pc >= stat_start)
+							this.m_jit[start_pc] = jscode;
       }
 
       // Some useful debugging code:
       //burin('eng pc', start_pc);
-      //burin('eng jit', jscode);
+      //burin('eng this.m_jit', jscode);
     
       stopping = jscode();
     }
@@ -1896,8 +1727,6 @@ GnustoEngine.prototype = {
   // Initialises global variables.
   _initial_setup: function ge_initial_setup() {
 
-    dump('This is initial setup.\n');
-
     this.m_jit = [];
     this.m_compiling = 0;
     this.m_gamestack = [];
@@ -1908,17 +1737,17 @@ GnustoEngine.prototype = {
     this.m_param_counts = [];
     this.m_result_eaters = [];
 
-    this.m_version    = this.getByte(0);
+    this.m_version     = this.getByte(0);
 
-    this.m_himem      = this.getUnsignedWord(0x4);
-    this.m_pc         = this.getUnsignedWord(0x6);
-    this.m_dict_start = this.getUnsignedWord(0x8);
-    this.m_objs_start = this.getUnsignedWord(0xA);
-    this.m_vars_start = this.getUnsignedWord(0xC);
-    this.m_stat_start = this.getUnsignedWord(0xE);
-    this.m_abbr_start = this.getUnsignedWord(0x18);
+    this.m_himem       = this.getUnsignedWord(0x4);
+    this.m_pc          = this.getUnsignedWord(0x6);
+    this.m_dict_start  = this.getUnsignedWord(0x8);
+    this.m_objs_start  = this.getUnsignedWord(0xA);
+    this.m_vars_start  = this.getUnsignedWord(0xC);
+    this.m_stat_start  = this.getUnsignedWord(0xE);
+    this.m_abbr_start  = this.getUnsignedWord(0x18);
     this.m_alpha_start = this.getUnsignedWord(0x34);
-    this.m_hext_start = this.getUnsignedWord(0x36);		
+    this.m_hext_start  = this.getUnsignedWord(0x36);		
 	
     if (this.m_version<=3) {
       this.m_pc_translate_for_routine = this.pc_translate_v123;
@@ -2045,7 +1874,7 @@ GnustoEngine.prototype = {
   // The actual memory of the Z-machine, one byte per element.
   m_memory: [],
   
-  // |jit| is a cache for the results of dissemble(): it maps
+  // |this.m_jit| is a cache for the results of compile(): it maps
   // memory locations to JS function objects. Theoretically,
   // executing the function associated with a given address is
   // equivalent to executing the z-code at that address.
@@ -2054,19 +1883,19 @@ GnustoEngine.prototype = {
   // be put into this array, since the code can change.
   //
   // Planned features:
-  //    1) dissemble() should know about this array, and should stop
+  //    1) compile() should know about this array, and should stop
   //       dissembly if its program counter reaches any key in it.
   //    2) putting a flag value (probably zero) into this array will
   //       have the effect of 1), but won't stop us replacing it with
   //       real code later.
   m_jit: [],
   
-  // In ordinary use, dissemble() attempts to make the functions
+  // In ordinary use, compile() attempts to make the functions
   // it creates as long as possible. Sometimes, though, we have to
   // stop dissembling (for example, when we reach a RETURN) or it
   // will seem a good idea (say, when we meet an unconditional jump).
   // In such cases, a subroutine anywhere along the line may set
-  // |compiling| to 0, and dissemble() will stop after the current
+  // |compiling| to 0, and compile() will stop after the current
   // iteration.
   m_compiling: 0,
   
@@ -2200,7 +2029,7 @@ GnustoEngine.prototype = {
   m_debug_mode: 0,
   m_parser_debugging: 0,
   
-  // Hash of breakpoints. If dissemble() reaches one of these, it will stop
+  // Hash of breakpoints. If compile() reaches one of these, it will stop
   // before executing that instruction with GNUSTO_EFFECT_BREAKPOINT, and the
   // PC set to the address of that instruction.
   //
@@ -2796,8 +2625,8 @@ GnustoEngine.prototype = {
   // Extended ("EXT") opcodes are stored 1000 higher than their number.
   // For example, 1 is "je", but 1001 is "restore".
   //
-  // |r|'s code may set |compiling| to 0 to stop dissemble() from producing
-  // code for any more opcodes after this one. (dissemble() likes to group
+  // |r|'s code may set |compiling| to 0 to stop compile() from producing
+  // code for any more opcodes after this one. (compile() likes to group
   // code up into blocks, where it can.)
   //
   // |r|'s code may contain a return statement for two reasons: firstly, to
@@ -2947,8 +2776,8 @@ GnustoEngine.prototype = {
 
   getWord: function ge_getWord(address) {
     if (address<0) { address &= 0xFFFF; }
-    return _unsigned2signed((this.m_memory[address]<<8)|
-			    this.m_memory[address+1]);
+    return this._unsigned2signed((this.m_memory[address]<<8)|
+																 this.m_memory[address+1]);
   },
 
   _unsigned2signed: function ge_unsigned2signed(value) {
@@ -2965,10 +2794,180 @@ GnustoEngine.prototype = {
   },
 
   setWord: function ge_setWord(value, address) {
-    if (address<0) { address &= 0xFFFF; }
-    this.setByte((value>>8) & 0xFF, address);
-    this.setByte((value) & 0xFF, address+1);
+			if (address<0) { address &= 0xFFFF; }
+			this.setByte((value>>8) & 0xFF, address);
+			this.setByte((value) & 0xFF, address+1);
   },
+
+	// Inelegant function to load parameters according to a VAR byte (or word).
+	_handle_variable_parameters: function ge_handle_var_parameters(args, types, bytecount) {
+			var argcursor = 0;
+
+			if (bytecount==1) {
+					types = (types<<8) | 0xFF;
+			}
+
+			while (1) {
+					var current = types & 0xC000;
+					if (current==0xC000) {
+							return;
+					} else if (current==0x0000) {
+							args[argcursor++] = this.getWord(this.m_pc);
+							this.m_pc+=2;
+					} else if (current==0x4000) {
+							args[argcursor++] = this.getByte(this.m_pc++);
+					} else if (current==0x8000) {
+							args[argcursor++] =
+							code_for_varcode(this.getByte(this.m_pc++));
+					} else {
+							gnusto_error(171); // impossible
+					}
+						
+					types = (types << 2) | 0x3;
+			}
+	},
+
+	// _compile() returns a string of JavaScript code representing the
+	// instruction at the program counter (and possibly the next few
+	// instructions, too). It will change the PC to point to the end of the
+	// code it's compiled.
+	_compile: function ge_compile() {
+
+			compiling = 1;
+			code = '';
+			var starting_pc = this.m_pc;
+
+			do {
+
+					// List of arguments to the opcode.
+					var args = [];
+
+					this_instr_pc = this.m_pc;
+
+			
+					// Check for a breakpoint.
+					if (this.m_pc in this.m_breakpoints) {
+							code = code + 'if(is_valid_breakpoint('+this.m_pc+'))return 0x510;';
+							//VERBOSE burin(code,'');
+					}
+
+					// Golden Trail code. Usually commented out for efficiency.
+					//code = code + 'golden_trail('+this.m_pc+');';
+					//code = code + 'burin("gold","'+this.m_pc.toString(16)+'");';
+				
+					// So here we go...
+					// what's the opcode?
+					var instr = this.getByte(this.m_pc++);
+			
+					if (instr==0) {
+							// If we just get a zero, we've probably
+							// been directed off into deep space somewhere.
+					
+							gnusto_error(201); // lost in space
+					
+					} else if (instr==190) { // Extended opcode.
+							
+							instr = 1000+this.getByte(this.m_pc++);
+							this._handle_variable_parameters(args,
+																							 this.getByte(this.m_pc++),
+																							 1);
+					
+					} else if (instr & 0x80) {
+							if (instr & 0x40) { // Variable params
+									
+									if (!(instr & 0x20))
+											// This is a 2-op, despite having
+											// variable parameters; reassign it.
+											instr &= 0x1F;
+								
+									if (instr==250 || instr==236) {
+											// We get more of them!
+											var types = this.getUnsignedWord(this.m_pc);
+											this.m_pc += 2;
+											this._handle_variable_parameters(args, types, 2);
+									} else
+											this._handle_variable_parameters(args,
+																											 this.getByte(this.m_pc++), 1);
+							
+							} else { // Short. All 1-OPs except for one 0-OP.
+									
+									switch(instr & 0x30) {
+									case 0x00:
+											args[0] = this.getWord(this.m_pc);
+											this.m_pc+=2;
+											instr = (instr & 0x0F) | 0x80;
+											break;
+											
+									case 0x10:
+											args[0] = this.getByte(this.m_pc++);
+											instr = (instr & 0x0F) | 0x80;
+											break;
+									
+									case 0x20:
+											args[0] =
+													code_for_varcode(this.getByte(this.m_pc++));
+											instr = (instr & 0x0F) | 0x80;
+											break;
+									
+									case 0x30:
+											// 0-OP. We don't need to get parameters, but we
+											// *do* need to translate the opcode.
+											instr = (instr & 0x0F) | 0xB0;
+											break;
+									}
+							}
+					} else { // Long
+					
+							if (instr & 0x40)
+									args[0] =
+											code_for_varcode(this.getByte(this.m_pc++));
+							else
+									args[0] = this.getByte(this.m_pc++);
+							
+							if (instr & 0x20)
+									args[1] =
+											code_for_varcode(this.getByte(this.m_pc++));
+							else
+									args[1] = this.getByte(this.m_pc++);
+					
+							instr &= 0x1F;
+					}
+			
+					if (handlers[instr]) {
+							code = code + handlers[instr](args)+';';
+							//VERBOSE burin(code,'');
+					} else if (instr>=1128 && instr<=1255 &&
+										 "special_instruction_EXT"+(instr-1000) in this) {
+					
+							// ZMSD 14.2: We provide a hook for plug-in instructions.
+							
+							code = code +
+									this["special_instruction_EXT"+(instr-1000)](args)+
+									';';
+							//VERBOSE burin(code,'');
+
+					} else {
+							gnusto_error(200, instr, this.m_pc.toString(16)); // no handler
+					}
+					
+			} while(compiling);
+
+			// When we're not in debug mode, dissembly only stops at places where
+			// the THIS.M_PC must be reset; but in debug mode it's perfectly possible
+			// to have |code| not read or write to the PC at all. So we need to
+			// set it automatically at the end of each fragment.
+			
+			if (single_step||debug_mode) {
+					code = code + 'this.m_pc='+this.m_pc; 
+					//VERBOSE burin(code,'');
+			}
+
+			// Name the function after the starting position, to make life
+			// easier for Venkman.
+			return 'function J'+starting_pc.toString(16)+'(){'+code+'}';
+	},
+
+
 };
 
 
@@ -2984,7 +2983,6 @@ GnustoEngineFactory = new Object();
 GnustoEngineFactory.createInstance =
 function gef_createinstance(outer, interface_id)
 {
-  dump('Serving it. GEF CI\n');
   if (outer != null) {
     dump("Don't squish us!\n");
     throw Components.results.NS_ERROR_NO_AGGREGATION;
