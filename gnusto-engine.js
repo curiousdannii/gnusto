@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.68 2003/05/26 18:43:16 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.69 2003/05/26 18:47:56 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1234,16 +1234,12 @@ function gosub(to_address, actuals, ret_address, result_eater) {
 //
 function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
-		// Some of the more esoteric options aren't yet supported.
+		function look_up(word, dict_addr) {
 
-		if (dictionary) gnusto_error(101, 'no user dictionaries yet', dictionary);
-
-		function look_up(word) {
-
-				var separator_count = getbyte(dict_start);
-				var entry_length = getbyte(dict_start+separator_count+1);
-				var entries_count = getword(dict_start+separator_count+2);
-				var entries_start = dict_start+separator_count+4;
+				var separator_count = getbyte(dict_addr);
+				var entry_length = getbyte(dict_addr+separator_count+1);
+				var entries_count = getword(dict_addr+separator_count+2);
+				var entries_start = dict_addr+separator_count+4;
 				
 				word = into_zscii(word);
 		
@@ -1258,6 +1254,11 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 						if (j==word.length) return address;
 				}
 				return 0;
+		}
+
+		if (dictionary==0) {
+				// Use the standard game dictionary.
+				dictionary = dict_start;
 		}
 
 		var max_chars = getbyte(text_buffer);
@@ -1276,7 +1277,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 		for (var i in words) {
 
-				var lexical = look_up(words[i]);
+				var lexical = look_up(words[i], dictionary);
 
 				if (!(overwrite && lexical==0)) {
 						setword(lexical, cursor);
@@ -1785,7 +1786,7 @@ function setup() {
 		alpha_start = get_unsigned_word(0x34);
 		hext_start = get_unsigned_word(0x36);		
 	
-	        // If there is a header extension...
+		// If there is a header extension...
 		if (hext_start > 0) {
 		  unicode_start = get_unsigned_word(hext_start+6);  // get start of custom unicode table, if any
 		  if (unicode_start > 0) { // if there is one, get the char count-- characters beyond that point are undefined.
