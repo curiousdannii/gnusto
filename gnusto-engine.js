@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.57 2003/11/26 18:46:40 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.58 2003/11/27 16:39:25 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/26 18:46:40 $';
+const CVS_VERSION = '$Date: 2003/11/27 16:39:25 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -564,7 +564,7 @@ function handleZ_read(engine, a) {
     // That's something that we can't deal with within gnusto:
     // ask the environment to magic something up for us.
 
-    if (a[3]) {
+    if (a[3] && (engine.m_version>=4)) {
       // ...then we should do something with a[2] and a[3],
       // which are timed input parameters. For now, though,
       // we'll just ignore them.
@@ -572,19 +572,37 @@ function handleZ_read(engine, a) {
     }
 
     engine.m_compilation_running = 0;
-				
-    var setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
-      engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])") +
-      "};";
+
+		var setter;
+		var char_count_getter;
+		var recaps_getter;
+
+		if (engine.m_version>=5) {
+				// In z5-z8 it's a store instruction.
+				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
+						engine._storer("_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])") +
+						"};";
+				recaps_getter = "getByte(a0+1)";
+				char_count_getter = "getByte(a0)";
+		} else {
+				// In z1-z4 it's not a store instruction.
+				setter = "m_rebound_args[0]=a0;m_rebound_args[1]="+a[1]+";m_rebound=function(){" +
+						"_aread(m_answers[0],m_rebound_args[0],m_rebound_args[1])" +
+						"};";
+				recaps_getter = '0';
+				char_count_getter = "getByte(a0)+1";
+		}
+
 
     //VERBOSE burin('read',"var a0=eval("+ a[0] + ");" + "pc=" + pc + ";" +
 
     return "var a0=eval("+ a[0] + ");" +
 				"m_pc=" + engine.m_pc + ";" +
 				setter +
-				"m_effects=["+GNUSTO_EFFECT_INPUT+","+
-				"getByte(a0+1),"+
-				"getByte(a0)];return 1";
+				"m_effects=["+
+				GNUSTO_EFFECT_INPUT + "," +
+				recaps_getter + "," +
+				char_count_getter + "];return 1";
   }
 function handleZ_print_char(engine, a) {
     //VERBOSE burin('print_char','zscii_char_to_ascii('+a[0]+')');
@@ -2263,16 +2281,37 @@ GnustoEngine.prototype = {
 			text_buffer &= 0xFFFF;
 			parse_buffer &= 0xFFFF;
 
-			var max_chars = this.getByte(text_buffer);
-			var result = source.substring(0,max_chars);
+			var max_chars;
+			var result;
 
-			this.setByte(result.length, text_buffer + 1);
+			if (this.m_version <= 4) {
+
+					// In z1-z4, the array is null-terminated.
 			
-			for (var i=0;i<result.length;i++) {
-					this.setByte(result.charCodeAt(i), text_buffer + 2 + i);
+					var max_chars = this.getByte(text_buffer)+1;
+					var result = source.substring(0,max_chars);
+
+					for (var i=0;i<result.length;i++) {
+							this.setByte(result.charCodeAt(i), text_buffer + 1 + i);
+					}
+
+					this.setByte(0, text_buffer + 1 + result.length);
+					
+			} else {
+
+					// In z5-z8, the array starts with a size byte.
+
+					var max_chars = this.getByte(text_buffer);
+					var result = source.substring(0,max_chars);
+
+					this.setByte(result.length, text_buffer + 1);
+			
+					for (var i=0;i<result.length;i++) {
+							this.setByte(result.charCodeAt(i), text_buffer + 2 + i);
+					}
 			}
 
-			if (parse_buffer!=0) {
+			if (parse_buffer!=0 || this.m_version<5) {
 					this._tokenise(text_buffer, parse_buffer, 0, 0);
 			}
 
