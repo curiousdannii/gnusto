@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.73 2003/06/05 02:33:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.74 2003/06/07 03:49:15 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -194,16 +194,6 @@ var engine__printing_header_bits = 0;
 // we couldn't print it this time because the flags had
 // changed.
 var engine__leftovers = '';
-
-// Should we @rtrue after printing |engine__leftovers|?
-// (This would happen if the flag change effect was triggered
-// by @print_ret.)
-// See <http://mozdev.org/bugs/show_bug.cgi?id=3830>.
-//
-// There's no need to clear this if you *don't* want the return;
-// it's false by default and setting it to true will cause it to
-// be cleared once the return has happened.
-var engine__leftovers_return = 0;
 
 ////////////////////////////////////////////////////////////////
 //////////////// Functions to support handlers /////////////////
@@ -446,16 +436,16 @@ function handler_call(target, arguments) {
 // the line of text in |text|. (See zOut() for details of
 // what constitutes "correctly".)
 //
-// If |is_return| is set, the result will set a flag for
-// engine__print_leftovers() to @rtrue next time we run.
+// If |is_return| is set, the result will cause a Z-machine
+// return with a result of 1 (the same result as @rtrue).
 // If it's clear, the result will set the PC to the
-// address immediately after the current function.
+// address immediately after the current instruction.
 function handler_zOut(text, is_return) {
 
 		var setter;
 
 		if (is_return) {
-				setter = 'engine__leftovers_return=1';
+				setter = 'gnusto_return(1)';
 		} else {
 				setter = 'pc=0x'+pc.toString(16);
 		}
@@ -1910,8 +1900,6 @@ function engine_start_game() {
 		engine__printing_header_bits = 0;
 
 		engine__leftovers = '';
-
-		engine__leftovers_return = 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -2180,11 +2168,6 @@ function name_of_object(object) {
 
 function engine__print_leftovers() {
 		zOut(engine__leftovers);
-
-		if (engine__leftovers_return) {
-				engine__leftovers_return = 0;
-				gnusto_return(1);
-		}
 
 		// May as well clear it out and save memory,
 		// although we won't be called again until it's
