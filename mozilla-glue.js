@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.48 2003/04/10 23:37:30 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.49 2003/04/11 20:02:00 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -685,7 +685,7 @@ function gotInput(event) {
 
 				inputBox.value = '';
 				tossio_debug_instruction(value.substring(1).split(/ +/));
-		} else if (glue__chalk_overflow!=0) {
+		} else if (glue__chalk_overflow!='') {
 
 				// We're at a [MORE] prompt. Only carry on for certain keys
 				// (otherwise it'll trigger on Alt and things like that).
