@@ -3,7 +3,7 @@
 
 <!--
 
-$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.22 2003/04/18 22:45:57 marnanel Exp $
+$Header: /cvs/gnusto/src/gnusto/content/gnusto.xul,v 1.23 2003/04/18 22:49:46 marnanel Exp $
 
 Copyright (c) 2003 Thomas Thurman
 thomas@thurman.org.uk
@@ -63,7 +63,6 @@ function ensureHappiness() {
       var check = parts[i] + "_HAPPY";
 
       try {
-         alert(check);
          if (!(check in window) || eval(check)!=1)
             complain(check);
       } catch (e) {
