@@ -1,7 +1,7 @@
 // datisi.js || -*- Mode: Java; tab-width: 2; -*-
 // Standard command library
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.7 2003/04/24 17:02:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/datisi.js,v 1.8 2003/04/24 21:41:06 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -189,8 +189,10 @@ function command_open(a) {
 				picker.appendFilter("Saved game", "*.sav");
 				
 				if (picker.show()==ifp.returnOK) {
-						filename = picker.fileURL.path;
+						
 						localfile = picker.file;
+                                                filename = localfile.path;
+                                                filename = filename.replace('\\','\\\\', 'g');
 				} else
 						return 0;
 				
