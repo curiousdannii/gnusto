@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.74 2003/06/07 03:49:15 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.75 2003/06/12 01:36:04 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -993,14 +993,16 @@ function is_valid_breakpoint(addr) {
 				return 0; // Well, duh.
 }
 
-function silver_print(text) {
+function golden_print(text) {
 		var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
 		transcription_file.write(text, text.length);
 		transcription_file.close();
 }
 
 function golden_trail(addr) {
-		var text = 'p='+addr.toString(16);
+		var text = 'pc : '+addr.toString(16);
+
+		/* Extra debugging information which may sometimes be useful
 		var v = 0;
 
 		for (var jj=0; jj<16; jj++) {
@@ -1012,9 +1014,11 @@ function golden_trail(addr) {
 				v = gamestack[gamestack.length-1] & 65535;
 				text = text + ' s='+v.toString(16);
 		}
-		text = text + '\n';
+		*/
 
-		silver_print(text);
+		text = text + '\n';
+		
+		golden_print(text);
 }
 
 // dissemble() returns a string of JavaScript code representing the
