@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.87 2003/06/19 17:29:14 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.88 2003/06/19 23:01:33 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -291,8 +291,6 @@ function command_exec(args) {
 		if (debug_mode) {
 				tossio_debug_instruction(['status']);
 		}
-		
-		win_set_status_line('done'); // temp
 }
 
 ////////////////////////////////////////////////////////////////
@@ -446,7 +444,7 @@ function gotInput(e) {
 
 						burin('input', result);
 
-						result = result.replace('\u00A0', ' ');
+						result = result.replace('\u00A0', ' ', 'g');
 
 						win_destroy_input();
 						bocardo_collapse();
