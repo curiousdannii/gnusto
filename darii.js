@@ -2,7 +2,7 @@
 //
 // Gnusto's event mechanism.
 // 
-// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.10 2003/07/20 01:24:32 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/darii.js,v 1.11 2003/07/26 04:24:43 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -89,7 +89,9 @@ function dispatch(what) {
 						darii_print('Unknown command: '+args[0]+'. Try "help".');
 		} catch(e) {
 				try {
-						gnusto_error(307, e);
+						if (str(e)!="-1") {
+								gnusto_error(307, e);
+						}
 				} catch (f) {
 						if (f==-1) {
 								throw e;
