@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.29 2003/10/21 22:45:35 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.30 2003/10/26 22:51:08 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/21 22:45:35 $';
+const CVS_VERSION = '$Date: 2003/10/26 22:51:08 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1019,85 +1019,84 @@ GnustoEngine.prototype = {
 
 					return result;
 			}
+			
+			// Firstly, zap all the important variables...
+			// FIXME: Eventually we should work into copies,
+			// and only move these over when we're sure everything's good.
+			// Otherwise we could want to go back to how things were before.
+			this.m_call_stack = [];
+			this.m_gamestack = [];
+			this.m_locals_stack = [];
+			this.m_locals = [];
+			this.m_result_targets = [];
 
-			var evalSize = 0;
-			var argCount = 0;
+			var evals_count = 0;
 
-			dump(' --- You\'ve reached loadSavedGame. --- \n');
-			dump('Memory length: ');
-			dump(memLen);
-			dump('\n');
-			dump('Stacks length: ');
-			dump(stacksLen);
-			dump('\n');
-			dump(' ------------------------------------- \n');
+			// Pick up the amount of eval stack used by the bootstrap.
+			evals_count = decodeStackInt(7, 1);
 
-			dump('Bootstrap stack size: ');
-			evalSize = decodeStackInt(7, 1);
-			dump(evalSize);
+			this.m_gamestack_callbreaks = [evals_count];
 
 			var cursor = 8;
 
-			for (var j=0; j<evalSize; j++) {
-					dump('  ');
-					dump(decodeStackInt(cursor, 2));
+			for (var m=0; m<evals_count; m++) {
+					this.m_gamestack.push(decodeStackInt(cursor, 2));
 					cursor+=2;
 			}
-			dump('\n');
 
 			while (cursor<stacksLen) {
-					dump('STACK RECORD: PC=');
-					dump(decodeStackInt(cursor, 3).toString(16));
+
+					this.m_call_stack.push(decodeStackInt(cursor, 3));
 					cursor+=3;
 
-					dump(' FLAGS=');
+					////////////////////////////////////////////////////////////////
+
 					var flags = stacks[cursor++];
-					dump(flags.toString(16));
 
-					dump(' VARCODE=');
-					dump(stacks[cursor++].toString(16));
+					var varcode = stacks[cursor++];
 
-					dump(' logARGS=');
+					if (flags & 0x10) {
+							// Flag set to show that we should throw away
+							// the result of this call. We represent that
+							// by a varcode of -1.
+							varcode = -1;
+					}
+
+					var locals_count = flags & 0xF;
+					this.m_locals_stack.unshift(locals_count);
+					this.m_result_targets.push(varcode);
+
 					var logArgs = stacks[cursor++]+1;
-					dump(logArgs-1);
-					dump('->');
-					argCount = 0;
 
+					var argCount = 0;
 					while (logArgs>1) {
 							logArgs >>= 1;
 							argCount++;
 					}
-					dump(argCount);
+					this.m_param_counts.unshift(argCount);
 
-					dump(' EVALSIZE=');
-					evalSize = decodeStackInt(cursor, 2);
+					evals_count = decodeStackInt(cursor, 2);
 					cursor += 2;
-					dump(evalSize);
 
-					dump(' VARS');
-					dump(flags%0x10);
+					var locals_temp = [];
+					for (var k=0; k<locals_count; k++) {
+							locals_temp.push(decodeStackInt(cursor, 2));
+							cursor+=2;
+					}
+					this.m_locals = locals_temp.concat(this.m_locals);
 
-					for (var k=0; k<(flags%0x10); k++) {
-							dump('  (');
-							dump(k);
-							dump('/');
-							dump(flags%0x10);
-							dump(')');
-							dump(decodeStackInt(cursor, 2).toString(16));
+					for (var m=0; m<evals_count; m++) {
+							this.m_gamestack.push(decodeStackInt(cursor, 2));
 							cursor+=2;
 					}
 
-					dump(' EVALSTACK');
-					for (var m=0; m<evalSize; m++) {
-							dump('  ');
-							dump(decodeStackInt(cursor, 2));
-							cursor+=2;
-					}
-
-					dump('.\n');
 			}
-			dump('\nDONE\n');
-  },
+
+			// Base locals aren't saved, so restore them as zeroes.
+			for (var n=0; n<16; n++) {
+					this.m_locals.push(0);
+			}
+	},
 
   get version() {
     throw "not implemented";
@@ -1303,7 +1302,7 @@ GnustoEngine.prototype = {
 			stacks = stacks.concat(int_to_bytes(this.m_gamestack_callbreaks[0],
 																					2));
 
-			var locals_cursor = this.m_locals.length - 17;
+			var locals_cursor = this.m_locals.length - 16;
 			var gamestack_cursor = 0;
 
 			for (var m=0; m<this.m_gamestack_callbreaks[0]; m++) {
