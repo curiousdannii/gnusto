@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.6 2003/09/15 05:35:52 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.7 2003/09/15 06:01:31 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/09/15 05:35:52 $';
+const CVS_VERSION = '$Date: 2003/09/15 06:01:31 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -278,7 +278,7 @@ function handler_zOut(engine, text, is_return) {
   var setter;
 
   if (is_return) {
-    setter = 'func_return(this,1)';
+    setter = '_func_return(this,1)';
   } else {
     setter = 'this.m_pc=0x'+engine.m_pc.toString(16);
   }
@@ -402,11 +402,11 @@ function handleZ_jg(engine, a) {
 
 function handleZ_dec_chk(engine, a) {
     //VERBOSE burin('dec_chk',value + '-1 < ' + a[1]);
-    return 't='+a[0]+';t2=this._varcode_get(t)-1;this._varcode_set(t2,t);'+engine._brancher('t2<'+a[1]);
+    return 't='+a[0]+';t2=_varcode_get(t)-1;_varcode_set(t2,t);'+engine._brancher('t2<'+a[1]);
   }
 function handleZ_inc_chk(engine, a) {
     //VERBOSE burin('inc_chk',value + '+1 > ' + a[1]);
-    return 't='+a[0]+';t2=this._varcode_get(t)+1;this._varcode_set(t2,t);'+engine._brancher('t2>'+a[1]);
+    return 't='+a[0]+';t2=_varcode_get(t)+1;_varcode_set(t2,t);'+engine._brancher('t2>'+a[1]);
   }
 
 function handleZ_jin(engine, a) {
@@ -439,7 +439,7 @@ function handleZ_clear_attr(engine, a) {
   }
 function handleZ_store(engine, a) {
     //VERBOSE burin('store',a[0] + ',' + a[1]);
-    return "this._varcode_set("+a[1]+","+a[0]+")";
+    return "_varcode_set("+a[1]+","+a[0]+")";
   }
 function handleZ_insert_obj(engine, a) {
     //VERBOSE burin('insert_obj',a[0] + ',' + a[1]);
@@ -525,11 +525,11 @@ function handleZ_get_prop_len(engine, a) {
   }
 function handleZ_inc(engine, a) {
     //VERBOSE burin('inc',c + '+1');
-    return "t="+a[0]+';this._varcode_set(this._varcode_get(this,t)+1, t)';
+    return "t="+a[0]+';_varcode_set(_varcode_get(this,t)+1, t)';
   }
 function handleZ_dec(engine, a) {
     //VERBOSE burin('dec',c + '-1');
-    return "t="+a[0]+';this._varcode_set(this._varcode_get(this,t)-1, t)';
+    return "t="+a[0]+';_varcode_set(_varcode_get(this,t)-1, t)';
   }
 function handleZ_print_addr(engine, a) {
     //VERBOSE burin('print_addr','zscii_from('+a[0]+')');
@@ -548,9 +548,9 @@ function handleZ_print_obj(engine, a) {
     return handler_zOut(engine,"name_of_object("+a[0]+")",0);
   }
 function handleZ_ret(engine, a) {
-    //VERBOSE burin('ret',"func_return("+a[0]+');return');
+    //VERBOSE burin('ret',"_func_return("+a[0]+');return');
     engine.m_compilation_running=0;
-    return "func_return("+a[0]+');return';
+    return "_func_return("+a[0]+');return';
   }
 function handleZ_jump(engine, a) {
     engine.m_compilation_running=0;
@@ -568,7 +568,7 @@ function handleZ_print_paddr(engine, a) {
   }
 function handleZ_load(engine, a) {
     //VERBOSE burin('load',"store " + c);
-    return engine._storer('this._varcode_get('+a[0]+')');
+    return engine._storer('_varcode_get('+a[0]+')');
   }
 function handleZ_call_1n(engine, a) {
     // can we use handler_call here, too?
@@ -578,20 +578,20 @@ function handleZ_call_1n(engine, a) {
       }
 		
 function handleZ_rtrue(engine, a) {
-    //VERBOSE burin('rtrue',"func_return(1);return");
+    //VERBOSE burin('rtrue',"_func_return(1);return");
     engine.m_compilation_running=0;
-    return "func_return(1);return";
+    return "_func_return(1);return";
   }
 function handleZ_rfalse(engine, a) {
-    //VERBOSE burin('rfalse',"func_return(0);return");
+    //VERBOSE burin('rfalse',"_func_return(0);return");
     engine.m_compilation_running=0;
-    return "func_return(0);return";
+    return "_func_return(0);return";
   }
 
 function handleZ_print_ret(engine, a) {
     engine.m_compilation_running = 0;
     //VERBOSE burin('printret',"see handler_print");
-    return handler_print(engine, 0, '\n', 1)+';func_return(1);return';
+    return handler_print(engine, 0, '\n', 1)+';_func_return(1);return';
   }
 function handleZ_nop(engine, a) {
     //VERBOSE burin('noop','');
@@ -605,9 +605,9 @@ function handleZ_restart(engine, a) {
   }
 		
 function handleZ_ret_popped(engine, a) {
-    //VERBOSE burin('pop',"func_return(gamestack.pop());return");
+    //VERBOSE burin('pop',"_func_return(gamestack.pop());return");
     engine.m_compilation_running=0;
-    return "func_return(gamestack.pop());return";
+    return "_func_return(m_gamestack.pop());return";
   }
 function handleZ_catch(engine, a) {
     // The stack frame cookie is specified by Quetzal 1.3b s6.2
@@ -720,11 +720,11 @@ function handleZ_random(engine, a) {
   }
 function handleZ_push(engine, a) {
     //VERBOSE burin('push',a[0]);
-    return engine._store_into('gamestack.pop()', a[0]);
+    return engine._store_into('m_gamestack.pop()', a[0]);
   }
 function handleZ_pull(engine, a) {
     //VERBOSE burin('pull',c +'=gamestack.pop()');
-    return 'this._varcode_set(gamestack.pop(),'+a[0]+')';
+    return '_varcode_set(m_gamestack.pop(),'+a[0]+')';
   }
 function handleZ_split_window(engine, a) {
     engine.m_compilation_running=0;
@@ -952,7 +952,7 @@ function handleZ_check_unicode(engine, a) {
   // environment. See "effect codes" above for the values.
   //
   // If |r|'s code contains a return statement, it must make sure to set the PC
-  // somehow, either directly or, for example, via func_return().
+  // somehow, either directly or, for example, via _func_return().
   //
 
 var handlers_v578 = {
@@ -1937,7 +1937,7 @@ GnustoEngine.prototype = {
 	// It can also be null, in which case the remaining results of
 	// the current opcode won't be executed (it won't run the "result eater").
 	_func_return: function ge_func_return(value) {
-			for (var i=locals_stack.shift(); i>0; i--) {
+			for (var i=this.m_locals_stack.shift(); i>0; i--) {
 					this.m_locals.shift();
 			}
 			this.m_param_counts.shift();
@@ -2665,11 +2665,11 @@ GnustoEngine.prototype = {
 	//
 	_code_for_varcode: function ge_code_for_varcode(varcode) {
 			if (varcode==0) {
-					return 'gamestack.pop()';
+					return 'm_gamestack.pop()';
 			} else if (varcode < 0x10) {
-					return 'locals['+(varcode-1)+']';
+					return 'm_locals['+(varcode-1)+']';
 			} else {
-					return 'this.getWord('+(this.m_vars_start+(varcode-16)*2)+')';
+					return 'getWord('+(this.m_vars_start+(varcode-16)*2)+')';
 			}
 
 			gnusto_error(170); // impossible
@@ -2690,9 +2690,9 @@ GnustoEngine.prototype = {
 	// the extra call we use when encoding "varcode_get(constant)".
 	_varcode_get: function ge_varcode_get(varcode) {
 			if (varcode==0) {
-					return gamestack.pop();
+					return this.m_gamestack.pop();
 			} else if (varcode < 0x10) {
-					return locals[(varcode-1)];
+					return this.m_locals[(varcode-1)];
 			} else {
 					return this.getWord(this.m_vars_start+(varcode-16)*2);
 			}
@@ -2715,9 +2715,9 @@ GnustoEngine.prototype = {
 	// the extra call we use when encoding "varcode_set(n, constant)".
 	_varcode_set: function ge_varcode_set(value, varcode) {
 			if (varcode==0) {
-					gamestack.push(value);
+					this.m_gamestack.push(value);
 			} else if (varcode < 0x10) {
-					locals[varcode-1] = value;
+					this.m_locals[varcode-1] = value;
 			} else {
 					this.setWord(value, this.m_vars_start+(varcode-16)*2);
 			}
@@ -2797,12 +2797,12 @@ GnustoEngine.prototype = {
 							'})';
 			}
 
-			if (lvalue=='gamestack.pop()') {
-					return 'gamestack.push('+rvalue+')';
+			if (lvalue=='m_gamestack.pop()') {
+					return 'm_gamestack.push('+rvalue+')';
 			} else if (lvalue.substring(0,8)=='getWord(') {
-					return 'setWord('+rvalue+','+lvalue.substring(13);
+					return 'setWord('+rvalue+','+lvalue.substring(8);
 			} else if (lvalue.substring(0,8)=='getByte(') {
-					return 'setByte('+rvalue+','+lvalue.substring(13);
+					return 'setByte('+rvalue+','+lvalue.substring(8);
 			} else {
 					return lvalue + '=' + rvalue;
 			}
