@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.81 2003/07/17 11:51:06 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.82 2003/07/20 01:33:21 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -535,14 +535,16 @@ var handlers = {
 		3: function Z_jg(a) { return brancher(a[0]+'>'+a[1]); },
 
 		4: function Z_dec_chk(a) {
-				return brancher('('+
-												code_for_varcode(a[0])+
-												'--)<'+a[1]);
+				var value = code_for_varcode(a[0]);
+				return 't=('+value+')-1;'+
+				store_into(value,'t')+';'+
+				brancher('t<'+a[1]);
 		},
 		5: function Z_inc_chk(a) {
-				return brancher('('+
-												code_for_varcode(a[0])+
-												'++)<'+a[1]);
+				var value = code_for_varcode(a[0]);
+				return 't=('+value+')+1;'+
+				store_into(value,'t')+';'+
+				brancher('t>'+a[1]);
 		},
 		6: function Z_jin(a) {
 				return brancher("obj_in("+a[0]+','+a[1]+')');
@@ -640,7 +642,7 @@ var handlers = {
 				return store_into(c, c+'-1');
 		},
 		135: function Z_print_addr(a) {
-				return handler_zOut("zscii_from("+pc_translate(a[0])+")",0);
+				return handler_zOut('zscii_from('+pc_translate(a[0])+')',0);
 		},
 		136: function Z_call_1s(a) {
 				return handler_call(a[0], '');
@@ -770,13 +772,13 @@ var handlers = {
 						storer("aread(n, a0," + a[1] + ")") +
 						"};";
 
-				return "var a0=eval("+ a[0] + ");burin('a0',a0);burin('a0+1',a0+1);burin('gb',zGetByte(a0));burin('gb',zGetByte(a0+1));" +
+				return "var a0=eval("+ a[0] + ");" +
 				"pc=" + pc + ";" +
 				setter +
 				"engine__effect_parameters={"+
 				"'recaps':"   + "zGetByte(a0+1),"+
 				"'maxchars':" + "zGetByte(a0),"+
-				"};for (var i in engine__effect_parameters) burin(i,engine__effect_parameters[i]);"+
+				"};" +
 				"return "+GNUSTO_EFFECT_INPUT;
 		},
 		229: function Z_print_char(a) {
@@ -1005,6 +1007,7 @@ function is_valid_breakpoint(addr) {
 				return 0; // Well, duh.
 }
 
+/*
 function golden_print(text) {
 		var transcription_file = new Components.Constructor("@mozilla.org/network/file-output-stream;1","nsIFileOutputStream","init")(new Components.Constructor("@mozilla.org/file/local;1","nsILocalFile","initWithPath")('/tmp/gnusto.golden.txt'), 0x1A, 0600, 0);
 		transcription_file.write(text, text.length);
@@ -1012,7 +1015,8 @@ function golden_print(text) {
 }
 
 function golden_trail(addr) {
-		var text = 'pc : '+addr.toString(16);
+			var text = 'pc : '+addr.toString(16);
+			burin('gold',text);
 
 		/* Extra debugging information which may sometimes be useful
 		var v = 0;
@@ -1025,13 +1029,12 @@ function golden_trail(addr) {
 		if (gamestack.length!=0) {
 				v = gamestack[gamestack.length-1] & 65535;
 				text = text + ' s='+v.toString(16);
-		}
-		*/
+				}
 
-		text = text + '\n';
-		
+    text = text + '\n';
 		golden_print(text);
 }
+*/
 
 // dissemble() returns a string of JavaScript code representing the
 // instruction at the program counter (and possibly the next few
@@ -1044,8 +1047,6 @@ function dissemble() {
 		var starting_pc = pc;
 
 		do {
-
-				burin('dis',pc.toString(16));
 
 				// List of arguments to the opcode.
 				var args = [];
@@ -1086,7 +1087,8 @@ function dissemble() {
 				}
 
 				// Golden Trail code. Usually commented out for efficiency.
-				//code = code + 'burin("golden","'+pc.toString(16)+'");';
+				//code = code + 'golden_trail('+pc+');';
+				//code = code + 'burin("gold","'+pc.toString(16)+'");';
 				
 				// So here we go...
 				// what's the opcode?
@@ -1185,8 +1187,7 @@ function dissemble() {
 		// to have |code| not read or write to the PC at all. So we need to
 		// set it automatically at the end of each fragment.
 
-		// Commented out pending review of what "debug mode" really means.
-		// if (debug_mode) code = code + 'pc='+pc;
+		if (single_step||debug_mode) code = code + 'pc='+pc;
 
 		// Name the function after the starting position, to make life
 		// easier for Venkman.
@@ -1309,7 +1310,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 		if (isNaN(dictionary)) dictionary = 0;
 		if (isNaN(overwrite)) overwrite = 0;
 
-		burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
+		// burin('tokenise', text_buffer+' '+parse_buffer+' '+dictionary+' '+overwrite);
 
 		function look_up(word, dict_addr) {
 
@@ -1371,7 +1372,7 @@ function engine__tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
 
 				var lexical = look_up(words[i], dictionary);
 
-				burin('token', words[i]+' '+lexical);
+				// burin('token', words[i]+' '+lexical);
 
 				if (!(overwrite && lexical==0)) {
 						zSetWord(lexical, cursor);
@@ -1985,7 +1986,7 @@ function engine_start_game(memory) {
 // |answer| is for returning answers to earlier effect codes. If you're
 // not answering an effect code, pass 0 here.
 function engine_run(answer) {
-		burin('run', answer);
+		// burin('run', answer);
 		var start_pc = 0;
 		var stopping = 0;
 		var turns = 0;
@@ -2005,8 +2006,8 @@ function engine_run(answer) {
 				start_pc = pc;
 				if (!jit[start_pc]) eval('jit[start_pc]=' + dissemble());
 				// Some useful debugging code:
-				//burin('eng pc', start_pc);
-				//burin('eng jit', jit[start_pc]);
+				burin('eng pc', start_pc);
+				burin('eng jit', jit[start_pc]);
 				stopping = jit[start_pc]();
 		}
 
@@ -2357,16 +2358,12 @@ function engine_effect_parameters() {
 ////////////////////////////////////////////////////////////////
 
 function zGetByte(address) {
-		return engine__memory[address];
+    return engine__memory[address];
 }
 
 function zSetByte(value, address) {
-		engine__memory[address] = value;
+    engine__memory[address] = value;
 }
-
-// FIXME: the functions below need to be written to
-// access memory directly, rather than via other functions.
-// Only do this when things are stable, though.
 
 function zGetWord(addr) {
 		return unsigned2signed((engine__memory[addr]<<8)|
