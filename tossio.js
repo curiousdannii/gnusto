@@ -565,7 +565,7 @@ function viewDissembly() {
 ////////////////////////////////////////////////////////////////
 
 function tossio_print(message) {
-		glue_print(message);
+		alert(message);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -820,8 +820,6 @@ function tossio_debug_instruction(command) {
 				tossio_verbs[command[0]][2](command);
 		else
 				tossio_print('Unknown command: /'+command[0]+'. Try "/help".');
-
-		tossio_print('\n');
 }
 
 function tossio_notify_breakpoint_hit() {
