@@ -1,7 +1,7 @@
 // barbara.js || -*- Mode: Java; tab-width: 2; -*-
 // Lightweight lower-window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.12 2003/05/14 23:38:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/barbara.js,v 1.13 2003/05/15 20:19:55 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -111,21 +111,30 @@ function barbara_destroy_input() {
 
 ////////////////////////////////////////////////////////////////
 
-function barbara_chalk(text) {
+var barbara__previous_monospace = 0;
 
-		if (barbara__holder==0) {
+function barbara_chalk(text, monospace) {
+
+		if (barbara__holder==0 ||
+				monospace!=barbara__previous_monospace) {
+
 				// Create a new holder.
 
 				barbara__holder =
 						document.createElementNS(barbara__HTML,
 																		 'html:span');
 
-				barbara__holder.setAttribute('class',
-																		 barbara__current_css);
+				var css = barbara__current_css;
+
+				if (monospace) css = css + ' sm';
+
+				barbara__holder.setAttribute('class', css);
 
 				var temp = document.getElementById('barbara');
 				temp.appendChild(barbara__holder);
 		}
+
+		barbara__previous_monospace = monospace;
 
 		var lines = text.replace('  ','\u00A0 ','g').split('\n');
 

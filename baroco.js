@@ -1,7 +1,7 @@
 // baroco.js || -*- Mode: Java; tab-width: 2; -*-
 // Screen handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.11 2003/05/12 01:28:20 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/baroco.js,v 1.12 2003/05/15 20:19:55 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -29,6 +29,10 @@
 // At present, only 1) is supported, though.
 
 var baroco__enable_barbara = true;
+
+////////////////////////////////////////////////////////////////
+
+var win__forcing_monospace = 0;
 
 ////////////////////////////////////////////////////////////////
 
@@ -203,8 +207,7 @@ var baroco__current_style = 0;
 var baroco__current_foreground = 1;
 var baroco__current_background = 1;
 
-// Set the current text style, foreground and background colours
-// of a given window.
+// Set the current text style, foreground and background colours.
 function win_set_text_style(style, foreground, background) {
 
 		// List of CSS classes we want.
@@ -266,7 +269,9 @@ function win_set_text_style(style, foreground, background) {
 
 		if (style & 0x2) css = css + ' sb'; // bold
 		if (style & 0x4) css = css + ' si'; // italic
-		if (style & 0x8) css = css + ' sm'; // monospace
+
+		if (style & 0x8 || win__forcing_monospace)
+				css = css + ' sm';
 
 		////////////////////////////////////////////////////////
 
@@ -274,6 +279,15 @@ function win_set_text_style(style, foreground, background) {
 
 		barbara_set_text_style(css);
 		bocardo_set_text_style(css);
+}
+
+////////////////////////////////////////////////////////////////
+
+function win_force_monospace(whether) {
+
+		win__forcing_monospace = whether;
+
+		win_set_text_style(-1, 0, 0);
 }
 
 ////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.60 2003/05/15 04:16:42 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.61 2003/05/15 20:19:55 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -61,6 +61,9 @@ var himem;
 
 // |pc| is the Z-machine's program counter.
 var pc;
+
+// |this_instr_pc| is the address of the current instruction.
+var this_instr_pc;
 
 // |dict_start| is the address of the dictionary in the Z-machine's memory.
 var dict_start;
@@ -305,32 +308,6 @@ function storer(rvalue) {
 		return store_into(code_for_varcode(getbyte(pc++)), rvalue);
 }
 
-function handler_call(target, arguments) {
-		compiling=0; // Got to stop after this.
-		var functino = "function(r){"+storer("r")+";});";
-		// (get it calculated so's the pc will be right)
-		return "gosub("+pc_translate(target)+",["+arguments+"],"+pc+","+
-				functino;
-}
-
-function handler_zOut(text) {
-		return 'zOut('+text+')';
-}
-
-function handler_print(dummy, suffix) {
-		var zf = zscii_from(pc,65535,1);
-		var message = zf[0];
-
-		if (suffix) message = message + suffix;
-
-		message=message.
-								 replace('\\','\\\\','g').
-								 replace('"','\\"','g').
-								 replace('\n','\\n','g'); // not elegant
-		pc=zf[1];
-		return handler_zOut('"'+message+'"');
-}
-
 ////////////////////////////////////////////////////////////////
 // Effect codes, returned from go(). See the explanation below
 // for |handlers|.
@@ -374,16 +351,9 @@ var GNUSTO_EFFECT_WIMP_OUT   = 0x500;
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_BREAKPOINT = 0x510;
 
-// Returned in a particularly esoteric situation, but can
-// be treated like WIMP_OUT for most purposes. However,
-// unlike WIMP_OUT, the console and transcript buffers
-// *must* be checked after receiving this effect code.
-//
-// Detailed description: This effect is returned if
-// the fixed-width or transcript header bits have been
-// altered in such a way that not printing the contents of
-// the console or transcript buffers immediately will cause
-// inaccurate output.
+// Returned if either of the two header bits which
+// affect printing have changed since last time
+// (or if either of them is set on first printing).
 var GNUSTO_EFFECT_FLAGS_CHANGED                 = 0x520;
 
 // Returned if the story wants to verify its own integrity.
@@ -439,6 +409,39 @@ var GNUSTO_EFFECT_SETINPUTSTREAM = 0x960;
 //
 // Any value may be used as an answer; it will be ignored.
 var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
+
+////////////////////////////////////////////////////////////////
+//
+// Support functions for the functions within |handlers|
+
+function handler_call(target, arguments) {
+		compiling=0; // Got to stop after this.
+		var functino = "function(r){"+storer("r")+";});";
+		// (get it calculated so's the pc will be right)
+		return "gosub("+pc_translate(target)+",["+arguments+"],"+pc+","+
+				functino;
+}
+
+function handler_zOut(text) {
+		return 'if (zOut('+text+')){pc=0x'+
+				pc.toString(16)+
+				';return '+GNUSTO_EFFECT_FLAGS_CHANGED+
+				'}';
+}
+
+function handler_print(dummy, suffix) {
+		var zf = zscii_from(pc,65535,1);
+		var message = zf[0];
+
+		if (suffix) message = message + suffix;
+
+		message=message.
+								 replace('\\','\\\\','g').
+								 replace('"','\\"','g').
+								 replace('\n','\\n','g'); // not elegant
+		pc=zf[1];
+		return handler_zOut('"'+message+'"');
+}
 
 ////////////////////////////////////////////////////////////////
 //
@@ -996,6 +999,8 @@ function dissemble() {
 								types = (types << 2) | 0x3;
 						}
 				}
+
+				this_instr_pc = pc;
 
 				// Check for a breakpoint.
 				if (pc in breakpoints) {
@@ -2098,11 +2103,32 @@ function name_of_object(object) {
 
 ////////////////////////////////////////////////////////////////
 //
-// Values of the bottom two bits in Flags 2 (address 0x10),
+// Values of the bottom two bits in Flags 2 (address 0x11),
 // used by the zOut function.
 // See <http://mozdev.org/bugs/show_bug.cgi?id=3344>.
 
 var engine__printing_header_bits = 0;
+
+////////////////////////////////////////////////////////////////
+//
+// Leftover text which should be printed next go(), since
+// we couldn't print it this time because the flags had
+// changed.
+
+var engine__leftovers = '';
+
+////////////////////////////////////////////////////////////////
+//
+// Function to print the contents of engine__leftovers.
+
+function engine__print_leftovers() {
+		zOut(engine__leftovers);
+
+		// May as well clear it out and save memory,
+		// although we won't be called again until it's
+		// set otherwise.
+		engine__leftovers = '';
+}
 
 ////////////////////////////////////////////////////////////////
 //
@@ -2112,8 +2138,7 @@ var engine__printing_header_bits = 0;
 // If this returns false, the text has been printed.
 // If it returns true, the text hasn't been printed, but
 // you must return the GNUSTO_EFFECT_FLAGS_CHANGED effect
-// to your caller and set the return address to rerun the
-// current instruction. (There's a function handler_zOut()
+// to your caller. (There's a function handler_zOut()
 // which does all this for you.)
 
 function zOut(text) {
@@ -2126,26 +2151,34 @@ function zOut(text) {
 				var address = streamthrees[0][1];
 
 				for (var i=0; i<text.length; i++)
-						setbyte(text.charCodeAt(i), address++)
+						setbyte(text.charCodeAt(i), address++);
 
-								streamthrees[0][1] = address;
+				streamthrees[0][1] = address;
 		} else {
 
-				var bits = getbyte(0x10) & 0x03;
+				var bits = getbyte(0x11) & 0x03;
 				var changed = bits != engine__printing_header_bits;
+				engine__effect_parameters = engine__printing_header_bits; 
 				engine__printing_header_bits = bits;
 
 				// OK, so should we bail?
-				if (changed &&
-						(engine__console_buffer!='' || engine__transcript_buffer!=''))
+
+				if (changed) {
+
+						engine__leftovers = text;
+						rebound = engine__print_leftovers;
+
 						return 1;
 
-				if (output_to_console) {
-						engine__console_buffer = engine__console_buffer + text;
-				}
+				} else {
 
-				if (output_to_transcript) {
-						engine__transcript_buffer = engine__transcript_buffer + text;
+						if (output_to_console) {
+								engine__console_buffer = engine__console_buffer + text;
+						}
+
+						if (output_to_transcript) {
+								engine__transcript_buffer = engine__transcript_buffer + text;
+						}
 				}
 		}
 

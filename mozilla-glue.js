@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.74 2003/05/12 01:28:20 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.75 2003/05/15 20:19:55 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -79,7 +79,6 @@ function glue__sound_effect(number, effect, volume, callback) {
 		glue__beep();
 }
 
-// Convenience wrapper for win_chalk().
 function glue_print(text) {
 		win_chalk(current_window, text);
 }
@@ -106,6 +105,18 @@ function go_wrapper(answer) {
 				case GNUSTO_EFFECT_WIMP_OUT:
 						if (!single_step) {
 								// Well, just go round again.
+								answer = 0;
+								looping = 1;
+						}
+						break;
+
+				case GNUSTO_EFFECT_FLAGS_CHANGED:
+						var flags = getbyte(0x11);
+
+						// if (flags & 1) ... transcripting. FIXME
+						win_force_monospace(flags & 2);
+
+						if (!single_step) {
 								answer = 0;
 								looping = 1;
 						}
