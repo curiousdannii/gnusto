@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.28 2003/10/17 07:26:59 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.29 2003/10/21 22:45:35 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/10/17 07:26:59 $';
+const CVS_VERSION = '$Date: 2003/10/21 22:45:35 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1007,9 +1007,96 @@ GnustoEngine.prototype = {
 			this.m_memory = sourceFile;
 			this._initial_setup();
   },
+	
+  loadSavedGame: function ge_loadSavedGame(memLen, mem, stacksLen, stacks) {
 
-  loadSavedGame: function ge_loadSavedGame(savedGame) {
-    throw "not implemented";
+			function decodeStackInt(offset, length) {
+					var result = stacks[offset++];
+
+					for (i=1; i<length; i++) {
+							result = (result<<8)|stacks[offset++];
+					}
+
+					return result;
+			}
+
+			var evalSize = 0;
+			var argCount = 0;
+
+			dump(' --- You\'ve reached loadSavedGame. --- \n');
+			dump('Memory length: ');
+			dump(memLen);
+			dump('\n');
+			dump('Stacks length: ');
+			dump(stacksLen);
+			dump('\n');
+			dump(' ------------------------------------- \n');
+
+			dump('Bootstrap stack size: ');
+			evalSize = decodeStackInt(7, 1);
+			dump(evalSize);
+
+			var cursor = 8;
+
+			for (var j=0; j<evalSize; j++) {
+					dump('  ');
+					dump(decodeStackInt(cursor, 2));
+					cursor+=2;
+			}
+			dump('\n');
+
+			while (cursor<stacksLen) {
+					dump('STACK RECORD: PC=');
+					dump(decodeStackInt(cursor, 3).toString(16));
+					cursor+=3;
+
+					dump(' FLAGS=');
+					var flags = stacks[cursor++];
+					dump(flags.toString(16));
+
+					dump(' VARCODE=');
+					dump(stacks[cursor++].toString(16));
+
+					dump(' logARGS=');
+					var logArgs = stacks[cursor++]+1;
+					dump(logArgs-1);
+					dump('->');
+					argCount = 0;
+
+					while (logArgs>1) {
+							logArgs >>= 1;
+							argCount++;
+					}
+					dump(argCount);
+
+					dump(' EVALSIZE=');
+					evalSize = decodeStackInt(cursor, 2);
+					cursor += 2;
+					dump(evalSize);
+
+					dump(' VARS');
+					dump(flags%0x10);
+
+					for (var k=0; k<(flags%0x10); k++) {
+							dump('  (');
+							dump(k);
+							dump('/');
+							dump(flags%0x10);
+							dump(')');
+							dump(decodeStackInt(cursor, 2).toString(16));
+							cursor+=2;
+					}
+
+					dump(' EVALSTACK');
+					for (var m=0; m<evalSize; m++) {
+							dump('  ');
+							dump(decodeStackInt(cursor, 2));
+							cursor+=2;
+					}
+
+					dump('.\n');
+			}
+			dump('\nDONE\n');
   },
 
   get version() {
