@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.48 2003/11/19 22:53:23 marnanel Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.49 2003/11/21 17:13:36 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2003/11/19 22:53:23 $';
+const CVS_VERSION = '$Date: 2003/11/21 17:13:36 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1";
@@ -1164,15 +1164,19 @@ GnustoEngine.prototype = {
 			return CVS_VERSION.substring(7, 26);
   },
 
-	get goldenTrail() {
-			return this.m_goldenTrail;
-	},
-
-	set goldenTrail(value) {
+	setGoldenTrail: function ge_setGoldenTrail(value) {
 			if (value) {
 					this.m_goldenTrail = 1;
 			} else {
 					this.m_goldenTrail = 0;
+			}
+	},
+
+  setCopperTrail: function ge_setCopperTrail(whether) {
+			if (value) {
+					this.m_copperTrail = 1;
+			} else {
+					this.m_copperTrail = 0;
 			}
 	},
 
@@ -1233,9 +1237,9 @@ GnustoEngine.prototype = {
       }
 
 				// Some useful debugging code:
-				if (this.m_coppertrail) {
-						burin('eng pc', start_pc.toString(16));
-						burin('eng jit', jscode);
+				if (this.m_copperTrail) {
+						burin('pc', start_pc.toString(16));
+						burin('jit', jscode);
 				}
 
       stopping = jscode();
@@ -1259,10 +1263,6 @@ GnustoEngine.prototype = {
 			} else {
 					this._random_number(seed);
 			}
-	},
-
-  setCopperTrail: function ge_setCopperTrail(whether) {
-			this.m_coppertrail = whether;
 	},
 
 	////////////////////////////////////////////////////////////////
@@ -1502,6 +1502,7 @@ GnustoEngine.prototype = {
 			this.m_result_targets = [];
 
 			this.m_goldenTrail = 0;
+			this.m_copperTrail = 0;
 
 			this.m_version     = this.getByte(0);
 
@@ -3269,6 +3270,10 @@ GnustoEngine.prototype = {
 	// If this is nonzero, the engine will report as it passes each instruction.
 	m_goldenTrail: 0,
 	
+	// When this is nonzero, we should print JIT information to the burin,
+	// for debugging.
+	m_copperTrail: 0,
+
   // In ordinary use, compile() attempts to make the functions
   // it creates as long as possible. Sometimes, though, we have to
   // stop dissembling (for example, when we reach a RETURN) or it
@@ -3492,10 +3497,6 @@ GnustoEngine.prototype = {
 	// having small files for saving slightly faster, and isn't
 	// really worth it. We may hardwire it on permanently.
 	m_compress_save_files: 1,
-
-	// When this is nonzero, we should print JIT information to the burin,
-	// for debugging.
-	m_coppertrail: 0,
 };
 
 ////////////////////////////////////////////////////////////////
