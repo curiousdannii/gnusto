@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.12 2003/03/02 10:47:38 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.13 2003/03/02 15:26:18 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -146,6 +146,7 @@ var output_to_script;
 // If this is 1:
 //   * dissemble() won't group JS for more than one opcode together.
 //   * go() will "wimp out" after every opcode.
+// Note that this isn't properly tested yet, and may not work.
 var debug_mode;
 
 ////////////////////////////////////////////////////////////////
@@ -738,9 +739,9 @@ function dissemble() {
 				// List of arguments to the opcode.
 				var args = [];
 
-				// Inelegant function to load parameters according to a VAR byte.
 				var args = [];
 
+				// Inelegant function to load parameters according to a VAR byte.
 				function handle_variable_parameters(argcursor) {
 						var types = getbyte(pc++);
 
@@ -749,7 +750,7 @@ function dissemble() {
 								if (current==0xC0) {
 										return;
 								} else if (current==0x00) {
-										args[argcursor++] = get_unsigned_word(pc);
+										args[argcursor++] = getword(pc);
 										pc+=2;
 								} else if (current==0x40) {
 										args[argcursor++] = getbyte(pc++);
@@ -796,7 +797,7 @@ function dissemble() {
 
 								switch(instr & 0x30) {
 								case 0x00:
-								    args[0] = getword(pc); // FIXME: unsigned??
+								    args[0] = getword(pc);
 										pc+=2;
 										instr = (instr & 0x0F) | 0x80;
 										break;
@@ -1483,6 +1484,7 @@ function zscii_from(address, max_length, tell_length) {
 								}
 				}
 		}
+
 		if (tell_length) {
 				return [temp, address];
 		} else {
