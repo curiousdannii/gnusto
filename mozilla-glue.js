@@ -1,6 +1,6 @@
 // mozilla-glue.js || -*- Mode: Java; tab-width: 2; -*-
 // Interface between gnusto-lib.js and Mozilla. Needs some tidying.
-// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.42 2003/04/05 11:35:21 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/mozilla-glue.js,v 1.43 2003/04/05 16:52:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -262,9 +262,12 @@ function gnustoglue_erase_window(w) {
 
 }
 
+var glue__chalk_overflow = 0;
+var glue__effect_before_more_prompt = 0;
+
 // Convenience wrapper for win_chalk().
 function glue_print(text) {
-		win_chalk(current_window, current_css, text);
+		return win_chalk(current_window, current_css, text);
 }
 
 // The reason that go_wrapper stopped last time. This is
@@ -272,7 +275,7 @@ function glue_print(text) {
 // for example, to disable input boxes.
 var reasonForStopping = GNUSTO_EFFECT_WIMP_OUT; // safe default
 
-function go_wrapper(answer) {
+function go_wrapper(answer, no_first_call) {
 
     var looping;
 		var p; // variable to hold parameters temporarily below
@@ -285,9 +288,19 @@ function go_wrapper(answer) {
     do {
 				looping = 0; // By default, we stop.
 
-				reasonForStopping = go(answer);
+				if (no_first_call) {
+						glue__chalk_overflow = glue_print(glue__chalk_overflow);
+						no_first_call = 0;
+				} else {
+						reasonForStopping = go(answer);
+						glue__chalk_overflow = glue_print(engine_console_text());
+				}
 
-				glue_print(engine_console_text());
+				if (glue__chalk_overflow) {
+						// Perhaps not how we'll always do it, but OK for now.
+						window.title = 'Gnusto (Press space for more...)';
+						return;
+				}
 
 				switch (reasonForStopping) {
 
@@ -298,13 +311,12 @@ function go_wrapper(answer) {
 								looping = 1;
 						}
 						break;
-				case GNUSTO_EFFECT_INPUT:
-						// we know how to do this.
-						// Just bail out of here.
-						break;
 
+				case GNUSTO_EFFECT_INPUT:
 				case GNUSTO_EFFECT_INPUT_CHAR:
-						// similar
+						// we know how to do these.
+						// Just bail out of here.
+						win_reset_scroll_count();
 						break;
 
 				case GNUSTO_EFFECT_SAVE:
@@ -344,6 +356,7 @@ function go_wrapper(answer) {
 						// There are many more important things to fix first,
 						// though. So let's just say "yes" for now.
 
+						alert("Warning: Verification is not yet implemented. We'll pretend it all worked out anyway.");
 						answer = 1;
 						looping = 1;
             break;
@@ -539,6 +552,19 @@ function gotInput(event) {
 
 				inputBox.value = '';
 				tossio_debug_instruction(value.substring(1).split(/ +/));
+		} else if (glue__chalk_overflow!=0) {
+
+				// We're at a [MORE] prompt. Only carry on for certain keys
+				// (otherwise it'll trigger on Alt and things like that).
+
+				if (event.charCode==32) {
+						window.title = 'Gnusto';
+						inputBox.value = '';
+
+						// So go back for more...
+						go_wrapper(0, 1);
+				}
+
 		} else if (reasonForStopping==GNUSTO_EFFECT_INPUT && event.keyCode==13) {
 				inputBox.value = '';
 

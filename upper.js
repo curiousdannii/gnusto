@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.17 2003/04/05 11:35:21 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.18 2003/04/05 16:52:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -57,11 +57,66 @@ function win_resize(width, height) {
 
 ////////////////////////////////////////////////////////////////
 
+var win__screen_scroll_count = 0;
+
+function win_reset_scroll_count() {
+		win__screen_scroll_count = 0;
+}
+
+////////////////////////////////////////////////////////////////
+
 function win_chalk(win, style, text) {
+
+		var paused_for_more = 0;
 
     // This function is written in terms of win__subchalk(). All *we*
     // have to do is split up |text| so that it never goes
     // over the edge of the screen, and break at newlines.
+
+		// Subfunction to move to the next line (whatever that means,
+		// depending on which window we're on.)
+		function newline() {
+				win__current_x[win] = 0;
+
+				win__current_y[win]++;
+
+				if (win==0) {
+
+						win__screen_scroll_count++;
+						
+						// Do we need to stop and write [MORE]?
+
+						if (win__screen_scroll_count >= win__screen_height-win__top_window_height) {
+								// Yes. Reset the scroll count.
+								win__screen_scroll_count = 0;
+										
+								// Reconstruct the message...
+								message = message + text.slice(line,text.length).join('\n');
+
+								paused_for_more = 1;
+						} else {
+
+								while (win__current_y[0]>=win__screen_height) {
+										
+										// We hit the bottom of the lower window.
+										// Try for a scroll.
+								
+										win__screen_window.removeChild(win__screen_window.childNodes[win__top_window_height]);
+										win__current_y[0]--; // Get back onto the screen
+								}
+						}
+
+				} else if (win==1 && win__current_y[1]==win__top_window_height) {
+						// We hit the bottom of the top window.
+						// The z-spec leaves the behaviour undefined, but suggests
+						// that we leave the cursor where it is. Frotz's behaviour
+						// is more easy to mimic: it simply wraps back to the top.
+
+						win_current_y[1] = 0;
+				}
+		}
+
+		////////////////////////////////////////////////////////////////
 
     text = text.toString().split('\n');
 
@@ -92,9 +147,9 @@ function win_chalk(win, style, text) {
 
 								win__subchalk(win, style, message.substring(0, amount));
 								
-								win__current_x[win] = 0;
-								win__current_y[win]++;
 								message = message.substring(amount+1);
+								newline();
+								if (paused_for_more) return message;
 						} else {
 								
 								// The message is shorter.
@@ -103,35 +158,15 @@ function win_chalk(win, style, text) {
 								win__current_x[win] += message.length;
 								message = '';
 						}
-				} while (message!='');
+				} while (message!='' && !paused_for_more);
 
 				if (line<text.length-1) {
-						win__current_x[win] = 0;
-
-						// Now move to the next line. What that means depends on
-						// which window we're on.
-
-						win__current_y[win]++;
-
-						if (win==0) {
-								// We hit the bottom of the lower window.
-								// Try for a scroll.
-								
-								while (win__current_y[0]>=win__screen_height) {
-										win__screen_window.removeChild(win__screen_window.childNodes[win__top_window_height]);
-										win__current_y[win]--; // Get back onto the screen
-								}
-
-						} else if (win==1 && win__current_y[1]==win__top_window_height) {
-								// We hit the bottom of the top window.
-								// The z-spec leaves the behaviour undefined, but suggests
-								// that we leave the cursor where it is. Frotz's behaviour
-								// is more easy to mimic: it simply wraps back to the top.
-
-								win_current_y[1] = 0;
-						}
+						newline();
+						if (paused_for_more) return message;
 				}
     }
+
+		return 0; // We didn't have to scroll more than a screenful.
 }
 
 ////////////////////////////////////////////////////////////////
@@ -158,6 +193,11 @@ function win_clear(win) {
 
 		win__current_x[win] = 0;
 		win__current_y[win] = 0;
+
+		if (win==1) {
+				// Clearing a window resets its "more" counter.
+				win__screen_scroll_count = 0;
+		}
 }
 
 ////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.44 2003/04/05 08:25:02 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.45 2003/04/05 16:52:09 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -1665,6 +1665,7 @@ function copy_table(first, second, size) {
 //     a contiguous block of memory?
 //       [Just a contiguous block.]
 //   * What if the width takes us off the edge of the screen?
+//   * What if the height causes a [MORE] event?
 //
 // It also goes largely un-noted that this is the only possible
 // way to draw on the lower window away from the current
