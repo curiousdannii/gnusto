@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.21 2003/04/10 23:37:30 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.22 2003/04/11 19:47:26 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -116,7 +116,7 @@ function win_chalk(win, style, text) {
 						// that we leave the cursor where it is. Frotz's behaviour
 						// is more easy to mimic: it simply wraps back to the top.
 
-						win_current_y[1] = 0;
+						win__current_y[1] = 0;
 				}
 		}
 
