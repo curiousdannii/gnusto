@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.46 2003/04/09 20:19:30 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/Attic/gnusto-lib.js,v 1.47 2003/04/11 10:42:26 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -442,16 +442,15 @@ var GNUSTO_EFFECT_PRINTTABLE     = 0xA00;
 // If |r|'s code contains a return statement, it must make sure to set the PC
 // somehow, either directly or, for example, via gnusto_return().
 //
-// (FIXME: Consider using named functions instead: Venkman will probably
-// prefer it.)
 var handlers = {
 
-		1: function(a) { // je
-				if (a.length<2)
-				return ''; // it's a no-op
-				else if (a.length==2)
-				return brancher(a[0]+'=='+a[1]);
-				else {
+		1: function Z_je(a) {
+
+				if (a.length<2) {
+						return ''; // it's a no-op
+				} else if (a.length==2) {
+						return brancher(a[0]+'=='+a[1]);
+				} else {
 						var condition = '';
 						for (var i=1; i<a.length; i++) {
 								if (i!=1) condition = condition + '||';
@@ -460,80 +459,81 @@ var handlers = {
 						return 't='+a[0]+';'+brancher(condition);
 				}
 		},
-		2: function(a) { return brancher(a[0]+'<'+a[1]); }, // jl
-		3: function(a) { return brancher(a[0]+'>'+a[1]); }, // jg
+		2: function Z_jl(a) { return brancher(a[0]+'<'+a[1]); },
+		3: function Z_jg(a) { return brancher(a[0]+'>'+a[1]); },
 
-		4: function(a) { // dec_chk
+		4: function Z_dec_chk(a) {
 				return brancher('('+
 												code_for_varcode(a[0])+
 												'--)<'+a[1]);
 		},
-		5: function(a) { // inc_chk
+		5: function Z_inc_chk(a) {
 				return brancher('('+
 												code_for_varcode(a[0])+
 												'++)<'+a[1]);
 		},
-		6: function(a) { // jin
+		6: function Z_jin(a) {
 				return brancher("obj_in("+a[0]+','+a[1]+')');
 		},
-		7: function(a) { // test
+		7: function Z_test(a) {
 				return 't='+a[1]+';'+brancher('('+a[0]+'&t)==t');
 		},
-		8: function(a) { // or
+		8: function Z_or(a) {
 				return storer('('+a[0]+'|'+a[1]+')&0xffff');
 		},
-		9: function(a) { // and
+		9: function Z_and(a) {
 				return storer(a[0]+'&'+a[1]+'&0xffff');
 		},
-		10: function(a) { // test_attr
+		10: function Z_test_attr(a) {
 				return brancher('test_attr('+a[0]+','+a[1]+')');
 		},
-		11: function(a) { // set_attr
+		11: function Z_set_attr(a) {
 				return 'set_attr('+a[0]+','+a[1]+')';
 		},
-		12: function(a) { // clear_attr
+		12: function Z_clear_attr(a) {
 				return 'clear_attr('+a[0]+','+a[1]+')';
 		},
-		13: function(a) { // store
+		13: function Z_store(a) {
 				return store_into(code_for_varcode(a[0]), a[1]);
 		},
-		14: function(a) { // insert_obj
+		14: function Z_insert_obj(a) {
 				return "insert_obj("+a[0]+','+a[1]+")";
 		},
-		15: function(a) { // loadw
+		15: function Z_loadw(a) {
 				return storer("getword((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
 		},
-		16: function(a) { // loadb
+		16: function Z_loadb(a) {
 				return storer("getbyte((1*"+a[0]+"+1*"+a[1]+")&0xFFFF)");
 		},
-		17: function(a) { // get_prop
+		17: function Z_get_prop(a) {
 				return storer("get_prop("+a[0]+','+a[1]+')');
 		},
-		18: function(a) { // get_prop_addr
+		18: function Z_get_prop_addr(a) {
 				return storer("get_prop_addr("+a[0]+','+a[1]+')');
 		},
-		19: function(a) { // get_next_prop
+		19: function Z_get_next_prop(a) {
 				return storer("get_next_prop("+a[0]+','+a[1]+')');
 		},
-		20: function(a) { return storer(a[0]+'+'+a[1]); }, // add
-		21: function(a) { return storer(a[0]+'-'+a[1]); }, // sub
-		22: function(a) { return storer(a[0]+'*'+a[1]); }, // mul
-		23: function(a) { return storer(
-																		'trunc_divide('+a[0]+','+a[1]+')'); }, // div
-		24: function(a) { return storer(a[0]+'%'+a[1]); }, // mod
+		20: function Z_add(a) { return storer(a[0]+'+'+a[1]); },
+		21: function Z_sub(a) { return storer(a[0]+'-'+a[1]); },
+		22: function Z_mul(a) { return storer(a[0]+'*'+a[1]); },
+		23: function Z_div(a) {
+				return storer('trunc_divide('+a[0]+','+a[1]+')');
+		},
+		24: function Z_mod(a) { return storer(a[0]+'%'+a[1]); },
 
-		25: function(a) { // call_2s
+		25: function Z_call_2s(a) {
 				return simple_call(a[0], a[1]);
 		},
-		26: function(a) { // call_2n
+		26: function Z_call_2n(a) {
 				// can we use simple_call here, too?
 				compiling=0; // Got to stop after this.
 				return "gosub("+pc_translate(a[0])+",["+a[1]+"],"+pc+",0)";
 		},
-		27: function(a) { // set_colour
+		27: function Z_set_colour(a) {
 				return "pc="+pc+";engine__effect_parameters=[-1,"+a[0]+','+a[1]+"];return "+GNUSTO_EFFECT_STYLE;
 		},
-		28: function(a) { // throw
+		28: function Z_throw(a) {
 				// FIXME: I don't know whether this works; Inform never uses this
 				// opcode, and I don't have any of Infocom's original games around.
 				// If you know whether it works or doesn't, please say at
@@ -542,60 +542,60 @@ var handlers = {
 				compiling = 0;
 				return "throw_stack_frame("+a[0]+");return";
 		},
-		128: function(a) { // jz
+		128: function Z_js(a) {
 				return brancher(a[0]+'==0');
 		},
-		129: function(a) { // get_sibling
-				return "t=get_sibling("+a[0]+");"+
-				storer("t")+";"+
-				brancher("t");
+		129: function Z_get_sibling(a) {
+				return "t=get_sibling("+a[0]+");"+storer("t")+";"+brancher("t");
 		},
-		130: function(a) { // get_child
+		130: function Z_get_child(a) {
 				return "t=get_child("+a[0]+");"+
 				storer("t")+";"+
 				brancher("t");
 		},
-		131: function(a) { // get_parent
+		131: function Z_get_parent(a) {
 				return storer("get_parent("+a[0]+")");
 		},
-		132: function(a) { // get_prop_len
+		132: function Z_get_prop_len(a) {
 				return storer("get_prop_len("+a[0]+')');
 		},
-		133: function(a) { // inc
+		133: function Z_inc(a) {
 				var c=code_for_varcode(a[0]);
 				return store_into(c, c+'+1');
 		},
-		134: function(a) { // dec
+		134: function Z_dec(a) {
 				var c=code_for_varcode(a[0]);
 				return store_into(c, c+'-1');
 		},
-		135: function(a) { // print_addr
+		135: function Z_print_addr(a) {
 				return "output(zscii_from("+pc_translate(a[0])+"))";
 		},
-		136: function(a) { // call_1s
+		136: function Z_call_1s(a) {
 				return simple_call(a[0], '');
 		},
-		137: function(a) { // remove_obj
+		137: function Z_remove_obj(a) {
 				return "remove_obj("+a[0]+','+a[1]+")";
 		},
-		138: function(a) { // print_obj
+		138: function Z_print_obj(a) {
 				return "output(name_of_object("+a[0]+"))";
 		},
-		139: function(a) { // ret
+		139: function Z_ret(a) {
 				compiling=0;
 				return "gnusto_return("+a[0]+');return';
 		},
-		140: function(a) { compiling=0; // jump
-											 if (a[0] & 0x8000)
-											 a[0] = (~0xFFFF) | a[0];
+		140: function Z_jump(a) {
+				compiling=0;
+				if (a[0] & 0x8000) {
+						a[0] = (~0xFFFF) | a[0];
+				}
 
-											 var addr=(a[0] + pc) - 2;
-											 return "pc="+addr+";return";
+				var addr=(a[0] + pc) - 2;
+				return "pc="+addr+";return";
 		},
-		141: function(a) { // print_paddr
+		141: function Z_print_paddr(a) {
 				return "output(zscii_from("+pc_translate(a[0])+"))";
 		},
-		142: function(a) { // load
+		142: function Z_load(a) {
 
 				// Warning: This has never been tested, since Inform does
 				// not generate this opcode. If you're able to test it,
@@ -605,47 +605,47 @@ var handlers = {
 				var c=code_for_varcode(a[0]);
 				return storer(c);
 		},
-		143: function(a) { // call_1n
+		143: function Z_call_1n(a) {
 				// can we use simple_call here, too?
 				compiling=0; // Got to stop after this.
 				return "gosub("+pc_translate(a[0])+",[],"+pc+",0)"
 		},
 
-		176: function(a) { // rtrue
+		176: function Z_rtrue(a) {
 				compiling=0;
 				return "gnusto_return(1);return";
 		},
-		177: function(a) { // rfalse
+		177: function Z_rfalse(a) {
 				compiling=0;
 				return "gnusto_return(0);return";
 		},
-		178: simple_print, // print
-		179: function(a) { // print_ret
+		178: simple_print, // (Z_print)
+		179: function Z_print_ret(a) {
 				compiling = 0;
 				return simple_print(0,'\n')+';gnusto_return(1);return';
 		},
-		180: function(a) { // nop
+		180: function Z_nop(a) {
 				return "";
 		},
-		184: function(a) { // ret_popped
+		184: function Z_ret_popped(a) {
 				compiling=0;
 				return "gnusto_return(gamestack.pop());return";
 		},
-		185: function(a) { // catch
+		185: function Z_catch(a) {
 				// The stack frame cookie is specified by Quetzal 1.3b s6.2
 				// to be the number of frames on the stack.
 				return storer("call_stack.length");
 		},
-		186: function(a) { // quit
+		186: function Z_quit(a) {
 				compiling=0;
 				return "return "+GNUSTO_EFFECT_QUIT;
 		},
 
-		187: function(a) {
+		187: function Z_new_line(a) {
 				return "output('\\n')";
 		},
 
-		189: function(a) { // verify
+		189: function Z_verify(a) {
 				compiling = 0;
 
 				var setter = 'rebound=function(n){'+brancher('n')+'};';
@@ -653,10 +653,12 @@ var handlers = {
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_VERIFY;
 		},
 
-		// 190 can't be generated; it's the start of an extended opcode
-		190: function(a) { gnusto_error(199); },
+		190: function Z_illegal_extended(a) {
+				// 190 can't be generated; it's the start of an extended opcode
+				gnusto_error(199);
+		},
 
-		191: function(a) { // piracy
+		191: function Z_piracy(a) {
 				compiling = 0;
 
 				var setter = 'rebound=function(n){'+brancher('(!n)')+'};';
@@ -664,22 +666,23 @@ var handlers = {
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_PIRACY;
 		},
 
-		224: function(a) { // call_vs
+		224: function Z_call_vs(a) {
 				return storer(call_vn(a,1));
 		},
 
-		225: function(a) { // storew
+		225: function Z_store_w(a) {
 				return "setword("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
 		},
 
-		226: function(a) { // storeb
+		226: function Z_storeb(a) {
 				return "setbyte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
 		},
 
-		227 : function(a) { // put_prop
+		227: function Z_putprop(a) {
 				return "put_prop("+a[0]+','+a[1]+','+a[2]+')';
 		},
-		228: function(a) { // read, aread, sread, whatever it's called today
+		228: function Z_read(a) {
+				// read, aread, sread, whatever it's called today.
 				// That's something that we can't deal with within gnusto:
 				// ask the environment to magic something up for us.
 
@@ -692,65 +695,65 @@ var handlers = {
 				compiling = 0;
 
 				var setter = "rebound=function(n){" +
-				storer("aread(n," + a[0]+","+a[1] + ")") +
-				"};";
+						storer("aread(n," + a[0]+","+a[1] + ")") +
+						"};";
 
 				return "pc="+pc+";"+setter+"return "+GNUSTO_EFFECT_INPUT;
 		},
-		229: function(a) { // print_char
+		229: function Z_print_char(a) {
 				return 'output(zscii_char_to_ascii('+a[0]+'))';
 		},
-		230: function(a) { // print_num
+		230: function Z_print_num(a) {
 				return "output("+a[0]+")";
 		},
-		231: function(a) { // random
+		231: function Z_random(a) {
 				return storer("gnusto_random("+a[0]+")");
 		},
-		232: function(a) { // push
+		232: function Z_push(a) {
 				return store_into('gamestack.pop()', a[0]);
 		},
-		233: function(a) { // pull
+		233: function Z_pull(a) {
 				var c=code_for_varcode(a[0]);
 				return store_into(c, 'gamestack.pop()');
 		},
-		234: function(a) { // split_window
+		234: function Z_split_window(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SPLITWINDOW;
 		},
-		235: function(a) { // set_window
+		235: function Z_set_window(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETWINDOW;
 		},
-		236: function(a) { // call_vs2
+		236: function Z_call_vs2(a) {
 				return storer(call_vn(a,1));
 		},
-		237: function(a) { // erase_window
+		237: function Z_erase_window(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASEWINDOW;
 		},
-		238: function(a) { // erase_line
+		238: function Z_erase_line(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_ERASELINE;
 		},
-		239: function(a) { // set_cursor
+		239: function Z_set_cursor(a) {
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+","+a[1]+"];return "+GNUSTO_EFFECT_SETCURSOR;
 		},
 
 		// not implemented:   VAR:240 10 4/6 get_cursor array get_cursor '"},
 
-		241: function(a) { // set_text_style
+		241: function Z_set_text_style(a) {
 				return "pc="+pc+";engine__effect_parameters=["+a[0]+",0,0];return "+GNUSTO_EFFECT_STYLE;
 		},
 		
-		242: function(a) { // buffer_mode
+		242: function Z_buffer_mode(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETBUFFERMODE;
 		},
 
-		243: function(a) { // output_stream
+		243: function Z_output_stream(a) {
 				return 'set_output_stream('+a[0]+','+a[1]+')';
 		},
 
-		244: function(a) { // input_stream
+		244: function Z_input_stream(a) {
 				return "pc="+pc+";engine__effect_parameters="+a[0]+";return "+GNUSTO_EFFECT_SETINPUTSTREAM;
 		},
 
-		245: function(a) { // sound_effect
+		245: function Z_sound_effect(a) {
 				// We're rather glossing over whether and how we
 				// deal with callbacks at present.
 
@@ -758,7 +761,7 @@ var handlers = {
 				return "pc="+pc+';engine__effect_parameters=['+a[0]+','+a[1]+','+a[2]+','+a[3]+','+a[4]+'];return '+GNUSTO_EFFECT_SOUND;
 		},
 
-		246: function(a) { // read_char
+		246: function Z_read_char(a) {
 				// Maybe factor out "read" and this?
 
 				// a[0] is always 1; probably not worth checking for this
@@ -780,7 +783,7 @@ var handlers = {
 
 		// not implemented:   * * VAR:247 17 4 scan_table x table len form -> (result)
 
-		248: function(a) { // not
+		248: function Z_not(a) {
 				return storer('~'+a[1]+'&0xffff');
 		},
 
@@ -788,17 +791,17 @@ var handlers = {
 
 		250: call_vn, // call_vn2,
 
-		251: function(a) { // tokenise
+		251: function Z_tokenise(a) {
 				return "tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
 		},
 
 		// not implemented:   VAR:252 1C 5 encode_text zscii-text length from coded-text encode_text'"},
 
-		253: function(a) { // copy_table
+		253: function Z_copy_table(a) {
 				return "copy_table("+a[0]+','+a[1]+','+a[2]+")";
 		},
 
-		254: function(a) { // print_table
+		254: function Z_print_table(a) {
 
 				// Jam in defaults:
 				if (a.length < 4) { a.push(1); } // default height
@@ -807,34 +810,36 @@ var handlers = {
 				return "pc="+pc+";engine__effect_parameters=engine__print_table("+a[0]+","+a[1]+","+a[2]+","+a[3]+");return "+GNUSTO_EFFECT_PRINTTABLE;
 		},
 
-		255: function(a) { // check_arg_count
+		255: function Z_check_arg_count(a) {
 				return brancher(a[0]+'<=param_count()');
 		},
 	
-		1000: function(a) { // save
+		1000: function Z_save(a) {
 				compiling=0;
 				var setter = "rebound=function(n) { " +
 				storer('n') + "};";
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_SAVE;
 		},
 
-		1001: function(a) { // restore
+		1001: function Z_restore(a) {
 				compiling=0;
 				var setter = "rebound=function(n) { " +
 				storer('n') + "};";
 				return "pc="+pc+";"+setter+";return "+GNUSTO_EFFECT_RESTORE;
 		},
 
-		1002: function(a) {//log_shift logarithmic-bit-shift.  Right shifts are zero-padded
+		1002: function Z_log_shift(a) {
+				// log_shift logarithmic-bit-shift.  Right shifts are zero-padded
 				if (a[1] < 0) {		
-					return storer(a[0]+'>>>'+a[1]);
+						return storer(a[0]+'>>>'+a[1]);
 				}
 				else {
-					return storer(a[0]+'<<'+a[1]);
-				}	
+						return storer(a[0]+'<<'+a[1]);
+				}
 		},
 
-		1003: function(a) {//art_shift arithmetic-bit-shift.  Right shifts are sign-extended
+		1003: function Z_art_shift(a) {
+				// arithmetic-bit-shift.  Right shifts are sign-extended
 				if (a[1] < 0) {		
 					return storer(a[0]+'>>'+a[1]);
 				}
@@ -843,25 +848,25 @@ var handlers = {
 				}	
 		},
 
-		1004: function(a) { // set_font
+		1004: function Z_set_font(a) {
 				// We only provide font 1.
 				return storer('('+a[0]+'<2?1:0)');
 		},
 
-		1009: function(a) { // save_undo
+		1009: function Z_save_undo(a) {
 				return storer('-1'); // not yet supplied
 		},
 
-		1010: function(a) { // restore_undo
+		1010: function Z_restore_undo(a) {
 				gnusto_error(700); // spurious restore_undo
 				return storer('0');
 		},
 
-		1011: function(a) { // print_unicode
+		1011: function Z_print_unicode(a) {
 				gnustoglue_print_unicode(a[0]);
 		},
 
-		1012: function(a) { // check_unicode
+		1012: function Z_check_unicode(a) {
 				return storer('gnustoglue_check_unicode('+a[0]+')');
 		},
 }
