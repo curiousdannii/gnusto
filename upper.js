@@ -1,7 +1,7 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // upper.js -- upper window handler.
 //
-// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.34 2003/04/27 20:58:54 marnanel Exp $
+// $Header: /cvs/gnusto/src/gnusto/content/upper.js,v 1.35 2003/04/27 22:50:50 marnanel Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -277,78 +277,10 @@ function bocardo_print_table(win, lines) {
 
 ////////////////////////////////////////////////////////////////
 
-var bocardo__current_style = 0;
-var bocardo__current_foreground = 1;
-var bocardo__current_background = 1;
+var bocardo__current_css = '';
 
-var bocardo__current_css = ['ff bb','ff bb'];
-
-// Set the current text style, foreground and background colours
-// of a given window. Very Z-machine specific.
-function bocardo_set_text_style(win, style, foreground, background) {
-
-		// List of CSS classes we want.
-		var css = '';
-
-		////////////////////////////////////////////////////////////////
-
-		// Examine the parameters, and set the internal variables
-		// which store the text style and colours of this window.
-		//
-		// The value -1 (for style) and 0 (for bg/fg) mean that we
-		// shouldn't change the current value. Style also has the
-		// particular oddity that it needs to be ORed with the
-		// current style, except when it's zero (==roman text),
-		// when it should set the current style to zero too.
-
-		if (style==-1) // Don't change
-				style = bocardo__current_style;
-		else if (style==0)
-				bocardo__current_style = 0;
-		else {
-				bocardo__current_style |= style;
-				style = bocardo__current_style;
-		}
-
-		if (foreground==0) // Don't change
-				foreground = bocardo__current_foreground;
-		else
-				bocardo__current_foreground = foreground;
-
-		if (background==0) // Don't change
-				background = bocardo__current_background;
-		else
-				bocardo__current_background = background;
-
-		////////////////////////////////////////////////////////////////
-
-		// Handle colours:
-
-		var fg_code;
-		var bg_code;
-
-		if (foreground==1)
-				fg_code = 'f';
-		else
-				fg_code = foreground.toString();
-
-		if (background==1)
-				bg_code = 'b';
-		else
-				bg_code = background.toString();
-
-		// Handle styles:
-
-		if (style & 0x1) // Reverse video.
-				css = 'b' + fg_code + ' f'+bg_code;
-		else
-				css = 'f' + fg_code + ' b'+bg_code;
-
-		if (style & 0x2) css = css + ' sb'; // bold
-		if (style & 0x4) css = css + ' si'; // italic
-		if (style & 0x8) css = css + ' sm'; // monospace
-
-		bocardo__current_css[win] = css;
+function bocardo_set_text_style(css) {
+		bocardo__current_css = css;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -377,7 +309,7 @@ function bocardo__subchalk(win, text) {
 				//// once bug 3658 is fixed.
 
 				// *Possibly* not what we want any more for the upper window
-				//newdiv.setAttribute('class', bocardo__current_css[current_window]);
+				//newdiv.setAttribute('class', bocardo__current_css);
 				bocardo__screen_window.appendChild(newdiv);
     }
 
@@ -493,7 +425,7 @@ function bocardo__subchalk(win, text) {
 
 		// ..and append our text.
 		var newSpan = bocardo__screen_doc.createElement('description');
-		newSpan.setAttribute('class', bocardo__current_css[win]);
+		newSpan.setAttribute('class', bocardo__current_css);
 		newSpan.setAttribute('value', text);
 
 		if (appendPoint == -1) {
