@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.113 2005/02/09 07:17:46 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.114 2005/04/16 05:08:09 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/02/09 07:17:46 $';
+const CVS_VERSION = '$Date: 2005/04/16 05:08:09 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -226,7 +226,7 @@ function burin(text) {
 				(new Components.
 				 Constructor("@mozilla.org/file/local;1",
 										 "nsILocalFile",
-										 "initWithPath")('c:\\b2.txt'),
+										 "initWithPath")('c:\\new_out.txt'),
 				 0x1A,
 				 0644,
 				 0);
@@ -2051,8 +2051,9 @@ GnustoEngine.prototype = {
       // Set up separators.
       
       this.m_separator_count = this.m_memory[this.m_dict_start];
-      for (var i=0; i<this.m_separator_count; i++) {		  
+      for (var i=0; i<this.m_separator_count; i++) {	      						  
 					this.m_separators[i]=this._zscii_char_to_ascii(this.m_memory[this.m_dict_start + i+1]);
+					burin(this.m_separators[i]);
       }	
       
       // If there is a header extension...
@@ -2588,6 +2589,7 @@ GnustoEngine.prototype = {
 	// to figure it out ourselves.
 	//
 	_tokenise: function ge_tokenise(text_buffer, parse_buffer, dictionary, overwrite) {
+		        burin('Tokenise call.');
 
 			var tokenised_word_count = 0;
 			var cursor = parse_buffer + 2;                	
@@ -2599,6 +2601,7 @@ GnustoEngine.prototype = {
 			function look_up(engine, word, dict_addr) {
 
 					function compare(engine, typed, mem_addr) {
+`							burin('compare typed: ' + typed);
 							var j=0;
 							var mem_char, typed_char;
 							while (1) {
@@ -2638,6 +2641,7 @@ GnustoEngine.prototype = {
 					}
 
 					var oldword = word;				
+					burin('oldword: ' + oldword);
 					word = engine._into_zscii(word);
 
 					if (is_sorted) {
@@ -2651,6 +2655,7 @@ GnustoEngine.prototype = {
 									median_address = entries_start+median*entry_length;
 
 									comparison = compare(engine, word, median_address);
+									burin('median: ' + median + ' ' + comparison);
 									if (comparison<0) {
 											if (low==high) { return 0; }
 											low = median+1;
@@ -2727,6 +2732,7 @@ GnustoEngine.prototype = {
 							if (ch==0) break;
 							source += String.fromCharCode(ch);
 					}
+					burin('source: ' + source);
 
 			} else {
 					for (var i=0;i<this.m_memory[text_buffer + 1];i++) {
@@ -2759,6 +2765,7 @@ GnustoEngine.prototype = {
 							}
 					} else {
 							if (this._is_separator(source[cpos])) {
+									burin('found separator');
 									if (curword != '') {
 											words[wordindex] = curword;
 											add_to_parse_table(this, dictionary, words[wordindex],
