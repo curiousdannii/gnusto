@@ -1,6 +1,6 @@
 // gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
-// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.115 2005/04/16 06:02:09 naltrexone42 Exp $
+// $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.116 2005/04/26 01:50:32 naltrexone42 Exp $
 //
 // Copyright (c) 2003 Thomas Thurman
 // thomas@thurman.org.uk
@@ -18,7 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html ; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-const CVS_VERSION = '$Date: 2005/04/16 06:02:09 $';
+const CVS_VERSION = '$Date: 2005/04/26 01:50:32 $';
 const ENGINE_COMPONENT_ID = Components.ID("{bf7a4808-211f-4c6c-827a-c0e5c51e27e1}");
 const ENGINE_DESCRIPTION  = "Gnusto's interactive fiction engine";
 const ENGINE_CONTRACT_ID  = "@gnusto.org/engine;1?type=zcode";
@@ -3591,10 +3591,6 @@ GnustoEngine.prototype = {
 									  emit(5); // shift to weird stuff
 									} else { emit(3);} //use a shift as 5 is shift_lock in z1-2
 
-									// XXX FIXME. This ought logically to be z2+6
-									// (and Frotz also uses 6 here.) For some reason,
-									// it seems not to work unless it's z2+9.
-									// Find out what's up.
 									emit(z2+6);
 							} else {
 								        if (this.getByte(0)>2) {
