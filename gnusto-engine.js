@@ -2,8 +2,9 @@
 // The Gnusto JavaScript Z-machine library.
 // $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.116 2005/04/26 01:50:32 naltrexone42 Exp $
 //
-// Copyright (c) 2003 Thomas Thurman
-// thomas@thurman.org.uk
+// Copyright (c) 2003-2009 The Gnusto Contributors
+//
+// The latest code is available at http://github.com/curiousdannii/gnusto/
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of version 2 of the GNU General Public License
