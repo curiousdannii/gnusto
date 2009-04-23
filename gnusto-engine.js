@@ -2942,9 +2942,9 @@ GnustoEngine.prototype = {
 	//
 	_func_return: function ge_func_return(value) {
 
-			for (var i=this.m_locals_stack.shift(); i>0; i--) {
-					this.m_locals.shift();
-			}
+			// Remove this function's locals
+			this.m_locals = this.m_locals.slice(this.m_locals_stack.shift());
+
 			this.m_param_counts.shift();
 			this.m_pc = this.m_call_stack.pop();
 
