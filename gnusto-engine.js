@@ -2577,28 +2577,40 @@ GnustoEngine.prototype = {
 
 			// Load the function parameters
 			var count = this.m_memory[this.m_pc++];
+			var actualslength = actuals.length;
 
 			// Before version 5, Z-code put initial values for formal parameters
 			// into the code itself. If we're running a version earlier than z5,
-			// we have to interpret these. Otherwise we set them to 0.
-			var templocals = [];
-			for (var i = 0; i < count; i++)
+			// we have to interpret these.
+			if (this.m_version < 5)
 			{
-				if (i < actuals.length)
-					templocals.push(actuals[i]);
-				else if (this.m_version < 5)
+				var templocals = [];
+
+				for (var i = 0; i < count; i++)
 				{
-					templocals.push(this.getWord(this.m_pc));
+					if (i < actualslength)
+						templocals.push(actuals[i]);
+					else
+						templocals.push(this.getWord(this.m_pc));
+
 					this.m_pc += 2;
 				}
-				else
+			}
+
+			// Optimise for Z5: copy the actual parameters and push on zeroes
+			else
+			{
+				var templocals = actuals;
+
+				for (var i = count - actualslength; i > 0; i--)
 					templocals.push(0);
 			}
+
 			this.m_locals = templocals.concat(this.m_locals);
 
 			this.m_locals_stack.unshift(count);
 
-			this.m_param_counts.unshift(actuals.length);
+			this.m_param_counts.unshift(actualslength);
 			this.m_result_targets.push(result_target);
 
 			this.m_gamestack_callbreaks.push(this.m_gamestack.length);
