@@ -843,7 +843,7 @@ function handleZ_read_char(engine, a) {
 						"if(t<0){"+
 						"_func_interrupt(m_rebound_args[0],onISRReturn_for_read_char);"+ // -ve: timeout
 						"}else{"+
-						engine._storer("t") + // otherwise, a result to store.
+						engine._storer("_ascii_code_to_zscii_code(t)") + // otherwise, a result to store.
 						"}"+
 						"};";
 
@@ -858,7 +858,7 @@ function handleZ_read_char(engine, a) {
 				// A much simpler rebound function, since zero isn't
 				// a magic answer.
 				rebound_setter = "m_rebound=function(){"+
-						engine._storer("1*m_answers[0]") +
+						engine._storer("_ascii_code_to_zscii_code(1*m_answers[0])") +
 						"};";
 		}
 
