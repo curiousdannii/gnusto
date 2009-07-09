@@ -2139,6 +2139,12 @@ GnustoEngine.prototype = {
       this.m_printing_header_bits = 0;
 
       this.m_leftovers = '';
+
+		// Set some header variables
+
+		// Z Machine Spec version
+		this.m_memory[0x32] = 1;
+		this.m_memory[0x33] = 0;
   },
 
 // Inlined some of these functions...
@@ -2486,8 +2492,6 @@ GnustoEngine.prototype = {
 			gnusto_error(702, 'Illegal unicode character:' + ascii_code); // illegal ascii code
 		} else if (ascii_code==13 || ascii_code==10) {
 			result = 10;
-		} else if ((ascii_code>=32 && ascii_code<=126) || ascii_code==0) {
-			result = ascii_code;
 		} else {
 			// Must be among extra characters.
 			result = reverse_unicode_table[ascii_code];
