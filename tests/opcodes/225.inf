@@ -1,0 +1,50 @@
+! storew test
+! VAR:225 1 storew array word-index value
+! array-->word-index = value, i.e. stores the given value in the word at address array+2*word-index (which must lie in dynamic memory). (See loadw.)
+
+Array test_array --> 8;
+Constant VALUE $C22;
+
+[ Main;
+
+	! array: const, word-index: const, value: const
+	!test_array-->0 = VALUE;
+	@storew test_array 0 VALUE;
+
+	! array: const, word-index: const, value: var
+	@push VALUE;
+	@storew test_array 1 sp;
+
+	! array: const, word-index: var, value: const
+	@push 2;
+	@storew test_array sp VALUE;
+
+	! array: const, word-index: var, value: var
+	@push VALUE;
+	@push 3;
+	@storew test_array sp sp;
+
+	! array: var, word-index: const, value: const
+	@push test_array;
+	@storew sp 4 VALUE;
+
+	! array: var, word-index: const, value: var
+	@push VALUE;
+	@push test_array;
+	@storew sp 5 sp;
+
+	! array: var, word-index: var, value: const
+	@push 6;
+	@push test_array;
+	@storew sp sp VALUE;
+
+	! array: var, word-index: var, value: var
+	@push VALUE;
+	@push 7;
+	@push test_array;
+	@storew sp sp sp;
+
+];
+
+!OPCODE storew
+!TEST same(engine.m_memory.slice(arrays.test_array, arrays.test_array + 16), [12,34,12,34,12,34,12,34,12,34,12,34,12,34,12,34]);
