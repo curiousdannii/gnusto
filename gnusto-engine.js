@@ -602,38 +602,38 @@ function handleZ_call_vs(engine, a) {
 }
 
 ////////////////////////////////////////////////////////////////
-
+/***
 function handleZ_store_w(engine, a) {
     return "setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
   }
+***/
 
-/***
 // Store a value in an array
 function handleZ_store_w(engine, a)
 {
 	// Calculate the address
 	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
-		var code = 'var tmp_' + (++temp_var) + ' = ' + a[0] + ' + 2 * ' + a[1] + ';', add = 'tmp_' + temp_var;
+		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF;', addr = 'tmp_' + temp_var;
 	else
-		var code = '', add = a[0] + 2 * a[1];
+		var code = '', addr = (a[0] + 2 * a[1]) & 0xFFFF;
 
 	// If we are setting a constant get the high and low bytes at compile time
 	if (!isNotConst.test(a[2]))
 	{
 		var value = (a[2] & 0x8000 ? ~0xFFFF : 0) | a[2];
-		return code + 'm_memory[' + add + '] = ' + ((value >> 8) & 0xFF) + ';' +
-			'm_memory[' + add + ' + 1] = ' + (value & 0xFF);
+		return code + 'm_memory[' + addr + '] = ' + ((value >> 8) & 0xFF) + ';' +
+			'm_memory[' + addr + ' + 1] = ' + (value & 0xFF);
 	}
 	else
 	{
 		var tmp = 'tmp_' + (++temp_var);
 		return code + 'var ' + tmp + ' = ' + a[2] + ';' +
 			tmp + ' = (' + tmp + ' & 0x8000 ? ~0xFFFF : 0) | ' + tmp + ';' +
-			'm_memory[' + add + '] = (' + tmp + ' >> 8) & 0xFF;' +
-			'm_memory[' + add + ' + 1] = ' + tmp + ' & 0xFF;';
+			'm_memory[' + addr + '] = (' + tmp + ' >> 8) & 0xFF;' +
+			'm_memory[' + addr + ' + 1] = ' + tmp + ' & 0xFF;';
 	}
 }
-***/
+
 function handleZ_storeb(engine, a) {
     return "setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
   }
