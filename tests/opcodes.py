@@ -16,6 +16,7 @@ template = '''<!DOCTYPE HTML>
 	<script src="testrunner.js"></script>
 	<script src="../gnusto-engine.js"></script>
 	<script>
+FatalError = new Error();
 $(document).ready(function(){'''
 template_after = '''\n\n});
 	</script>
@@ -53,7 +54,7 @@ for test in tests:
 
 		# Output the Gnusto running code
 		output.write('''
-		var engine = new GnustoEngine(console.log);
+		var engine = new GnustoEngine();
 		engine.loadStory(zcode);
 		engine.run();''')
 

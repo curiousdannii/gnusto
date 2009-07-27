@@ -2,6 +2,9 @@
 ! VAR:225 1 storew array word-index value
 ! array-->word-index = value, i.e. stores the given value in the word at address array+2*word-index (which must lie in dynamic memory). (See loadw.)
 
+! Gnusto used to fail to correctly set addresses to unsigned values, and this array would show that. But it makes the test page too big so it's commented out now.
+!Array aaa --> 17000;
+
 Array test_array --> 8;
 Constant VALUE $C22;
 
