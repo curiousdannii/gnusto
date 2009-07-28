@@ -2076,7 +2076,7 @@ GnustoEngine.prototype = {
 
       if(!(this.m_unicode_start>0)) {
 	  // The game doesn't provide its own set of unicode characters, so
-	  // now is the time to populate the reverse_unicode_table with the 
+	  // now is the time to populate the reverse_unicode_table with the
 	  // default unicode characters
 	  for(var i in default_unicode_translation_table)
 	      reverse_unicode_table[default_unicode_translation_table[i]] = i;
@@ -2976,8 +2976,22 @@ GnustoEngine.prototype = {
 			this.m_gamestack.length = this.m_gamestack_callbreaks.pop();
 
 			var target = this.m_result_targets.pop();
-			if (target!=-1 && value!=null) {
-					this._varcode_set(value, target);
+
+			if (target != -1 && value != null)
+			{
+				//this._varcode_set(value, target);
+
+				// Rather than calling _varcode_set() this function now accesses the variables directly
+				// target is interpreted as in ZSD 4.2.2:
+				//	0     = top of game stack
+				//	1-15  = local variables
+				//	16 up = global variables
+				if (target == 0)
+					this.m_gamestack.push(value);
+				else if (target < 0x10)
+					this.m_locals[target - 1] = value;
+				else
+					this.setWord(value, this.m_vars_start + (target - 16) * 2);
 			}
 
 			if (this.m_pc == CALLED_FROM_INTERRUPT) {
@@ -3659,15 +3673,15 @@ GnustoEngine.prototype = {
 		{
 			ch = str.charCodeAt(cursor++);
 
-			// Downcase any uppercase characters 
+			// Downcase any uppercase characters
 			if (ch >= 65 && ch <= 90)
 				ch += 32;
-			else if (ch > 154) 
+			else if (ch > 154)
 			{
 				if(this.m_unicode_start == 0)
 				{
-					// It's an extended character AND the game uses the regular 
-					// unicode translation table, so we know how to downcase. 
+					// It's an extended character AND the game uses the regular
+					// unicode translation table, so we know how to downcase.
 					if ((ch >= 158 && ch <= 160) || (ch >= 167 && ch <= 168) || (ch >= 208 && ch <= 210))
 						ch -= 3;
 					else if (ch >= 175 && ch <= 180)
@@ -3719,11 +3733,11 @@ GnustoEngine.prototype = {
 						emit(z2 + 6);
 					} else {
 						if (this.getByte(0) > 2)
-							emit(5); 
+							emit(5);
 						else
-							emit(3); //shift is positioned differently in z1-2 
-						emit(6); 
-						emit(ch >> 5); 
+							emit(3); //shift is positioned differently in z1-2
+						emit(6);
+						emit(ch >> 5);
 						emit(ch & 0x1F);
 					}
 				}
