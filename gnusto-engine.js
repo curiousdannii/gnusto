@@ -1,4 +1,4 @@
-// gnusto-lib.js || -*- Mode: Java; tab-width: 2; -*-
+// gnusto-lib.js || -*- Mode: Javascript; tab-width: 2; -*-
 // The Gnusto JavaScript Z-machine library.
 // $Header: /cvs/gnusto/src/xpcom/engine/gnusto-engine.js,v 1.116 2005/04/26 01:50:32 naltrexone42 Exp $
 //
@@ -347,9 +347,28 @@ function handleZ_store(engine, a)
 function handleZ_insert_obj(engine, a) {
     return "_insert_obj("+a[0]+','+a[1]+")";
   }
-function handleZ_loadw(engine, a) {
-    return engine._storer("getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
-  }
+
+// Load an array word
+function handleZ_loadw(engine, a)
+{
+	// Inline this getWord call
+	//return engine._storer("getWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+
+	// Calculate the address
+	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
+		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF, ',
+			addr = 'tmp_' + temp_var;
+	else
+		var code = 'var ',
+			addr = (a[0] + 2 * a[1]) & 0xFFFF;
+
+	// Get the value and store it
+	var tmp = 'tmp_' + (++temp_var);
+	return code + tmp + ' = (m_memory[' + addr + '] << 8) | m_memory[' + addr + ' + 1];' +
+		tmp + ' = ((' + tmp + ' & 0x8000 ? ~0xFFFF : 0) | ' + tmp + ');' +
+		engine._storer(tmp);
+}
+
 function handleZ_loadb(engine, a) {
     return engine._storer("m_memory[0xFFFF&(1*"+a[0]+"+1*"+a[1]+")]");
   }
@@ -3093,11 +3112,21 @@ GnustoEngine.prototype = {
 
 			var temp = this._property_search(object, property, -1);
 
-			if (temp[1]==2) {
-					return this.getWord(temp[0]);
-			} else if (temp[1]==1) {
-					return this.m_memory[temp[0]]; // should this be treated as signed?
-			} else {
+			// Correct negative addresses
+			if (temp[0] < 0)
+				temp[0] &= 0xFFFF;
+
+			if (temp[1] == 1)
+				return this.m_memory[temp[0]];
+			else if (temp[1] == 2)
+			{
+				// Inline this call to getWord()
+				//return this.getWord(temp[0]);
+				var value = (this.m_memory[temp[0]] << 8) | this.m_memory[temp[0] + 1];
+				return ((value & 0x8000) ? ~0xFFFF : 0) | value;
+			}
+			else
+			{
 					// get_prop used on a property of the wrong length
 					// Christminster (and perhaps others) use this vaguely
 					// illegal hack to just check to see if a property exists
