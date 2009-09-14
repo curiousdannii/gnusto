@@ -78,8 +78,10 @@ IFF = Class.extend({
 		// Go through the chunks and write them out
 		for (var i = 0, l = this.chunks.length; i < l; i++)
 		{
-			var chunk = this.chunks[i], data = chunk.data;
-			out = out.concat(text_to_word(chunk.type), num_to_word(data.length), data);
+			var chunk = this.chunks[i], data = chunk.data, len = data.length;
+			out = out.concat(text_to_word(chunk.type), num_to_word(len), data);
+			if (len % 2)
+				out.push(0);
 		}
 
 		// Add the header and return
