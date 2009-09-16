@@ -13,10 +13,10 @@ var IFZS = 'IFZS', IFHD = 'IFhd', CMEM = 'CMem', UMUM = 'UMem', STKS = 'Stks';
 // A savefile
 window.Quetzal = IFF.extend({
 	// Parse a Quetzal savefile, or make a blank one
-	init: function parse_quetzal(data)
+	init: function parse_quetzal(bytes)
 	{
-		this._super(data);
-		if (data)
+		this._super(bytes);
+		if (bytes)
 		{
 			// Check this is a Quetzal savefile
 			if (this.type != IFZS)
