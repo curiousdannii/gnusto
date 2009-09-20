@@ -1428,9 +1428,14 @@ GnustoEngine.prototype = {
 			this._initial_setup();
   },
 
-  loadSavedGame: function ge_loadSavedGame(memLen, mem, mem_is_compressed,
-																					 stacksLen, stacks, pc)
+	loadSavedGame: function ge_loadSavedGame(savefile)
 	{
+		// Load the Quetzal savefile
+		var quetzal = new Quetzal(savefile);
+		var mem = quetzal.memory;
+		var stacks = quetzal.stacks;
+		var pc = quetzal.pc;
+
 
 			// FIXME: Still to do here:
 			//  There's a bit which should survive restore.
@@ -1446,7 +1451,7 @@ GnustoEngine.prototype = {
 					return result;
 			}
 
-			if (mem_is_compressed) {
+			if (quetzal.compressed) {
 
 					// Welcome to the decompression chamber.
 
@@ -1510,7 +1515,7 @@ GnustoEngine.prototype = {
 					cursor+=2;
 			}
 
-			while (cursor<stacksLen) {
+			while (cursor < stacks.length) {
 
 					this.m_call_stack.push(decodeStackInt(cursor, 3));
 					cursor+=3;

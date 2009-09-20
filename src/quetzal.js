@@ -8,7 +8,7 @@
 (function(){
 
 // Form and chunk type constants
-var IFZS = 'IFZS', IFHD = 'IFhd', CMEM = 'CMem', UMUM = 'UMem', STKS = 'Stks';
+var IFZS = 'IFZS', IFHD = 'IFhd', CMEM = 'CMem', UMEM = 'UMem', STKS = 'Stks';
 
 // A savefile
 window.Quetzal = IFF.extend({
