@@ -259,8 +259,7 @@ function handleZ_jl(engine, a) {
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
 		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
-	// And convert the JS boolean value to 0 or 1.
-	return t1code + t2code + engine._brancher('(t<t2)*1'); 
+	return t1code + t2code + engine._brancher('t<t2'); 
 }
 
 function handleZ_jg(engine, a) {
@@ -274,8 +273,7 @@ function handleZ_jg(engine, a) {
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
 		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
-	// And convert the JS boolean value to 0 or 1.
-	return t1code + t2code + engine._brancher('(t>t2)*1'); 
+	return t1code + t2code + engine._brancher('t>t2'); 
 }
 /***
 function handleZ_dec_chk(engine, a) {
@@ -293,6 +291,7 @@ function handleZ_inc_chk(engine, a)
 {
 	var tcode, t2code;
 	tcode = handleZ_incdec(engine, a[0], '+', 1);
+	// Convert both arguments to signed for the comparison.
 	if (isNotConst.test(a[1]))
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
@@ -304,6 +303,7 @@ function handleZ_dec_chk(engine, a)
 {
 	var tcode, t2code;
 	tcode = handleZ_incdec(engine, a[0], '-', 1);
+	// Convert both arguments to signed for the comparison.
 	if (isNotConst.test(a[1]))
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
@@ -393,7 +393,7 @@ function handleZ_insert_obj(engine, a) {
 function handleZ_loadw(engine, a)
 {
 	// Inline this getUnsignedWord call
-	//return engine._storer("getUnsignedWord((1*"+a[0]+"+2*"+a[1]+")&0xFFFF)");
+	//return engine._storer("getUnsignedWord(("+a[0]+"+2*"+a[1]+")&0xFFFF)");
 
 	// Calculate the address
 	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
@@ -412,7 +412,7 @@ function handleZ_loadw(engine, a)
 }
 
 function handleZ_loadb(engine, a) {
-    return engine._storer("m_memory[0xFFFF&(1*"+a[0]+"+1*"+a[1]+")]");
+    return engine._storer("m_memory[0xFFFF&("+a[0]+"+"+a[1]+")]");
   }
 function handleZ_get_prop(engine, a) {
     return engine._storer("_get_prop("+a[0]+','+a[1]+')');
@@ -668,7 +668,7 @@ function handleZ_call_vs(engine, a) {
 ////////////////////////////////////////////////////////////////
 /***
 function handleZ_store_w(engine, a) {
-    return "setWord("+a[2]+",1*"+a[0]+"+2*"+a[1]+")";
+    return "setWord("+a[2]+","+a[0]+"+2*"+a[1]+")";
   }
 ***/
 
@@ -701,7 +701,7 @@ function handleZ_store_w(engine, a)
 }
 
 function handleZ_storeb(engine, a) {
-    return "setByte("+a[2]+",1*"+a[0]+"+1*"+a[1]+")";
+    return "setByte("+a[2]+","+a[0]+"+"+a[1]+")";
   }
 
 function handleZ_putprop(engine, a) {
@@ -2194,7 +2194,7 @@ GnustoEngine.prototype = {
 
   setByte: function ge_setByte(value, address) {
     if (address<0) { address &= 0xFFFF; } //### unnecessary?
-    this.m_memory[address] = value;
+    this.m_memory[address] = value & 0xFF;
   },
 
   getWord: function ge_getWord(address) {
@@ -2429,6 +2429,7 @@ GnustoEngine.prototype = {
 	},
 
 	_set_output_stream: function ge_set_output_stream(target, address) {
+ 			target = this._unsigned2signed(target);
 			if (target==0) {
 					// then it's a no-op.
 			} else if (target==1) {
@@ -2559,6 +2560,7 @@ GnustoEngine.prototype = {
 	},
 
 	_random_number: function ge_random_number(arg) {
+ 			arg = this._unsigned2signed(arg);
 
 			if (arg==0) {
 
@@ -3075,7 +3077,7 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_len: function ge_get_prop_len(address) {
-			address &= 0xFFFF;
+ 			address &= 0xFFFF; //### unnecessary?
 			if (this.m_version<4) {
 					return 1+(this.m_memory[address-1] >> 5);
 			} else {
@@ -3140,7 +3142,7 @@ GnustoEngine.prototype = {
 
 			var temp = this._property_search(object, property, -1);
 
-			// Correct negative addresses
+			// Correct negative addresses //### unnecessary?
 			if (temp[0] < 0)
 				temp[0] &= 0xFFFF;
 
@@ -3296,9 +3298,9 @@ GnustoEngine.prototype = {
 			}
 
 			if (address[1]==1) {
-					this.setByte(value & 0xff, address[0]);
+					this.setByte(value, address[0]);
 			} else if (address[1]==2) {
-					this.setWord(value&0xffff, address[0]);
+					this.setWord(value, address[0]);
 			} else {
 					gnusto_error(705); // weird length
 			}
