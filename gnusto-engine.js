@@ -249,7 +249,7 @@ function handleZ_je(engine, a) {
   }
 
 function handleZ_jl(engine, a) {
-  // Convert both arguments to signed for the comparison.
+	// Convert both arguments to signed for the comparison.
 	var t1code, t2code;
 	if (isNotConst.test(a[0]))
 		t1code = 't=' + a[0] + ';t=((t & 0x8000 ? ~0xFFFF : 0) | t);';
@@ -259,12 +259,12 @@ function handleZ_jl(engine, a) {
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
 		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
-  // And convert the JS boolean value to 0 or 1.
+	// And convert the JS boolean value to 0 or 1.
 	return t1code + t2code + engine._brancher('(t<t2)*1'); 
 }
 
 function handleZ_jg(engine, a) {
-  // Convert both arguments to signed for the comparison.
+	// Convert both arguments to signed for the comparison.
 	var t1code, t2code;
 	if (isNotConst.test(a[0]))
 		t1code = 't=' + a[0] + ';t=((t & 0x8000 ? ~0xFFFF : 0) | t);';
@@ -274,7 +274,7 @@ function handleZ_jg(engine, a) {
 		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
 	else
 		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
-  // And convert the JS boolean value to 0 or 1.
+	// And convert the JS boolean value to 0 or 1.
 	return t1code + t2code + engine._brancher('(t>t2)*1'); 
 }
 /***
@@ -337,17 +337,17 @@ function handleZ_store(engine, a)
 {
 	if (isNotConst.test(a[0]))
 		engine.logger('Z_store', a[0]);
-  if (engine.m_value_asserts) {
-    if (a[0] == null || a[0] === true || a[0] === false || a[0] < 0 || a[0] > 0xFFFF)
-      engine.logger('Z_store address', a[0]);
-    if (a[1] == null || a[1] === true || a[1] === false || a[1] < 0 || a[1] > 0xFFFF)
-      engine.logger('Z_store value', a[1]);
-  }
+	if (engine.m_value_asserts) {
+		if (a[0] == null || a[0] === true || a[0] === false || a[0] < 0 || a[0] > 0xFFFF)
+			engine.logger('Z_store address', a[0]);
+		if (a[1] == null || a[1] === true || a[1] === false || a[1] < 0 || a[1] > 0xFFFF)
+			engine.logger('Z_store value', a[1]);
+	}
 
 	if (a[0] == 0)
 		return 'm_gamestack.push(' + a[1] + ')';
 	else if (a[0] < 16)
-    return 'm_locals[' + a[0] + ' - 1] = ' + a[1]; //### fold!
+		return 'm_locals[' + (a[0]-1) + '] = ' + a[1];
 	else
 	{
 		// If the variable is a function rather than a constant it will have to be determined at run time
@@ -392,8 +392,8 @@ function handleZ_loadw(engine, a)
 			addr = (a[0] + 2 * a[1]) & 0xFFFF;
 
 	// Get the value and store it
-  // BUG: fails to wrap if the address is split across addresses 0xFFFF
-  // and 0x0000. I don't care. --Z
+	// BUG: fails to wrap if the address is split across addresses 0xFFFF
+	// and 0x0000. I don't care. --Z
 	var tmp = 'tmp_' + (++temp_var);
 	return code + tmp + ' = (m_memory[' + addr + '] << 8) | m_memory[' + addr + ' + 1];' +
 		engine._storer(tmp);
@@ -498,7 +498,7 @@ function handleZ_incdec(engine, variable, sign, varRequired)
 	if (variable == 0)
 		return (varRequired ? 'var ' + tmp + ' = ' : '') + sign + sign + 'm_gamestack[m_gamestack.length - 1];';
 	else if (variable < 0x10)
-		return (varRequired ? 'var ' + tmp + ' = ' : '') + sign + sign + 'm_locals[' + variable + ' - 1];';
+		return (varRequired ? 'var ' + tmp + ' = ' : '') + sign + sign + 'm_locals[' + (variable-1) + '];';
 	else
 	{
 		// If the variable is a function rather than a constant it will have to be determined at run time
