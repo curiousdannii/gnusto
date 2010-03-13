@@ -1368,6 +1368,7 @@ function pc_translate_v8(p)   { return '(('+p+')&0xFFFF)*8'; }
 function gnusto_error(number) {
 
 		message ='Component: engine\n';
+		message += 'Code: ' + number + '\n';
 
 		for (var i=1; i<arguments.length; i++) {
 				if (arguments[i] && arguments[i].toString) {
@@ -2005,6 +2006,7 @@ GnustoEngine.prototype = {
       this.m_copperTrail = 0;
 
       this.m_version     = this.m_memory[0];
+      this.m_original_memory = this.m_memory.slice(); // Make a copy.
 
       this.m_himem       = this.getUnsignedWord(0x4);
       this.m_pc          = this.getUnsignedWord(0x6);
@@ -2027,8 +2029,6 @@ GnustoEngine.prototype = {
       }
 
       this.m_hext_start  = this.getUnsignedWord(0x36);
-
-      this.m_original_memory = this.m_memory.slice(); // Make a copy.
 
       // Use the correct addressing mode for this Z-machine version...
 
@@ -2187,25 +2187,6 @@ GnustoEngine.prototype = {
 
 // Inlined some of these functions...
 
-  getByte: function ge_getbyte(address) {
-    if (address<0) { address &= 0xFFFF; }  //### unnecessary?
-    return this.m_memory[address];
-  },
-
-  setByte: function ge_setByte(value, address) {
-    if (address<0) { address &= 0xFFFF; } //### unnecessary?
-    this.m_memory[address] = value & 0xFF;
-  },
-
-  getWord: function ge_getWord(address) {
-    // The return value will be signed (-8000..7FFF).
-    if (address<0) { address &= 0xFFFF; } //### unnecessary?
-//    return this._unsigned2signed((this.m_memory[address]<<8)|
-//																 this.m_memory[address+1]);
-		var value = (this.m_memory[address] << 8) | this.m_memory[address + 1];
-		return ((value & 0x8000) ? ~0xFFFF : 0) | value;
-  },
-
   _unsigned2signed: function ge_unsigned2signed(value) {
     // The argument must be between 0 and 0xFFFF!
     // The return value will be signed (-8000..7FFF).
@@ -2216,13 +2197,61 @@ GnustoEngine.prototype = {
     return value & 0xFFFF;
   },
 
+	// Note that getByte/getWord can read any memory address. setByte/setWord
+	// only work on RAM addresses.
+
+  getByte: function ge_getbyte(address) {
+    if (engine.m_value_asserts) {
+      if (address == null || address === true || address === false || address < 0 || address >= this.m_original_memory.length)
+        engine.logger('getByte addr', address);
+			var val = this.m_memory[address];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getByte byte', val);
+    }
+    return this.m_memory[address];
+  },
+
+  setByte: function ge_setByte(value, address) {
+		// The value is safely truncated, but the address must be valid
+    if (engine.m_value_asserts) {
+      if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
+        engine.logger('setByte', address);
+    }
+    this.m_memory[address] = value & 0xFF;
+  },
+
+  getWord: function ge_getWord(address) {
+    // The return value will be signed (-8000..7FFF).
+    if (engine.m_value_asserts) {
+      if (address == null || address === true || address === false || address < 0 || address >= this.m_original_memory.length)
+        engine.logger('getWord', address);
+    }
+//    return this._unsigned2signed((this.m_memory[address]<<8)|
+//																 this.m_memory[address+1]);
+		var value = (this.m_memory[address] << 8) | this.m_memory[address + 1];
+		return ((value & 0x8000) ? ~0xFFFF : 0) | value;
+  },
+
   getUnsignedWord: function ge_getUnsignedWord(address) {
-    if (address<0) { address &= 0xFFFF; } //### unnecessary?
+    if (engine.m_value_asserts) {
+      if (address == null || address === true || address === false || address < 0 || address >= this.m_original_memory.length)
+				engine.logger('getUnsignedWord', address);
+    }
     return (this.m_memory[address]<<8)|this.m_memory[address+1];
   },
 
   setWord: function ge_setWord(value, address) {
-    if (address<0) { address &= 0xFFFF; } //### unnecessary?
+		// The value is safely truncated, but the address must be valid
+    if (engine.m_value_asserts) {
+      if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
+        engine.logger('setWord', address);
+			var val = this.m_memory[address];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getByte high byte', val);
+			var val = this.m_memory[address+1];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getByte low byte', val);
+    }
 //			this.setByte((value>>8) & 0xFF, address);
 		this.m_memory[address] = (value >> 8) & 0xFF;
 //		this.setByte((value) & 0xFF, address+1);
@@ -2277,6 +2306,10 @@ GnustoEngine.prototype = {
 					var args = [];
 
 					this_instr_pc = this.m_pc;
+					if (engine.m_value_asserts) {
+						if (this_instr_pc == null || this_instr_pc < 0 || this_instr_pc >= this.m_original_memory.length)
+							gnusto_error(206, this_instr_pc);
+					}
 
 					// Add the touch (see bug 4687). This lets us track progress simply.
 //				touch() has a huge overhead and without tracing there's no need for it. Whether this replacement is even useful is a good question...
@@ -3077,7 +3110,11 @@ GnustoEngine.prototype = {
 	},
 
 	_get_prop_len: function ge_get_prop_len(address) {
- 			address &= 0xFFFF; //### unnecessary?
+	    if (engine.m_value_asserts) {
+				if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
+			 		engine.logger('get_prop_len', address);
+			}
+
 			if (this.m_version<4) {
 					return 1+(this.m_memory[address-1] >> 5);
 			} else {
@@ -3142,9 +3179,10 @@ GnustoEngine.prototype = {
 
 			var temp = this._property_search(object, property, -1);
 
-			// Correct negative addresses //### unnecessary?
-			if (temp[0] < 0)
-				temp[0] &= 0xFFFF;
+	    if (engine.m_value_asserts) {
+				if (temp[0] == null || temp[0] === true || temp[0] === false || temp[0] < 0 || temp[0] >= this.m_stat_start)
+			 		engine.logger('get_prop', temp[0]);
+			}
 
 			if (temp[1] == 1)
 				return this.m_memory[temp[0]];
