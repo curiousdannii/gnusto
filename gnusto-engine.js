@@ -291,12 +291,24 @@ function handleZ_inc_chk(engine, a) {
 
 function handleZ_inc_chk(engine, a)
 {
-	return handleZ_incdec(engine, a[0], '+', 1) + engine._brancher('tmp_' + temp_var + ' > ' + a[1]);
+	var tcode, t2code;
+	tcode = handleZ_incdec(engine, a[0], '+', 1);
+	if (isNotConst.test(a[1]))
+		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
+	else
+		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
+	return tcode + t2code + 'tmp_'+temp_var+'=(('+'tmp_'+temp_var+' & 0x8000 ? ~0xFFFF : 0) | '+'tmp_'+temp_var+');' + engine._brancher('tmp_'+temp_var+' > t2');
 }
 
 function handleZ_dec_chk(engine, a)
 {
-	return handleZ_incdec(engine, a[0], '-', 1) + engine._brancher('tmp_' + temp_var + ' < ' + a[1]);
+	var tcode, t2code;
+	tcode = handleZ_incdec(engine, a[0], '-', 1);
+	if (isNotConst.test(a[1]))
+		t2code = 't2=' + a[1] + ';t2=((t2 & 0x8000 ? ~0xFFFF : 0) | t2);';
+	else
+		t2code = 't2=' + engine._unsigned2signed(a[1]) + ';';
+	return tcode + t2code + 'tmp_'+temp_var+'=(('+'tmp_'+temp_var+' & 0x8000 ? ~0xFFFF : 0) | '+'tmp_'+temp_var+');' + engine._brancher('tmp_'+temp_var+' < t2');
 }
 
 function handleZ_jin(engine, a) {
@@ -496,9 +508,9 @@ function handleZ_incdec(engine, variable, sign, varRequired)
 
 	var tmp = 'tmp_' + (++temp_var);
 	if (variable == 0)
-		return (varRequired ? 'var ' + tmp + ' = ' : '') + sign + sign + 'm_gamestack[m_gamestack.length - 1];';
+		return (varRequired ? 'var ' + tmp + ' = ' : '') + '(m_gamestack[m_gamestack.length - 1] = (m_gamestack[m_gamestack.length - 1]'+sign+'1)&0xFFFF);';
 	else if (variable < 0x10)
-		return (varRequired ? 'var ' + tmp + ' = ' : '') + sign + sign + 'm_locals[' + (variable-1) + '];';
+		return (varRequired ? 'var ' + tmp + ' = ' : '') + '(m_locals[' + (variable-1) + '] = (m_locals[' + (variable-1) + ']'+sign+'1)&0xFFFF);';
 	else
 	{
 		// If the variable is a function rather than a constant it will have to be determined at run time
@@ -509,7 +521,7 @@ function handleZ_incdec(engine, variable, sign, varRequired)
 
 		// Get the value from memory and inc/dec it!
 		return code + tmp + ' = (m_memory[' + add + '] << 8) | m_memory[' + add + ' + 1];' +
-			tmp + ' = ((' + tmp + ' & 0x8000 ? ~0xFFFF : 0) | ' + tmp + ') ' + sign + ' 1;' +
+			tmp + ' = (' + tmp + ' ' + sign + ' 1) & 0xFFFF;' +
 			'm_memory[' + add + '] = (' + tmp + ' >> 8) & 0xFF;' +
 			'm_memory[' + add + ' + 1] = ' + tmp + ' & 0xFF;';
 	}
