@@ -742,3 +742,544 @@ TestClass ShiftTest
 		count_failures();
 	];
 
+TestClass IncrementTest
+	with name 'inc' 'dec' 'increment' 'decrement',
+	testfunc [ val;
+		print "Increment/decrement:^^";
+
+		val = 0;
+		@inc val;
+		print "0++="; check(val, 1); print ", ";
+		val = 1;
+		@inc val;
+		print "1++="; check(val, 2); print ", ";
+		val = -1;
+		@inc val;
+		print "-1++="; check(val, 0); print ", ";
+		val = -10;
+		@inc val;
+		print "-10++="; check(val, -9); print ", ";
+		val = $7FFF;
+		@inc val;
+		print "$7FFF++="; check_hex(val, $8000); print ", ";
+		val = $C000;
+		@inc val;
+		print "$C000++="; check_hex(val, $C001); print "^";
+		
+		testglobal = 0;
+		@inc testglobal;
+		print "0++="; check(testglobal, 1); print ", ";
+		testglobal = 1;
+		@inc testglobal;
+		print "1++="; check(testglobal, 2); print ", ";
+		testglobal = -1;
+		@inc testglobal;
+		print "-1++="; check(testglobal, 0); print ", ";
+		testglobal = -10;
+		@inc testglobal;
+		print "-10++="; check(testglobal, -9); print ", ";
+		testglobal = $7FFF;
+		@inc testglobal;
+		print "$7FFF++="; check_hex(testglobal, $8000); print ", ";
+		testglobal = $C000;
+		@inc testglobal;
+		print "$C000++="; check_hex(testglobal, $C001); print "^";
+		
+		@push 0;
+		@inc sp;
+		@pull val;
+		print "0++="; check(val, 1); print ", ";
+		@push 1;
+		@inc sp;
+		@pull val;
+		print "1++="; check(val, 2); print ", ";
+		@push -1;
+		@inc sp;
+		@pull val;
+		print "-1++="; check(val, 0); print ", ";
+		@push -10;
+		@inc sp;
+		@pull val;
+		print "-10++="; check(val, -9); print ", ";
+		@push $7FFF;
+		@inc sp;
+		@pull val;
+		print "$7FFF++="; check_hex(val, $8000); print ", ";
+		@push $C000;
+		@inc sp;
+		@pull val;
+		print "$C000++="; check_hex(val, $C001); print "^";
+
+		val = 0;
+		@dec val;
+		print "0--="; check(val, -1); print ", ";
+		val = 1;
+		@dec val;
+		print "1--="; check(val, 0); print ", ";
+		val = -1;
+		@dec val;
+		print "-1--="; check(val, -2); print ", ";
+		val = 10;
+		@dec val;
+		print "10--="; check(val, 9); print ", ";
+		val = $8000;
+		@dec val;
+		print "$8000--="; check_hex(val, $7FFF); print ", ";
+		val = $C000;
+		@dec val;
+		print "$C000--="; check_hex(val, $BFFF); print "^";
+
+		testglobal = 0;
+		@dec testglobal;
+		print "0--="; check(testglobal, -1); print ", ";
+		testglobal = 1;
+		@dec testglobal;
+		print "1--="; check(testglobal, 0); print ", ";
+		testglobal = -1;
+		@dec testglobal;
+		print "-1--="; check(testglobal, -2); print ", ";
+		testglobal = 10;
+		@dec testglobal;
+		print "10--="; check(testglobal, 9); print ", ";
+		testglobal = $8000;
+		@dec testglobal;
+		print "$8000--="; check_hex(testglobal, $7FFF); print ", ";
+		testglobal = $C000;
+		@dec testglobal;
+		print "$C000--="; check_hex(testglobal, $BFFF); print "^";
+
+		@push 0;
+		@dec sp;
+		@pull val;
+		print "0--="; check(val, -1); print ", ";
+		@push 1;
+		@dec sp;
+		@pull val;
+		print "1--="; check(val, 0); print ", ";
+		@push -1;
+		@dec sp;
+		@pull val;
+		print "-1--="; check(val, -2); print ", ";
+		@push 10;
+		@dec sp;
+		@pull val;
+		print "10--="; check(val, 9); print ", ";
+		@push $8000;
+		@dec sp;
+		@pull val;
+		print "$8000--="; check_hex(val, $7FFF); print ", ";
+		@push $C000;
+		@dec sp;
+		@pull val;
+		print "$C000--="; check_hex(val, $BFFF); print "^";
+		
+		count_failures();
+	];
+
+TestClass IncrementBranchTest
+	with name 'incchk' 'decchk' 'inccheck' 'deccheck',
+	testfunc [ val res;
+		print "Increment/decrement and branch:^^";
+
+		res = 0;
+		val = 1;
+		@inc_chk res 0 ?jump1a;
+		val = 0;
+		.jump1a;
+		print "++0="; check(res, 1); print ","; check(val, 1); print ", ";
+		
+		res = 1;
+		val = 1;
+		@inc_chk res 0 ?jump1b;
+		val = 0;
+		.jump1b;
+		print "++1="; check(res, 2); print ","; check(val, 1); print ", ";
+		
+		res = -1;
+		val = 1;
+		@inc_chk res 0 ?jump1c;
+		val = 0;
+		.jump1c;
+		print "++-1="; check(res, 0); print ","; check(val, 0); print ", ";
+		
+		res = 100;
+		val = 1;
+		@inc_chk res 0 ?jump1d;
+		val = 0;
+		.jump1d;
+		print "++100="; check(res, 101); print ","; check(val, 1); print ", ";
+		
+		res = -10;
+		val = 1;
+		@inc_chk res 0 ?jump1e;
+		val = 0;
+		.jump1e;
+		print "++-10="; check(res, -9); print ","; check(val, 0); print ", ";
+		
+		res = $7FFF;
+		val = 1;
+		@inc_chk res 0 ?jump1f;
+		val = 0;
+		.jump1f;
+		print "++$7FFF="; check_hex(res, $8000); print ","; check(val, 0); print ", ";
+		
+		res = $C000;
+		val = 1;
+		@inc_chk res 0 ?jump1g;
+		val = 0;
+		.jump1g;
+		print "++$C000="; check_hex(res, $C001); print ","; check(val, 0); print "^";
+
+		
+		testglobal2 = 0;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2a;
+		testglobal = 0;
+		.jump2a;
+		print "++0="; check(testglobal2, 1); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = 1;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2b;
+		testglobal = 0;
+		.jump2b;
+		print "++1="; check(testglobal2, 2); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = -1;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2c;
+		testglobal = 0;
+		.jump2c;
+		print "++-1="; check(testglobal2, 0); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = 100;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2d;
+		testglobal = 0;
+		.jump2d;
+		print "++100="; check(testglobal2, 101); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = -10;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2e;
+		testglobal = 0;
+		.jump2e;
+		print "++-10="; check(testglobal2, -9); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = $7FFF;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2f;
+		testglobal = 0;
+		.jump2f;
+		print "++$7FFF="; check_hex(testglobal2, $8000); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = $C000;
+		testglobal = 1;
+		@inc_chk testglobal2 0 ?jump2g;
+		testglobal = 0;
+		.jump2g;
+		print "++$C000="; check_hex(testglobal2, $C001); print ","; check(testglobal, 0); print "^";
+
+		
+		@push 0;
+		val = 1;
+		@inc_chk sp 0 ?jump3a;
+		val = 0;
+		.jump3a;
+		@pull res;
+		print "++0="; check(res, 1); print ","; check(val, 1); print ", ";
+		
+		@push 1;
+		val = 1;
+		@inc_chk sp 0 ?jump3b;
+		val = 0;
+		.jump3b;
+		@pull res;
+		print "++1="; check(res, 2); print ","; check(val, 1); print ", ";
+		
+		@push -1;
+		val = 1;
+		@inc_chk sp 0 ?jump3c;
+		val = 0;
+		.jump3c;
+		@pull res;
+		print "++-1="; check(res, 0); print ","; check(val, 0); print ", ";
+		
+		@push 100;
+		val = 1;
+		@inc_chk sp 0 ?jump3d;
+		val = 0;
+		.jump3d;
+		@pull res;
+		print "++100="; check(res, 101); print ","; check(val, 1); print ", ";
+		
+		@push -10;
+		val = 1;
+		@inc_chk sp 0 ?jump3e;
+		val = 0;
+		.jump3e;
+		@pull res;
+		print "++-10="; check(res, -9); print ","; check(val, 0); print ", ";
+		
+		@push $7FFF;
+		val = 1;
+		@inc_chk sp 0 ?jump3f;
+		val = 0;
+		.jump3f;
+		@pull res;
+		print "++$7FFF="; check_hex(res, $8000); print ","; check(val, 0); print ", ";
+		
+		@push $C000;
+		val = 1;
+		@inc_chk sp 0 ?jump3g;
+		val = 0;
+		.jump3g;
+		@pull res;
+		print "++$C000="; check_hex(res, $C001); print ","; check(val, 0); print "^";
+
+		
+		res = 0;
+		val = 1;
+		@dec_chk res 0 ?jump4a;
+		val = 0;
+		.jump4a;
+		print "--0="; check(res, -1); print ","; check(val, 1); print ", ";
+		
+		res = 1;
+		val = 1;
+		@dec_chk res 0 ?jump4b;
+		val = 0;
+		.jump4b;
+		print "--1="; check(res, 0); print ","; check(val, 0); print ", ";
+		
+		res = -1;
+		val = 1;
+		@dec_chk res 0 ?jump4c;
+		val = 0;
+		.jump4c;
+		print "---1="; check(res, -2); print ","; check(val, 1); print ", ";
+		
+		res = 100;
+		val = 1;
+		@dec_chk res 0 ?jump4d;
+		val = 0;
+		.jump4d;
+		print "--100="; check(res, 99); print ","; check(val, 0); print ", ";
+		
+		res = -10;
+		val = 1;
+		@dec_chk res 0 ?jump4e;
+		val = 0;
+		.jump4e;
+		print "---10="; check(res, -11); print ","; check(val, 1); print ", ";
+		
+		res = $8000;
+		val = 1;
+		@dec_chk res 0 ?jump4f;
+		val = 0;
+		.jump4f;
+		print "--$8000="; check_hex(res, $7FFF); print ","; check(val, 0); print ", ";
+		
+		res = $C000;
+		val = 1;
+		@dec_chk res 0 ?jump4g;
+		val = 0;
+		.jump4g;
+		print "--$C000="; check_hex(res, $BFFF); print ","; check(val, 1); print "^";
+
+		
+		testglobal2 = 0;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5a;
+		testglobal = 0;
+		.jump5a;
+		print "--0="; check(testglobal2, -1); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = 1;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5b;
+		testglobal = 0;
+		.jump5b;
+		print "--1="; check(testglobal2, 0); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = -1;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5c;
+		testglobal = 0;
+		.jump5c;
+		print "---1="; check(testglobal2, -2); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = 100;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5d;
+		testglobal = 0;
+		.jump5d;
+		print "--100="; check(testglobal2, 99); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = -10;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5e;
+		testglobal = 0;
+		.jump5e;
+		print "---10="; check(testglobal2, -11); print ","; check(testglobal, 1); print ", ";
+		
+		testglobal2 = $8000;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5f;
+		testglobal = 0;
+		.jump5f;
+		print "--$8000="; check_hex(testglobal2, $7FFF); print ","; check(testglobal, 0); print ", ";
+		
+		testglobal2 = $C000;
+		testglobal = 1;
+		@dec_chk testglobal2 0 ?jump5g;
+		testglobal = 0;
+		.jump5g;
+		print "--$C000="; check_hex(testglobal2, $BFFF); print ","; check(testglobal, 1); print "^";
+
+		
+		@push 0;
+		val = 1;
+		@dec_chk sp 0 ?jump6a;
+		val = 0;
+		.jump6a;
+		@pull res;
+		print "--0="; check(res, -1); print ","; check(val, 1); print ", ";
+		
+		@push 1;
+		val = 1;
+		@dec_chk sp 0 ?jump6b;
+		val = 0;
+		.jump6b;
+		@pull res;
+		print "--1="; check(res, 0); print ","; check(val, 0); print ", ";
+		
+		@push -1;
+		val = 1;
+		@dec_chk sp 0 ?jump6c;
+		val = 0;
+		.jump6c;
+		@pull res;
+		print "---1="; check(res, -2); print ","; check(val, 1); print ", ";
+		
+		@push 100;
+		val = 1;
+		@dec_chk sp 0 ?jump6d;
+		val = 0;
+		.jump6d;
+		@pull res;
+		print "--100="; check(res, 99); print ","; check(val, 0); print ", ";
+		
+		@push -10;
+		val = 1;
+		@dec_chk sp 0 ?jump6e;
+		val = 0;
+		.jump6e;
+		@pull res;
+		print "---10="; check(res, -11); print ","; check(val, 1); print ", ";
+		
+		@push $8000;
+		val = 1;
+		@dec_chk sp 0 ?jump6f;
+		val = 0;
+		.jump6f;
+		@pull res;
+		print "--$8000="; check_hex(res, $7FFF); print ","; check(val, 0); print ", ";
+		
+		@push $C000;
+		val = 1;
+		@dec_chk sp 0 ?jump6g;
+		val = 0;
+		.jump6g;
+		@pull res;
+		print "--$C000="; check_hex(res, $BFFF); print ","; check(val, 1); print "^";
+
+		
+		res = 50;
+		val = 1;
+		@inc_chk res 60 ?jumpxa;
+		val = 0;
+		.jumpxa;
+		print "++50="; check(res, 51); print ","; check(val, 0); print ", ";
+		
+		res = 70;
+		val = 1;
+		@inc_chk res 60 ?jumpxb;
+		val = 0;
+		.jumpxb;
+		print "++70="; check(res, 71); print ","; check(val, 1); print ", ";
+		
+		res = -50;
+		val = 1;
+		@inc_chk res (-60) ?jumpxc;
+		val = 0;
+		.jumpxc;
+		print "++-50="; check(res, -49); print ","; check(val, 1); print ", ";
+		
+		res = -70;
+		val = 1;
+		@inc_chk res (-60) ?jumpxd;
+		val = 0;
+		.jumpxd;
+		print "++-70="; check(res, -69); print ","; check(val, 0); print ", ";
+		
+		res = -50;
+		val = 1;
+		@inc_chk res 60 ?jumpxe;
+		val = 0;
+		.jumpxe;
+		print "++-50="; check(res, -49); print ","; check(val, 0); print ", ";
+		
+		res = 50;
+		val = 1;
+		@inc_chk res (-60) ?jumpxf;
+		val = 0;
+		.jumpxf;
+		print "++50="; check(res, 51); print ","; check(val, 1); print "^";
+		
+		
+		res = 50;
+		val = 1;
+		@dec_chk res 60 ?jumpya;
+		val = 0;
+		.jumpya;
+		print "--50="; check(res, 49); print ","; check(val, 1); print ", ";
+		
+		res = 70;
+		val = 1;
+		@dec_chk res 60 ?jumpyb;
+		val = 0;
+		.jumpyb;
+		print "--70="; check(res, 69); print ","; check(val, 0); print ", ";
+		
+		res = -50;
+		val = 1;
+		@dec_chk res (-60) ?jumpyc;
+		val = 0;
+		.jumpyc;
+		print "---50="; check(res, -51); print ","; check(val, 0); print ", ";
+		
+		res = -70;
+		val = 1;
+		@dec_chk res (-60) ?jumpyd;
+		val = 0;
+		.jumpyd;
+		print "---70="; check(res, -71); print ","; check(val, 1); print ", ";
+		
+		res = -50;
+		val = 1;
+		@dec_chk res 60 ?jumpye;
+		val = 0;
+		.jumpye;
+		print "---50="; check(res, -51); print ","; check(val, 1); print ", ";
+		
+		res = 50;
+		val = 1;
+		@dec_chk res (-60) ?jumpyf;
+		val = 0;
+		.jumpyf;
+		print "--50="; check(res, 49); print ","; check(val, 0); print "^";
+		
+		
+		count_failures();
+	];
