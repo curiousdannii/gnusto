@@ -238,6 +238,45 @@ TestClass AllAction
 Global testglobal;
 Global testglobal2;
 
+TestClass OperandTest
+	with name 'operand',
+	testfunc [ ix val;
+		print "Basic operand values:^^";
+
+		testglobal = 1;
+		ix = 1;
+		val = (ix == testglobal);
+		print "(1==1)="; check(val, 1); print ", ";
+		val = (1 == testglobal);
+		print "(1==1)="; check(val, 1); print ", ";
+		val = (1 == ix);
+		print "(1==1)="; check(val, 1); print ", ";
+		@push 1;
+		val = 1;
+		@je 1 sp ?jump1;
+		val = 0;
+		.jump1;
+		print "(1==1)="; check(val, 1); print "^";
+
+		testglobal = -2;
+		ix = -2;
+		val = (ix == testglobal);
+		print "(-2==-2)="; check(val, 1); print ", ";
+		val = (-2 == testglobal);
+		print "(-2==-2)="; check(val, 1); print ", ";
+		val = (-2 == ix);
+		print "(-2==-2)="; check(val, 1); print ", ";
+		@push (-2);
+		val = 1;
+		@je (-2) sp ?jump2;
+		val = 0;
+		.jump2;
+		print "(-2==-2)="; check(val, 1); print "^";
+		
+		count_failures();
+	];
+		
+
 TestClass ArithTest
 	with name 'arith',
 	testfunc [ val;
@@ -457,6 +496,51 @@ TestClass CompoundArithTest
 		yloc = -373;
 		val = (111 * yloc) / 16;
 		print "(111*-373)/16="; check(val, 1508); print "^";
+		
+		count_failures();
+	];
+
+TestClass BitwiseTest
+	with name 'bitwise' 'bits' 'bit',
+	testfunc [ val;
+		print "Bitwise arithmetic:^^";
+		
+		@and 0 0 val;
+		print "0&0="; check_hex(val, 0); print ", ";
+		@and $FFFF 0 val;
+		print "$FFFF&0="; check_hex(val, 0); print ", ";
+		@and $FFFF $FFFF val;
+		print "$FFFF&$FFFF="; check_hex(val, $FFFF); print ", ";
+		@and $013F $F310 val;
+		print "$013F&$F310="; check_hex(val, $0110); print ", ";
+		@and $F731 $137F val;
+		print "$F731&$137F="; check_hex(val, $1331); print ", ";
+		@and $35 $56 val;
+		print "$35&56="; check_hex(val, $14); print "^";
+		
+		@or 0 0 val;
+		print "0|0="; check_hex(val, 0); print ", ";
+		@or $FFFF 0 val;
+		print "$FFFF|0="; check_hex(val, $FFFF); print ", ";
+		@or $FFFF $FFFF val;
+		print "$FFFF|$FFFF="; check_hex(val, $FFFF); print ", ";
+		@or $3700 $0012 val;
+		print "$3700|$0012="; check_hex(val, $3712); print ", ";
+		@or $35 $56 val;
+		print "$35|56="; check_hex(val, $77); print "^";
+		
+		@not 0 val;
+		print "!0="; check_hex(val, $FFFF); print ", ";
+		@not 1 val;
+		print "!1="; check_hex(val, $FFFE); print ", ";
+		@not $F val;
+		print "!$F="; check_hex(val, $FFF0); print ", ";
+		@not $7FFF val;
+		print "!$7FFF="; check_hex(val, $8000); print ", ";
+		@not $8000 val;
+		print "!$8000="; check_hex(val, $7FFF); print ", ";
+		@not $FFFD val;
+		print "!$FFFD="; check_hex(val, $2); print "^";
 		
 		count_failures();
 	];
