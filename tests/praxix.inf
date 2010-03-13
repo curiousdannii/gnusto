@@ -1,0 +1,462 @@
+Constant Story "Praxix";
+Constant Headline "A Z-code interpreter unit test^";
+Release 1;
+
+! To compile this canonically, do "inform praxix.inf". No other
+! options.
+
+Constant HDR_GAMERELEASE   $02;     ! word
+Constant HDR_GAMESERIAL    $12;     ! six ASCII characters
+
+Array  buffer    -> 123;            ! Buffer for parsing main line of input
+Array  parse     buffer 63;         ! Parse table mirroring it
+
+Global failures = 0;
+Global total_failures = 0;
+
+[ Main   ix;
+	! deal with some compiler warnings
+	ix = PrintShortName;
+
+	new_line;
+	Banner();
+	new_line;
+
+	LookSub();
+	TestLoop();
+	
+	print "^Goodbye.^";
+];
+
+[ Keyboard;
+	while (true) {
+		print ">";
+		buffer->0 = 120;
+		parse->0 = 15;
+		read buffer parse;
+		if (parse->1)
+			break;
+	}
+];
+
+[ Banner i;
+	if (Story ~= 0) {
+		#IfV5; style bold; #Endif;
+		print (string) Story;
+		#IfV5; style roman; #Endif;
+	}
+	if (Headline ~= 0) print ": ", (string) Headline;
+	print "Release ", (HDR_GAMERELEASE-->0) & $03ff, " / Serial number ";
+	for (i=0 : i<6 : i++) print (char) HDR_GAMESERIAL->i;
+	print " / Inform v"; inversion;
+	print ", compiler options ";
+	#Ifdef STRICT_MODE;
+	print "S";
+	#Endif; ! STRICT_MODE
+	#Ifdef INFIX;
+	print "X";
+	#Ifnot;
+	#Ifdef DEBUG;
+	print "D";
+	#Endif; ! DEBUG
+	#Endif; ! INFIX
+	new_line;
+];
+
+[ TestLoop    wd paddr plen ix obj found;
+	while (true) {
+		new_line;
+		if (failures) {
+			print failures, " uncounted test failures!^^";
+			failures = 0;
+		}
+		
+		Keyboard();
+		wd = parse-->1;
+
+		if (wd == 'quit' or 'q//')
+			return;
+
+		found = nothing;
+		
+		objectloop (obj ofclass TestClass) {
+			paddr = obj.&name;
+			plen = obj.#name / WORDSIZE;
+			for (ix=0 : ix<plen : ix++) {
+				if (paddr-->ix == wd) {
+					found = obj;
+					break;
+				}
+			}
+			if (found)
+				break;
+		}
+
+		if (~~found) {
+			print "I don't understand that command.^";
+			continue;
+		}
+
+		found.testfunc();
+	}
+];
+
+Attribute meta;
+
+Class TestClass
+  with
+	short_name 0,
+	testfunc TestNothing,
+	fail_count;
+
+[ PrintShortName obj  addr;
+	if (obj provides short_name && obj.short_name) {
+		print (string) obj.short_name;
+		rtrue;
+	}
+	if (obj ofclass TestClass) {
+		addr = obj.&name;
+		print (address) (addr-->0);
+		rtrue;
+	}
+	print (object) obj;
+];
+
+[ Hex val   byte initial ix;
+	print "$";
+	initial = true;
+	for (ix=0 : ix<4 : ix++) {
+		@log_shift val (-12) -> byte;
+		@log_shift val 4 -> val;
+		byte = byte & $0F;
+		if (byte == 0 && initial && ix < 3)
+			continue;
+		initial = false;
+		if (byte <= 9)
+			print (char) (byte+'0');
+		else
+			print (char) (byte-10+'A');
+	}
+];
+
+[ check val wanted;
+	if (val == wanted) {
+		print val;
+		rtrue;
+	}
+	failures++;
+	print val, " (should be ", wanted, " FAIL)";
+	rfalse;
+];
+
+[ check_hex val wanted;
+	if (val == wanted) {
+		print (Hex) val;
+		rtrue;
+	}
+	failures++;
+	print (Hex) val, " (should be ", (Hex) wanted, " FAIL)";
+	rfalse;
+];
+
+[ count_failures   val;
+	print "^";
+	if (failures) {
+		val = failures;
+		total_failures = total_failures + failures;
+		failures = 0;
+		print_ret val, " tests failed.";
+	}
+	else {
+		"Passed.";
+	}
+];
+
+TestClass LookAction
+	with name 'look' 'l//' 'help' '?//',
+	testfunc LookSub,
+	has meta;
+
+TestClass AllAction
+	with name 'all',
+	testfunc [ obj startfail res ix;
+		print "All tests:^";
+		startfail = total_failures;
+		objectloop (obj ofclass TestClass) {
+			if (obj has meta) 
+				continue;
+
+			res = total_failures;
+			print "^";
+			obj.testfunc();
+			obj.fail_count = total_failures - res;
+		}
+		res = total_failures - startfail;
+		if (res == 0) {
+			"^All tests passed.";
+		}
+		else {
+			print "^", res, " tests failed overall: ";
+			ix = 0;
+			objectloop (obj ofclass TestClass) {
+				if (obj.fail_count) {
+					if (ix)
+						print ", ";
+					print (name) obj, " (", obj.fail_count, ")";
+					ix++;
+				}
+			}
+			".";
+		}
+	],
+	has meta;
+	
+[ TestNothing;
+	"Nothing happens.";
+];
+
+[ LookSub obj ix;
+	print "A voice booooms out: Welcome to the test chamber.^^";
+	print "Type ~help~ to repeat this message, ~quit~ to exit,
+		~all~ to run all tests, or one of the following test options: ";
+
+	ix = 0;
+	objectloop (obj ofclass TestClass) {
+		if (obj has meta)
+			continue;
+		if (ix) print ", ";
+		print "~", (name) obj, "~";
+		ix++;
+	}
+	new_line;
+	if (total_failures) {
+		print "^", total_failures, " tests have failed so far in this run.^";
+	}
+];
+
+Global testglobal;
+Global testglobal2;
+
+TestClass ArithTest
+	with name 'arith',
+	testfunc [ val;
+		print "Integer arithmetic:^^";
+		
+		@add 2 2 val;
+		print "2+2="; check(val, 4); print ", ";
+		@add (-2) (-3) val;
+		print "-2+-3="; check(val, -5); print ", ";
+		@add 3 (-4) val;
+		print "3+-4="; check(val, -1); print ", ";
+		@add (-4) 5 val;
+		print "-4+5="; check(val, 1); print ", ";
+		@add $7FFF $7FFE val;
+		print "$7FFF+$7FFE="; check(val, -3); print ", ";
+		@add $8000 $8000 val;
+		print "$8000+$8000="; check(val, 0); print "^";
+		testglobal = 6; testglobal2 = 8;
+		@add testglobal testglobal2 val;
+		print "Globals 6+8="; check(val, 14); print ", ";
+		testglobal = $7FFE; testglobal2 = $7FFD;
+		@add testglobal testglobal2 val;
+		print "$7FFE+$7FFD="; check(val, -5); print "^";
+		
+		@sub 2 2 val;
+		print "2-2="; check(val, 0); print ", ";
+		@sub (-2) 3 val;
+		print "-2-3="; check(val, -5); print ", ";
+		@sub 3 4 val;
+		print "3-4="; check(val, -1); print ", ";
+		@sub (-4) (-5) val;
+		print "-4-(-5)="; check(val, 1); print ", ";
+		@sub $7FFF $7FFE val;
+		print "$7FFF-$7FFE="; check(val, 1); print ", ";
+		@sub $8000 $8001 val;
+		print "$8000-$8001="; check(val, -1); print ", ";
+		@sub $7FFF $8001 val;
+		print "$7FFF-$8001="; check(val, -2); print "^";
+		testglobal = 6; testglobal2 = 8;
+		@sub testglobal testglobal2 val;
+		print "Globals 6-8="; check(val, -2); print ", ";
+		testglobal = $7FFD; testglobal2 = $7FFE;
+		@sub testglobal testglobal2 val;
+		print "$7FFD-$7FFE="; check(val, -1); print "^";
+		
+		@mul 2 2 val;
+		print "2*2="; check(val, 4); print ", ";
+		@mul (-2) (-3) val;
+		print "-2*-3="; check(val, 6); print ", ";
+		@mul 3 (-4) val;
+		print "3*-4="; check(val, -12); print ", ";
+		@mul (-4) 5 val;
+		print "-4*5="; check(val, -20); print ", ";
+		@mul $100 $100 val;
+		print "$100*$100 (trunc)="; check(val, 0); print ", ";
+		@mul 311 373 val;
+		print "311*373 (trunc)="; check_hex(val, -15069); print "^";
+		testglobal = -6; testglobal2 = -8;
+		@mul testglobal testglobal2 val;
+		print "Globals -6*-8="; check(val, 48); print ", ";
+		testglobal = -311; testglobal2 = 373;
+		@mul testglobal testglobal2 val;
+		print "Globals -311*373="; check(val, 15069); print "^";
+		
+		@div 12 3 val;
+		print "12/3="; check(val, 4); print ", ";
+		@div 11 2 val;
+		print "11/2="; check(val, 5); print ", ";
+		@div (-11) 2 val;
+		print "-11/2="; check(val, -5); print ", ";
+		@div 11 (-2) val;
+		print "11/-2="; check(val, -5); print ", ";
+		@div (-11) (-2) val;
+		print "-11/-2="; check(val, 5); print ", ";
+		@div $7fff 2 val;
+		print "$7fff/2="; check_hex(val, $3fff); print ", ";
+		@div $7fff (-2) val;
+		print "$7fff/-2="; check_hex(val, -$3fff); print ", ";
+		@div (-$7fff) 2 val;
+		print "-$7fff/2="; check_hex(val, -$3fff); print ", ";
+		@div (-$7fff) (-2) val;
+		print "-$7fff/-2="; check_hex(val, $3fff); print ", ";
+		@div $8000 2 val;
+		print "$8000/2="; check_hex(val, $C000); print ", ";
+		@div $8000 (-2) val;
+		print "$8000/(-2)="; check_hex(val, $4000); print ", ";
+		@div $8000 1 val;
+		print "$8000/1="; check_hex(val, $8000); print "^";
+		
+		testglobal = -48; testglobal2 = -8;
+		@div testglobal testglobal2 val;
+		print "Globals -48/-8="; check(val, 6); print ", ";
+		testglobal = 48; testglobal2 = 7;
+		@div testglobal testglobal2 val;
+		print "48/7="; check(val, 6); print ", ";
+		testglobal = 48; testglobal2 = -7;
+		@div testglobal testglobal2 val;
+		print "48/-7="; check(val, -6); print ", ";
+		testglobal = -48; testglobal2 = 7;
+		@div testglobal testglobal2 val;
+		print "-48/7="; check(val, -6); print ", ";
+		testglobal = -48; testglobal2 = -7;
+		@div testglobal testglobal2 val;
+		print "-48/-7="; check(val, 6); print "^";
+		
+		@mod 12 3 val;
+		print "12%3="; check(val, 0); print ", ";
+		@mod 13 5 val;
+		print "13%5="; check(val, 3); print ", ";
+		@mod (-13) 5 val;
+		print "-13%5="; check(val, -3); print ", ";
+		@mod 13 (-5) val;
+		print "13%-5="; check(val, 3); print ", ";
+		@mod (-13) (-5) val;
+		print "-13%-5="; check(val, -3); print ", ";
+		@mod $7fff 11 val;
+		print "$7fff%11="; check(val, 9); print ", ";
+		@mod (-$7fff) 11 val;
+		print "-$7fff%11="; check(val, -9); print ", ";
+		@mod $7fff (-11) val;
+		print "$7fff%-11="; check(val, 9); print ", ";
+		@mod (-$7fff) (-11) val;
+		print "-$7fff%-11="; check(val, -9); print ", ";
+		@mod $8000 7 val;
+		print "$8000%7="; check(val, -1); print ", ";
+		@mod $8000 (-7) val;
+		print "$8000%-7="; check(val, -1); print ", ";
+		@mod $8000 2 val;
+		print "$8000%2="; check(val, 0); print ", ";
+		@mod $8000 (-2) val;
+		print "$8000%-2="; check(val, 0); print ", ";
+		@mod $8000 1 val;
+		print "$8000%1="; check(val, 0); print "^";
+		
+		testglobal = 49; testglobal2 = 8;
+		@mod testglobal testglobal2 val;
+		print "Globals 49%8="; check(val, 1); print ", ";
+		testglobal = 49; testglobal2 = -8;
+		@mod testglobal testglobal2 val;
+		print "49%-8="; check(val, 1); print ", ";
+		testglobal = -49; testglobal2 = 8;
+		@mod testglobal testglobal2 val;
+		print "-49%8="; check(val, -1); print ", ";
+		testglobal = -49; testglobal2 = -8;
+		@mod testglobal testglobal2 val;
+		print "-49%-8="; check(val, -1); print "^";
+		
+		count_failures();
+	];
+
+TestClass CompoundArithTest
+	with name 'comarith' 'comparith',
+	testfunc [ val xloc yloc zloc;
+		print "Compound arithmetic expressions:^^";
+
+		testglobal = 7;
+		yloc = 2;
+		zloc = -4;
+		val = (testglobal + yloc) * zloc;
+		print "(7+2)*-4="; check(val, -36); print "^";
+
+		xloc = $7FFF;
+		yloc = 2;
+		zloc = 16;
+		val = (xloc + yloc) / zloc;
+		print "($7FFF+2)/16="; check(val, -$7FF); print "^";
+
+		xloc = -$7FFF;
+		yloc = -2;
+		zloc = 16;
+		val = (xloc + yloc) / zloc;
+		print "(-$7FFF+-2)/16="; check(val, $7FF); print "^";
+
+		xloc = -26103;
+		yloc = -32647;
+		val = (xloc + yloc) / 9;
+		print "(-26103+-32647)/9="; check(val, 754); print "^";
+
+		xloc = -$7FFF;
+		yloc = 2;
+		zloc = 16;
+		val = (xloc - yloc) / zloc;
+		print "(-$7FFF-2)/16="; check(val, $7FF); print "^";
+
+		xloc = $7FFF;
+		yloc = -2;
+		zloc = 16;
+		val = (xloc - yloc) / zloc;
+		print "($7FFF--2)/16="; check(val, -$7FF); print "^";
+
+		xloc = -26103;
+		yloc = 32647;
+		val = (xloc - yloc) / 9;
+		print "(-26103-32647)/9="; check(val, 754); print "^";
+		
+		xloc = $100;
+		yloc = $100;
+		zloc = 16;
+		val = (xloc * yloc) / zloc + 1;
+		print "($100*$100)/16+1="; check(val, 1); print "^";
+
+		xloc = 311;
+		yloc = 373;
+		zloc = 16;
+		val = (xloc * yloc) / zloc;
+		print "(311*373)/16="; check(val, -941); print "^";
+
+		xloc = 311;
+		zloc = 16;
+		val = (xloc * -373) / zloc;
+		print "(311*-373)/16="; check(val, 941); print "^";
+
+		yloc = 373;
+		val = (111 * yloc) / 16;
+		print "(111*373)/16="; check(val, -1508); print "^";
+
+		yloc = -373;
+		val = (111 * yloc) / 16;
+		print "(111*-373)/16="; check(val, 1508); print "^";
+		
+		count_failures();
+	];
+
