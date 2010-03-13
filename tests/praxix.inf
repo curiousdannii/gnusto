@@ -228,6 +228,7 @@ TestClass AllAction
 		print "~", (name) obj, "~";
 		ix++;
 	}
+	print ".";
 	new_line;
 	if (total_failures) {
 		print "^", total_failures, " tests have failed so far in this run.^";
@@ -456,6 +457,203 @@ TestClass CompoundArithTest
 		yloc = -373;
 		val = (111 * yloc) / 16;
 		print "(111*-373)/16="; check(val, 1508); print "^";
+		
+		count_failures();
+	];
+
+TestClass ShiftTest
+	with name 'shift',
+	testfunc [ val res ix;
+		print "Bit shifts:^^";
+
+		@log_shift $11 0 val;
+		print "$11u<<0="; check_hex(val, $11); print ", ";
+		@log_shift $11 1 val;
+		print "$11u<<1="; check_hex(val, $22); print ", ";
+		@log_shift $11 4 val;
+		print "$11u<<4="; check_hex(val, $110); print ", ";
+		@log_shift $11 10 val;
+		print "$11u<<10="; check_hex(val, $4400); print ", ";
+		@log_shift $11 15 val;
+		print "$11u<<15="; check_hex(val, $8000); print ", ";
+		@log_shift $11 16 val;
+		print "$11u<<16="; check_hex(val, 0); print ", ";
+		@log_shift (-2) 0 val;
+		print "-2u<<0="; check(val, -2); print ", ";
+		@log_shift (-2) 1 val;
+		print "-2u<<1="; check(val, -4); print ", ";
+		@log_shift (-2) 7 val;
+		print "-2u<<7="; check(val, -256); print ", ";
+		@log_shift (-2) 15 val;
+		print "-2u<<15="; check(val, 0); print "^";
+
+		testglobal = 1;
+		res = 1;
+		for (ix=0 : ix<16 : ix++) {
+			@log_shift testglobal ix val;
+			print "1u<<", ix, "="; check_hex(val, res); print ", ";
+			res = res+res;
+		}
+		@log_shift testglobal ix val;
+		print "1u<<", ix, "="; check(val, 0); print "^";
+		
+		@log_shift $4001 (0) val;
+		print "$4001u>>-0="; check_hex(val, $4001); print ", ";
+		@log_shift $4001 (-1) val;
+		print "$4001u>>-1="; check_hex(val, $2000); print ", ";
+		@log_shift $4001 (-6) val;
+		print "$4001u>>-6="; check_hex(val, $100); print ", ";
+		@log_shift $4001 (-11) val;
+		print "$4001u>>-11="; check_hex(val, $8); print ", ";
+		@log_shift $4001 (-15) val;
+		print "$4001u>>-15="; check_hex(val, $0); print ", ";
+		@log_shift $4001 (-16) val;
+		print "$4001u>>-16="; check_hex(val, $0); print "^";
+		
+		@log_shift $7FFF (0) val;
+		print "$7FFFu>>-0="; check_hex(val, $7FFF); print ", ";
+		@log_shift $7FFF (-1) val;
+		print "$7FFFu>>-1="; check_hex(val, $3FFF); print ", ";
+		@log_shift $7FFF (-2) val;
+		print "$7FFFu>>-2="; check_hex(val, $1FFF); print ", ";
+		@log_shift $7FFF (-6) val;
+		print "$7FFFu>>-6="; check_hex(val, $1FF); print ", ";
+		@log_shift $7FFF (-12) val;
+		print "$7FFFu>>-12="; check_hex(val, $7); print ", ";
+		@log_shift $7FFF (-15) val;
+		print "$7FFFu>>-15="; check_hex(val, $0); print ", ";
+		@log_shift $7FFF (-16) val;
+		print "$7FFFu>>-16="; check_hex(val, $0); print "^";
+		
+		@log_shift (-1) (0) val;
+		print "-1u>>-0="; check_hex(val, -1); print ", ";
+		@log_shift (-1) (-1) val;
+		print "-1u>>-1="; check_hex(val, $7FFF); print ", ";
+		@log_shift (-1) (-2) val;
+		print "-1u>>-2="; check_hex(val, $3FFF); print ", ";
+		@log_shift (-1) (-6) val;
+		print "-1u>>-6="; check_hex(val, $3FF); print ", ";
+		@log_shift (-1) (-12) val;
+		print "-1u>>-12="; check_hex(val, $F); print ", ";
+		@log_shift (-1) (-13) val;
+		print "-1u>>-13="; check_hex(val, $7); print ", ";
+		@log_shift (-1) (-15) val;
+		print "-1u>>-15="; check_hex(val, $1); print ", ";
+		@log_shift (-1) (-16) val;
+		print "-1u>>-16="; check_hex(val, $0); print ", ";
+		@log_shift (-1) (-17) val;
+		print "-1u>>-17="; check_hex(val, $0); print "^";
+		
+		testglobal = -1;
+		res = $7fff;
+		for (ix=-1 : ix>-16 : ix--) {
+			@log_shift testglobal ix val;
+			print "-1u>>", ix, "="; check_hex(val, res); print ", ";
+			res = res / 2;
+		}
+		@log_shift testglobal ix val;
+		print "-1u>>", ix, "="; check(val, 0); print "^";
+
+		@art_shift $11 0 val;
+		print "$11s<<0="; check_hex(val, $11); print ", ";
+		@art_shift $11 1 val;
+		print "$11s<<1="; check_hex(val, $22); print ", ";
+		@art_shift $11 4 val;
+		print "$11s<<4="; check_hex(val, $110); print ", ";
+		@art_shift $11 10 val;
+		print "$11s<<10="; check_hex(val, $4400); print ", ";
+		@art_shift $11 15 val;
+		print "$11s<<15="; check_hex(val, $8000); print ", ";
+		@art_shift $11 16 val;
+		print "$11s<<16="; check_hex(val, 0); print ", ";
+		@art_shift (-2) 0 val;
+		print "-2s<<0="; check(val, -2); print ", ";
+		@art_shift (-2) 1 val;
+		print "-2s<<1="; check(val, -4); print ", ";
+		@art_shift (-2) 7 val;
+		print "-2s<<7="; check(val, -256); print ", ";
+		@art_shift (-2) 15 val;
+		print "-2s<<15="; check(val, 0); print "^";
+
+		testglobal = 1;
+		res = 1;
+		for (ix=0 : ix<16 : ix++) {
+			@art_shift testglobal ix val;
+			print "1s<<", ix, "="; check_hex(val, res); print ", ";
+			res = res+res;
+		}
+		@art_shift testglobal ix val;
+		print "1s<<", ix, "="; check(val, 0); print "^";
+		
+		@art_shift $4001 (0) val;
+		print "$4001s>>-0="; check_hex(val, $4001); print ", ";
+		@art_shift $4001 (-1) val;
+		print "$4001s>>-1="; check_hex(val, $2000); print ", ";
+		@art_shift $4001 (-6) val;
+		print "$4001s>>-6="; check_hex(val, $100); print ", ";
+		@art_shift $4001 (-11) val;
+		print "$4001s>>-11="; check_hex(val, $8); print ", ";
+		@art_shift $4001 (-15) val;
+		print "$4001s>>-15="; check_hex(val, $0); print ", ";
+		@art_shift $4001 (-16) val;
+		print "$4001s>>-16="; check_hex(val, $0); print "^";
+		
+		@art_shift $7FFF (0) val;
+		print "$7FFFs>>-0="; check_hex(val, $7FFF); print ", ";
+		@art_shift $7FFF (-1) val;
+		print "$7FFFs>>-1="; check_hex(val, $3FFF); print ", ";
+		@art_shift $7FFF (-2) val;
+		print "$7FFFs>>-2="; check_hex(val, $1FFF); print ", ";
+		@art_shift $7FFF (-6) val;
+		print "$7FFFs>>-6="; check_hex(val, $1FF); print ", ";
+		@art_shift $7FFF (-12) val;
+		print "$7FFFs>>-12="; check_hex(val, $7); print ", ";
+		@art_shift $7FFF (-13) val;
+		print "$7FFFs>>-13="; check_hex(val, $3); print ", ";
+		@art_shift $7FFF (-14) val;
+		print "$7FFFs>>-14="; check_hex(val, $1); print ", ";
+		@art_shift $7FFF (-15) val;
+		print "$7FFFs>>-15="; check_hex(val, $0); print ", ";
+		@art_shift $7FFF (-16) val;
+		print "$7FFFs>>-16="; check_hex(val, $0); print "^";
+		
+		@art_shift (-1) (0) val;
+		print "-1s>>-0="; check(val, -1); print ", ";
+		@art_shift (-1) (-1) val;
+		print "-1s>>-1="; check(val, -1); print ", ";
+		@art_shift (-1) (-15) val;
+		print "-1s>>-15="; check(val, -1); print ", ";
+		@art_shift (-1) (-16) val;
+		print "-1s>>-16="; check(val, -1); print ", ";
+		@art_shift (-1) (-17) val;
+		print "-1s>>-17="; check(val, -1); print "^";
+
+		@art_shift (-1000) (0) val;
+		print "-1000s>>-0="; check(val, -1000); print ", ";
+		@art_shift (-1000) (-1) val;
+		print "-1000s>>-1="; check(val, -500); print ", ";
+		@art_shift (-1000) (-2) val;
+		print "-1000s>>-2="; check(val, -250); print ", ";
+		@art_shift (-1000) (-4) val;
+		print "-1000s>>-4="; check(val, -63); print ", ";
+		@art_shift (-1000) (-6) val;
+		print "-1000s>>-6="; check(val, -16); print ", ";
+		@art_shift (-1000) (-9) val;
+		print "-1000s>>-9="; check(val, -2); print ", ";
+		@art_shift (-1000) (-15) val;
+		print "-1000s>>-15="; check(val, -1); print ", ";
+		@art_shift (-1000) (-16) val;
+		print "-1000s>>-16="; check(val, -1); print ", ";
+		@art_shift (-1000) (-17) val;
+		print "-1000s>>-17="; check(val, -1); print "^";
+		
+		testglobal = -1;
+		for (ix=0 : ix>-16 : ix--) {
+			@art_shift testglobal ix val;
+			print "-1s>>", ix, "="; check(val, -1); print ", ";
+		}
+		@art_shift testglobal ix val;
+		print "-1s>>", ix, "="; check(val, -1); print "^";
 		
 		count_failures();
 	];
