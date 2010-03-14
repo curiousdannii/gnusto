@@ -396,18 +396,20 @@ function handleZ_loadw(engine, a)
 	//return engine._storer("getUnsignedWord(("+a[0]+"+2*"+a[1]+")&0xFFFF)");
 
 	// Calculate the address
-	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
-		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF, ',
-			addr = 'tmp_' + temp_var;
-	else
-		var code = 'var ',
-			addr = (a[0] + 2 * a[1]) & 0xFFFF;
-
-	// Get the value and store it
 	// BUG: fails to wrap if the address is split across addresses 0xFFFF
 	// and 0x0000. I don't care. --Z
+	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
+		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF, ',
+			addr = 'tmp_' + temp_var,
+			addr1 = addr+'+1';
+	else
+		var code = 'var ',
+			addr = (a[0] + 2 * a[1]) & 0xFFFF,
+			addr1 = addr+1;
+
+	// Get the value and store it
 	var tmp = 'tmp_' + (++temp_var);
-	return code + tmp + ' = (m_memory[' + addr + '] << 8) | m_memory[' + addr + ' + 1];' +
+	return code + tmp + ' = (m_memory[' + addr + '] << 8) | m_memory[' + addr1 + '];' +
 		engine._storer(tmp);
 }
 
@@ -677,9 +679,9 @@ function handleZ_store_w(engine, a)
 {
 	// Calculate the address
 	if (isNotConst.test(a[0]) || isNotConst.test(a[1]))
-		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF;', addr = 'tmp_' + temp_var;
+		var code = 'var tmp_' + (++temp_var) + ' = (' + a[0] + ' + 2 * ' + a[1] + ') & 0xFFFF;', addr = 'tmp_' + temp_var, addr1 = addr+'+1';
 	else
-		var code = '', addr = (a[0] + 2 * a[1]) & 0xFFFF;
+		var code = '', addr = (a[0] + 2 * a[1]) & 0xFFFF, addr1 = addr+1;
 
 	// If we are setting a constant get the high and low bytes at compile time
 	if (!isNotConst.test(a[2]))
@@ -689,19 +691,19 @@ function handleZ_store_w(engine, a)
         engine.logger('Z_store_w value', a[2]);
     }
 		return code + 'm_memory[' + addr + '] = ' + ((a[2] >> 8) & 0xFF) + ';' +
-			'm_memory[' + addr + ' + 1] = ' + (a[2] & 0xFF);
+			'm_memory[' + addr1 + '] = ' + (a[2] & 0xFF);
 	}
 	else
 	{
 		var tmp = 'tmp_' + (++temp_var);
 		return code + 'var ' + tmp + ' = ' + a[2] + ';' +
 			'm_memory[' + addr + '] = (' + tmp + ' >> 8) & 0xFF;' +
-			'm_memory[' + addr + ' + 1] = ' + tmp + ' & 0xFF;';
+			'm_memory[' + addr1 + '] = ' + tmp + ' & 0xFF;';
 	}
 }
 
 function handleZ_storeb(engine, a) {
-    return "setByte("+a[2]+","+a[0]+"+"+a[1]+")";
+    return "setByte("+a[2]+",("+a[0]+"+"+a[1]+")&0xFFFF)";
   }
 
 function handleZ_putprop(engine, a) {
@@ -960,7 +962,7 @@ function handleZ_not(engine, a) {
 }
 
 function handleZ_tokenise(engine, a) {
-    return "_tokenise(("+a[0]+")&0xFFFF,("+a[1]+")&0xFFFF,"+a[2]+","+a[3]+")";
+    return "_tokenise("+a[0]+","+a[1]+","+a[2]+","+a[3]+")";
   }
 
 function handleZ_encode_text(engine, a) {
@@ -1019,7 +1021,7 @@ function handleZ_restoreV45678(engine, a) {
 }
 
 function handleZ_log_shift(engine, a) {
-    // log_shift logical-bit-shift.  Right shifts are zero-padded
+    // logical-bit-shift.  Right shifts are zero-padded
     return engine._storer("_log_shift("+a[0]+','+a[1]+')');
   }
 
