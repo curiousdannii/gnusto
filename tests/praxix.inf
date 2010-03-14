@@ -1283,3 +1283,222 @@ TestClass IncrementBranchTest
 		
 		count_failures();
 	];
+
+Array array1 --> $1357 $FDB9 $0011 $FFEE;
+Array array2 --> 4;
+	
+TestClass ArrayTest
+	with name 'array' 'loadw' 'loadb' 'storew' 'storeb',
+	testfunc [ val ix addr;
+		print "Array loads and stores:^^";
+
+		addr = array1;
+		@loadw array1 0 -> val;
+		print "a-->0="; check_hex(val, $1357); print ", ";
+		@loadw addr 0 -> val;
+		print "a-->0="; check_hex(val, $1357); print ", ";
+		
+		ix = 1;
+		@loadw array1 ix -> val;
+		print "a-->1="; check_hex(val, $FDB9); print ", ";
+		@loadw addr ix -> val;
+		print "a-->1="; check_hex(val, $FDB9); print ", ";
+		
+		testglobal = 2;
+		@loadw array1 testglobal -> val;
+		print "a-->2="; check_hex(val, $0011); print ", ";
+		@loadw addr testglobal -> val;
+		print "a-->2="; check_hex(val, $0011); print ", ";
+
+		@push 3;
+		@loadw array1 sp -> val;
+		print "a-->3="; check_hex(val, $FFEE); print ", ";
+		@push 3;
+		@loadw addr sp -> val;
+		print "a-->3="; check_hex(val, $FFEE); print "^";
+
+		addr = array1+3;
+		@loadw addr (-1) -> val;
+		print "a+3-->-1="; check_hex(val, $57FD); print ", ";
+		@loadw addr 0 -> val;
+		print "a+3-->0="; check_hex(val, $B900); print ", ";
+		@loadw addr 1 -> val;
+		print "a+3-->1="; check_hex(val, $11FF); print ", ";
+		testglobal = array1+3;
+		@loadw testglobal (-1) -> val;
+		print "a+3-->-1="; check_hex(val, $57FD); print ", ";
+		@loadw testglobal 0 -> val;
+		print "a+3-->0="; check_hex(val, $B900); print ", ";
+		@loadw testglobal 1 -> val;
+		print "a+3-->1="; check_hex(val, $11FF); print "^";
+
+
+		addr = array1;
+		@loadb array1 0 -> val;
+		print "a->0="; check_hex(val, $13); print ", ";
+		@loadb addr 0 -> val;
+		print "a->0="; check_hex(val, $13); print ", ";
+		
+		ix = 1;
+		@loadb array1 ix -> val;
+		print "a->1="; check_hex(val, $57); print ", ";
+		@loadb addr ix -> val;
+		print "a->1="; check_hex(val, $57); print ", ";
+		
+		testglobal = 2;
+		@loadb array1 testglobal -> val;
+		print "a->2="; check_hex(val, $FD); print ", ";
+		@loadb addr testglobal -> val;
+		print "a->2="; check_hex(val, $FD); print ", ";
+
+		@push 3;
+		@loadb array1 sp -> val;
+		print "a->3="; check_hex(val, $B9); print ", ";
+		@push 3;
+		@loadb addr sp -> val;
+		print "a->3="; check_hex(val, $B9); print "^";
+
+		addr = array1+3;
+		@loadb addr (-1) -> val;
+		print "a+3->-1="; check_hex(val, $FD); print ", ";
+		@loadb addr 0 -> val;
+		print "a+3->0="; check_hex(val, $B9); print ", ";
+		@loadb addr 1 -> val;
+		print "a+3->1="; check_hex(val, $00); print ", ";
+		testglobal = array1+3;
+		@loadb testglobal (-1) -> val;
+		print "a+3->-1="; check_hex(val, $FD); print ", ";
+		@loadb testglobal 0 -> val;
+		print "a+3->0="; check_hex(val, $B9); print ", ";
+		@loadb testglobal 1 -> val;
+		print "a+3->1="; check_hex(val, $00); print "^";
+
+
+		addr = array2;
+		@storew array2 0 $1201;
+		@loadw array2 0 -> val;
+		print "a-->0="; check_hex(val, $1201); print ", ";
+		@storew addr 0 $2302;
+		@loadw array2 0 -> val;
+		print "a-->0="; check_hex(val, $2302); print ", ";
+
+		ix = 1;
+		@storew array2 ix $3403;
+		@loadw array2 1 -> val;
+		print "a-->1="; check_hex(val, $3403); print ", ";
+		@storew addr ix $4504;
+		@loadw array2 1 -> val;
+		print "a-->1="; check_hex(val, $4504); print ", ";
+
+		testglobal = 2;
+		@storew array2 testglobal $5605;
+		@loadw array2 2 -> val;
+		print "a-->2="; check_hex(val, $5605); print ", ";
+		@storew addr testglobal $6706;
+		@loadw array2 2 -> val;
+		print "a-->2="; check_hex(val, $6706); print ", ";
+		
+		@push 3;
+		@storew array2 sp $7807;
+		@loadw array2 3 -> val;
+		print "a-->3="; check_hex(val, $7807); print ", ";
+		@push 3;
+		@storew addr sp $8908;
+		@loadw array2 3 -> val;
+		print "a-->3="; check_hex(val, $8908); print "^";
+
+		addr = array2+4;
+		@storew addr (-1) $AB0A;
+		@loadw array2 1 -> val;
+		print "a-->-1="; check_hex(val, $AB0A); print ", ";
+		@storew addr 0 $BC0B;
+		@loadw array2 2 -> val;
+		print "a-->0="; check_hex(val, $BC0B); print ", ";
+		@storew addr 1 $CD0C;
+		@loadw array2 3 -> val;
+		print "a-->1="; check_hex(val, $CD0C); print ", ";
+		
+		testglobal = array2+4;
+		@storew testglobal (-1) $BA1B;
+		@loadw array2 1 -> val;
+		print "a-->-1="; check_hex(val, $BA1B); print ", ";
+		@storew testglobal 0 $CB1C;
+		@loadw array2 2 -> val;
+		print "a-->0="; check_hex(val, $CB1C); print ", ";
+		@storew testglobal 1 $DC1D;
+		@loadw array2 3 -> val;
+		print "a-->1="; check_hex(val, $DC1D); print "^";
+		
+
+		addr = array2;
+		@storeb array2 0 $12;
+		@loadb array2 0 -> val;
+		print "a->0="; check_hex(val, $12); print ", ";
+		@storeb addr 0 $23;
+		@loadb array2 0 -> val;
+		print "a->0="; check_hex(val, $23); print ", ";
+
+		ix = 1;
+		@storeb array2 ix $34;
+		@loadb array2 1 -> val;
+		print "a->1="; check_hex(val, $34); print ", ";
+		@storeb addr ix $45;
+		@loadb array2 1 -> val;
+		print "a->1="; check_hex(val, $45); print ", ";
+
+		testglobal = 2;
+		@storeb array2 testglobal $56;
+		@loadb array2 2 -> val;
+		print "a->2="; check_hex(val, $56); print ", ";
+		@storeb addr testglobal $67;
+		@loadb array2 2 -> val;
+		print "a->2="; check_hex(val, $67); print ", ";
+		
+		@push 3;
+		@storeb array2 sp $78;
+		@loadb array2 3 -> val;
+		print "a->3="; check_hex(val, $78); print ", ";
+		@push 3;
+		@storeb addr sp $89;
+		@loadb array2 3 -> val;
+		print "a->3="; check_hex(val, $89); print "^";
+
+		addr = array2+4;
+		@storeb addr (-1) $AB;
+		@loadb array2 3 -> val;
+		print "a->-1="; check_hex(val, $AB); print ", ";
+		@storeb addr 0 $BC;
+		@loadb array2 4 -> val;
+		print "a->0="; check_hex(val, $BC); print ", ";
+		@storeb addr 1 $CD;
+		@loadb array2 5 -> val;
+		print "a->1="; check_hex(val, $CD); print ", ";
+		
+		testglobal = array2+4;
+		@storeb testglobal (-1) $BA;
+		@loadb array2 3 -> val;
+		print "a->-1="; check_hex(val, $BA); print ", ";
+		@storeb testglobal 0 $CB;
+		@loadb array2 4 -> val;
+		print "a->0="; check_hex(val, $CB); print ", ";
+		@storeb testglobal 1 $DC;
+		@loadb array2 5 -> val;
+		print "a->1="; check_hex(val, $DC); print "^";
+
+		ix = $F1;
+		@storeb array2 0 ix;
+		ix = $E2;
+		@storeb array2 1 ix;
+		@loadw array2 0 -> val;
+		print "$F1 concat $E2 = "; check_hex(val, $F1E2); print "^";
+		
+		ix = $9876;
+		@storew array2 1 ix;
+		@loadb array2 2 -> val;
+		print "$9876 = "; check_hex(val, $98); print " ";
+		@loadb array2 3 -> val;
+		print "concat "; check_hex(val, $76); print "^";
+
+		count_failures();
+	];
+
