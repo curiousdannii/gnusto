@@ -2215,7 +2215,7 @@ GnustoEngine.prototype = {
 		// The value is safely truncated, but the address must be valid
     if (engine.m_value_asserts) {
       if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
-        engine.logger('setByte', address);
+        engine.logger('setByte addr', address);
     }
     this.m_memory[address] = value & 0xFF;
   },
@@ -2224,7 +2224,13 @@ GnustoEngine.prototype = {
     // The return value will be signed (-8000..7FFF).
     if (engine.m_value_asserts) {
       if (address == null || address === true || address === false || address < 0 || address >= this.m_original_memory.length)
-        engine.logger('getWord', address);
+        engine.logger('getWord addr', address);
+			var val = this.m_memory[address];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getWord high byte', val);
+			var val = this.m_memory[address+1];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getWord low byte', val);
     }
 //    return this._unsigned2signed((this.m_memory[address]<<8)|
 //																 this.m_memory[address+1]);
@@ -2235,7 +2241,13 @@ GnustoEngine.prototype = {
   getUnsignedWord: function ge_getUnsignedWord(address) {
     if (engine.m_value_asserts) {
       if (address == null || address === true || address === false || address < 0 || address >= this.m_original_memory.length)
-				engine.logger('getUnsignedWord', address);
+				engine.logger('getUnsignedWord addr', address);
+			var val = this.m_memory[address];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getUnsignedWord high byte', val);
+			var val = this.m_memory[address+1];
+      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
+        engine.logger('getUnsignedWord low byte', val);
     }
     return (this.m_memory[address]<<8)|this.m_memory[address+1];
   },
@@ -2245,12 +2257,6 @@ GnustoEngine.prototype = {
     if (engine.m_value_asserts) {
       if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
         engine.logger('setWord', address);
-			var val = this.m_memory[address];
-      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
-        engine.logger('getByte high byte', val);
-			var val = this.m_memory[address+1];
-      if (val == null || val === true || val === false || val < 0 || val > 0xFF)
-        engine.logger('getByte low byte', val);
     }
 //			this.setByte((value>>8) & 0xFF, address);
 		this.m_memory[address] = (value >> 8) & 0xFF;
