@@ -3472,6 +3472,8 @@ GnustoEngine.prototype = {
 
 	// Implements @copy_table, as in the Z-spec.
 	_copy_table: function ge_copy_table(first, second, size) {
+ 			size = this._unsigned2signed(size);
+
 			if (second==0) {
 
 					// Zero out the first |size| bytes of |first|.
