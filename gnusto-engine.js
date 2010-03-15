@@ -840,7 +840,7 @@ function handleZ_set_window(engine, a) {
   }
 function handleZ_erase_window(engine, a) {
     engine.m_compilation_running=0;
-    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASEWINDOW+","+a[0]+"];return";
+    return "m_pc="+engine.m_pc+";m_effects=["+GNUSTO_EFFECT_ERASEWINDOW+","+engine._unsigned2signed(a[0])+"];return";
   }
 function handleZ_erase_line(engine, a) {
     engine.m_compilation_running=0;
