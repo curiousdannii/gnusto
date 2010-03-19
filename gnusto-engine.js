@@ -592,7 +592,7 @@ function handleZ_ret_popped(engine, a) {
 function handleZ_catch(engine, a) {
     // The stack frame cookie is specified by Quetzal 1.3b s6.2
     // to be the number of frames on the stack.
-    return engine._storer("call_stack.length");
+    return engine._storer("m_call_stack.length");
 }
 
 function handleZ_pop(engine, a) {
