@@ -1502,3 +1502,153 @@ TestClass ArrayTest
 		count_failures();
 	];
 
+TestClass UndoTest
+	with name 'undo',
+	testfunc [ val loc;
+		print "Undo:^^";
+
+		loc = 99;
+		testglobal = 999;
+		@save_undo val;
+		if (val == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (val == 0) {
+			print "@@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (val == 1) {
+			print "Undo saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			failures++;
+			print "Restoring undo...^";
+			@restore_undo val;
+			if (val == 0) {
+				print "@@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "@@64restore_undo failed with unknown return value: ", val, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (val ~= 2) {
+			print "Unknown @@64save_undo return value: ", val, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo succeeded, return value "; check(val, 2); print ".^";
+		print "loc="; check(loc, 99); print " glob="; check(testglobal, 999); print "^";
+
+		loc = 98;
+		testglobal = 998;
+		@save_undo testglobal2;
+		if (testglobal2 == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (testglobal2 == 0) {
+			print "@@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (testglobal2 == 1) {
+			print "Undo saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			failures++;
+			print "Restoring undo...^";
+			@restore_undo testglobal2;
+			if (testglobal2 == 0) {
+				print "@@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "@@64restore_undo failed with unknown return value: ", testglobal2, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (testglobal2 ~= 2) {
+			print "Unknown @@64save_undo return value: ", testglobal2, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo succeeded, return value "; check(testglobal2, 2); print ".^";
+		print "loc="; check(loc, 98); print " glob="; check(testglobal, 998); print "^";
+
+		loc = 97;
+		testglobal = 997;
+		val = undo_depth_check();
+		if (val == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (val == 0) {
+			print "@@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (val == 1) {
+			print "Undo saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			failures++;
+			print "Restoring undo...^";
+			@restore_undo val;
+			if (val == 0) {
+				print "@@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "@@64restore_undo failed with unknown return value: ", val, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (val ~= 2) {
+			print "Unknown @@64save_undo return value: ", val, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo succeeded, return value "; check(val, 2); print ".^";
+		print "loc="; check(loc, 97); print " glob="; check(testglobal, 997); print "^";
+		@check_arg_count 3 ?~ok;
+		print "Error: test method wrongly got argument 3!^";
+		failures++;
+		.ok;
+
+		count_failures();
+	];
+
+[ undo_depth_check;
+	return undo_depth_check2(11, 22, 33);
+];
+
+[ undo_depth_check2 foo bar baz val;
+	bar = 1;
+	foo = bar;
+	baz = foo;
+	@save_undo val;
+	@check_arg_count 3 ?ok;
+	print "Error: undo_depth_check2 did not get argument 3!^";
+	failures++;
+	.ok;
+	return val;
+];
