@@ -6,6 +6,7 @@ Release 1;
 ! options.
 
 Constant HDR_GAMERELEASE   $02;     ! word
+Constant HDR_GAMEFLAGS     $10;     ! word
 Constant HDR_GAMESERIAL    $12;     ! six ASCII characters
 
 Array  buffer    -> 123;            ! Buffer for parsing main line of input
@@ -1507,6 +1508,12 @@ TestClass UndoTest
 	testfunc [ val loc;
 		print "Undo:^^";
 
+		val = HDR_GAMEFLAGS-->0; ! "Flags 2" byte
+		if (val & 16)
+			print "Interpreter claims to support undo.^^";
+		else
+			print "Interpreter claims to not support undo. (Continuing test anyway...)^^";
+
 		loc = 99;
 		testglobal = 999;
 		@save_undo val;
@@ -1634,6 +1641,102 @@ TestClass UndoTest
 		failures++;
 		.ok;
 
+
+		loc = 98;
+		testglobal = 998;
+		testglobal2 = -99;
+		@save_undo sp;
+		@pull testglobal2;
+		if (testglobal2 == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (testglobal2 == 0) {
+			print "@@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (testglobal2 == 1) {
+			print "Undo saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			testglobal2 = -99;
+			failures++;
+			print "Restoring undo...^";
+			@restore_undo sp;
+			@pull testglobal2;
+			if (testglobal2 == 0) {
+				print "@@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "@@64restore_undo failed with unknown return value: ", testglobal2, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (testglobal2 ~= 2) {
+			print "Unknown @@64save_undo return value: ", testglobal2, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo succeeded, return value "; check(testglobal2, 2); print ".^";
+		print "loc="; check(loc, 98); print " glob="; check(testglobal, 998); print "^";
+
+		@push 9;
+		loc = 99;
+		testglobal = 999;
+		testglobal2 = -999;
+		@save_undo val;
+		if (val == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (val == 0) {
+			print "@@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (val == 1) {
+			print "Undo saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			testglobal2 = -777;
+			@pull val;
+			print "guard="; check(val, 9); print "^";
+			val = 7;
+			failures++;
+			print "Restoring undo...^";
+			@restore_undo testglobal2;
+			if (testglobal2 == 0) {
+				print "@@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "@@64restore_undo failed with unknown return value: ", testglobal2, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (val ~= 2) {
+			print "Unknown @@64save_undo return value: ", val, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo succeeded, return value "; check(val, 2); print ".^";
+		print "loc="; check(loc, 99); print " glob="; check(testglobal, 999); print " glob2="; check(testglobal2, -999); print "^";
+
+		@pull val;
+		print "guard="; check(val, 9); print "^";
+		
 		count_failures();
 	];
 
