@@ -1755,3 +1755,99 @@ TestClass UndoTest
 	.ok;
 	return val;
 ];
+
+TestClass MultiUndoTest
+	with name 'multiundo',
+	testfunc [ val loc;
+		print "Multi-level undo:^(Note: this capability is not required by the spec.)^^";
+
+		val = HDR_GAMEFLAGS-->0; ! "Flags 2" byte
+		if (val & 16)
+			print "Interpreter claims to support undo.^^";
+		else
+			print "Interpreter claims to not support undo. (Continuing test anyway...)^^";
+
+		loc = 99;
+		testglobal = 999;
+		@save_undo val;
+		if (val == -1) {
+			print "Undo is not available on this interpreter.^";
+			count_failures();
+			return;
+		}
+		if (val == 0) {
+			print "First @@64save_undo failed!^";
+			failures++;
+			count_failures();
+			return;
+		}
+		if (val == 1) {
+			print "Undo 1 saved...^";
+			! The following changes will be undone.
+			loc = 77;
+			testglobal = 777;
+			failures++;
+
+			@save_undo val;
+			if (val == -1) {
+				print "Undo returned ~unavailable~, even though it was available the first time.^";
+				count_failures();
+				return;
+			}
+			if (val == 0) {
+				print "Second @@64save_undo failed!^";
+				count_failures();
+				return;
+			}
+			if (val == 1) {
+				print "Undo 2 saved...^";
+				! The following changes will be undone.
+				loc = 55;
+				testglobal = 555;
+				failures++;
+
+				print "Restoring undo 2...^";
+				@restore_undo val;
+				if (val == 0) {
+					print "Second @@64restore_undo failed (value 0)!^";
+				}
+				else {
+					print "Second @@64restore_undo failed with unknown return value: ", val, "^";
+				}
+				failures++;
+				count_failures();
+				return;
+			}
+			else if (val ~= 2) {
+				print "Unknown @@64save_undo return value: ", val, "^";
+				failures++;
+				count_failures();
+				return;
+			}
+			
+			print "Undo 2 succeeded, return value "; check(val, 2); print ".^";
+			print "loc="; check(loc, 77); print " glob="; check(testglobal, 777); print "^";
+			
+			print "Restoring undo 1...^";
+			@restore_undo val;
+			if (val == 0) {
+				print "First @@64restore_undo failed (value 0)!^";
+			}
+			else {
+				print "First @@64restore_undo failed with unknown return value: ", val, "^";
+			}
+			failures++;
+			count_failures();
+			return;
+		}
+		else if (val ~= 2) {
+			print "Unknown @@64save_undo return value: ", val, "^";
+			failures++;
+			count_failures();
+			return;
+		}
+		print "Undo 1 succeeded, return value "; check(val, 2); print ".^";
+		print "loc="; check(loc, 99); print " glob="; check(testglobal, 999); print "^";
+		
+		count_failures();
+	];
