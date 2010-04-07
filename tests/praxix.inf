@@ -1514,6 +1514,7 @@ TestClass UndoTest
 		else
 			print "Interpreter claims to not support undo. (Continuing test anyway...)^^";
 
+		print "Using a local variable for @@64save_undo result:^";
 		loc = 99;
 		testglobal = 999;
 		@save_undo val;
@@ -1555,6 +1556,7 @@ TestClass UndoTest
 		print "Undo succeeded, return value "; check(val, 2); print ".^";
 		print "loc="; check(loc, 99); print " glob="; check(testglobal, 999); print "^";
 
+		print "Using a global variable for @@64save_undo result:^";
 		loc = 98;
 		testglobal = 998;
 		@save_undo testglobal2;
@@ -1596,6 +1598,7 @@ TestClass UndoTest
 		print "Undo succeeded, return value "; check(testglobal2, 2); print ".^";
 		print "loc="; check(loc, 98); print " glob="; check(testglobal, 998); print "^";
 
+		print "Calling @@64save_undo within a function or two:^";
 		loc = 97;
 		testglobal = 997;
 		val = undo_depth_check();
@@ -1641,7 +1644,7 @@ TestClass UndoTest
 		failures++;
 		.ok;
 
-
+		print "Using the stack for @@64save_undo result:^";
 		loc = 98;
 		testglobal = 998;
 		testglobal2 = -99;
@@ -1687,6 +1690,7 @@ TestClass UndoTest
 		print "Undo succeeded, return value "; check(testglobal2, 2); print ".^";
 		print "loc="; check(loc, 98); print " glob="; check(testglobal, 998); print "^";
 
+		print "Checking @@64save_undo saves the stack correctly:^";
 		@push 9;
 		loc = 99;
 		testglobal = 999;
