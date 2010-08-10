@@ -1,5 +1,9 @@
 Change log started July 2009.
 
+August 2010
+================================================================================
+Complies with the Z-Machine 1.1 updates/clarifications.
+
 April 2010
 ================================================================================
 Fixed undo support, now with multi-undo support.
