@@ -1,3 +1,7 @@
+! Praxix - a Z-Machine unit test
+! by Zarf and Dannii
+! Public domain, but please share your changes so we can improve the tests
+
 Constant Story "Praxix";
 Constant Headline "A Z-code interpreter unit test^";
 Release 1;
@@ -1854,5 +1858,96 @@ TestClass MultiUndoTest
 		print "Undo 1 succeeded, return value "; check(val, 2); print ".^";
 		print "loc="; check(loc, 99); print " glob="; check(testglobal, 999); print "^";
 		
+		count_failures();
+	];
+
+TestClass specfixes
+	with name 'specfixes' 'fixes',
+	testfunc [ val ;
+		print "Z-Machine 1.1 Updates/Clarifications:^^";
+		
+		! Operand evalution
+		! Opcode operands are always evaluated from first to last
+		print "Operand evalution: ";
+		@push 2;
+		@push 4;
+		@sub sp sp -> val;
+		print "4-2="; check(val, 2); print "^";
+		
+		! Indirect variable references
+		! An indirect reference to the stack pointer does not push or pull the top item of the stack - it is read or written in place.
+		print "Indirect variable references:^";
+		@push 9;
+		@push 5;
+		@dec sp;
+		@pull val;
+		@pull val;
+		print "@@64dec: guard="; check(val, 9); print "^";
+		@push 9;
+		@push 7;
+		@dec_chk sp 2 ?jumpfail;
+		@pull val;
+		@pull val;
+		print "@@64dec_chk: guard="; check(val, 9); print "^";
+		@push 9;
+		@push 5;
+		@inc sp;
+		@pull val;
+		@pull val;
+		print "@@64inc: guard="; check(val, 9); print "^";
+		@push 9;
+		@push 2;
+		@inc_chk sp 7 ?jumpfail;
+		@pull val;
+		@pull val;
+		print "@@64inc_chk: guard="; check(val, 9); print "^";
+		! Push an extra value in case @load fails - we don't want a stack underflow
+		@push 1;
+		@push 9;
+		@load sp -> val;
+		@pull val;
+		print "@@64load: guard="; check(val, 9); print "^";
+		@push 9;
+		@pull sp;
+		@pull val;
+		print "@@64pull: guard="; check(val, 9); print "^";
+		@push 9;
+		@push 1;
+		@store sp 2;
+		@pull val;
+		@pull val;
+		print "@@64store: guard="; check(val, 9); print "^";
+		
+		! @je
+		! @je can take between 2 and 4 operands.
+		print "@@64je operands: ";
+		val = 1;
+		@je 1 0 1 ?je1;
+		val = 0;
+		.je1; 
+		print "3: "; check(val, 1);
+		val = 1;
+		@je 1 0 0 1 ?je2;
+		val = 0;
+		.je2; 
+		print ", 4: "; check(val, 1); print "^";
+		
+		! @get_prop_len
+		! @get_prop_len 0 must return 0.
+		val = 1;
+		print "@@64get_prop_len 0: ";
+		@get_prop_len 0 -> val;
+		check(val, 0); print "^";
+		
+		!### @set_cursor
+		!### @output_stream
+		!### Mouse
+		!### Sound
+		
+		count_failures();
+		return;
+		
+		.jumpfail;
+		failures++;
 		count_failures();
 	];
