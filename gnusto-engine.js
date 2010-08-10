@@ -347,17 +347,12 @@ function handleZ_store(engine, a) {
 
 function handleZ_store(engine, a)
 {
-	if (isNotConst.test(a[0]))
-		engine.logger('Z_store', a[0]);
-	if (engine.m_value_asserts) {
-		if (a[0] == null || a[0] === true || a[0] === false || a[0] < 0 || a[0] > 0xFFFF)
-			engine.logger('Z_store address', a[0]);
-		if (a[1] == null || a[1] === true || a[1] === false || a[1] < 0 || a[1] > 0xFFFF)
-			engine.logger('Z_store value', a[1]);
-	}
+	;;; if (isNotConst.test(a[0])) { engine.logger('Z_store', a[0]); }	
+	;;; if (a[0] == null || a[0] === true || a[0] === false || a[0] < 0 || a[0] > 0xFFFF) { engine.logger('Z_store address', a[0]); }
+	;;; if (a[1] == null || a[1] === true || a[1] === false || a[1] < 0 || a[1] > 0xFFFF) { engine.logger('Z_store value', a[1]); }
 
 	if (a[0] == 0)
-		return 'm_gamestack.push(' + a[1] + ')';
+		return 'm_gamestack[m_gamestack.length - 1] = ' + a[1] + ';';
 	else if (a[0] < 16)
 		return 'm_locals[' + (a[0]-1) + '] = ' + a[1];
 	else
@@ -554,9 +549,19 @@ function handleZ_jump(engine, a) {
 function handleZ_print_paddr(engine, a) {
     return engine._handler_zOut("_zscii_from("+engine.m_pc_translate_for_string(a[0])+")",0);
 }
-function handleZ_load(engine, a) {
-    return engine._storer('_varcode_get('+a[0]+')');
-  }
+
+function handleZ_load( engine, a )
+{
+	//return engine._storer('_varcode_get('+a[0]+')');
+	var code;
+	if ( a[0] == 0 )
+		code = 'm_gamestack[m_gamestack.length - 1]';
+	else if ( a[0] < 0x10 )
+		code = 'm_locals[( ' + a[0] + ' - 1 )]';
+	else
+		code = 'getUnsignedWord( m_vars_start + ( ' + a[0] + ' - 16 ) * 2 )';
+	return engine._storer( code );
+}
 
 function handleZ_rtrue(engine, a) {
     engine.m_compilation_running=0;
@@ -3139,11 +3144,15 @@ GnustoEngine.prototype = {
 			}
 	},
 
-	_get_prop_len: function ge_get_prop_len(address) {
-	    if (this.m_value_asserts) {
-				if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start)
-			 		this.logger('get_prop_len', address);
-			}
+	_get_prop_len: function ge_get_prop_len(address)
+	{
+		;;; if (address == null || address === true || address === false || address < 0 || address >= this.m_stat_start) { this.logger('get_prop_len', address); }
+
+		// Spec 1.1 clarification: @get_prop_len 0 must return 0
+		if ( address == 0 )
+		{
+			return 0;
+		}
 
 			if (this.m_version<4) {
 					return 1+(this.m_memory[address-1] >> 5);
@@ -3172,7 +3181,6 @@ GnustoEngine.prototype = {
 							}
 					}
 			}
-			gnusto_error(170, 'get_prop_len'); // impossible
 	},
 
 	_get_next_prop: function ge_get_next_prop(object, property) {
@@ -4039,6 +4047,8 @@ GnustoEngine.prototype = {
 	// TODO: We need a varcode_getcode() which returns a JS string
 	// which will perform the same job as this function, to save us
 	// the extra call we use when encoding "varcode_get(constant)".
+/***
+	Not in current use... inlined in handleZ_load
 	_varcode_get: function ge_varcode_get(varcode) {
 			if (varcode==0) {
 					return this.m_gamestack.pop();
@@ -4050,6 +4060,7 @@ GnustoEngine.prototype = {
 
 			gnusto_error(170, 'varcode_get'); // impossible
 	},
+***/
 
 	////////////////////////////////////////////////////////////////
 	//
