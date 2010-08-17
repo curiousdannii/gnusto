@@ -12,6 +12,7 @@ Release 1;
 Constant HDR_GAMERELEASE   $02;     ! word
 Constant HDR_GAMEFLAGS     $10;     ! word
 Constant HDR_GAMESERIAL    $12;     ! six ASCII characters
+Constant HDR_SPECREVISION  $32;     ! word
 
 Array  buffer    -> 123;            ! Buffer for parsing main line of input
 Array  parse     buffer 63;         ! Parse table mirroring it
@@ -66,6 +67,11 @@ Global total_failures = 0;
 	#Endif; ! DEBUG
 	#Endif; ! INFIX
 	new_line;
+];
+
+[ Version;
+	! Print the version number
+	print HDR_SPECREVISION->0, ".", HDR_SPECREVISION->1;
 ];
 
 [ TestLoop    wd paddr plen ix obj found;
@@ -127,20 +133,25 @@ Class TestClass
 	print (object) obj;
 ];
 
-[ Hex val   byte initial ix;
+! Print out in base 16 a byte or word
+[ Hex val   byte nibble i;
 	print "$";
-	initial = true;
-	for (ix=0 : ix<4 : ix++) {
-		@log_shift val (-12) -> byte;
-		@log_shift val 4 -> val;
-		byte = byte & $0F;
-		if (byte == 0 && initial && ix < 3)
+	for (i=0 : i<2 : i++)
+	{
+		@log_shift val (-8) -> byte;
+		@log_shift val (8) -> val;
+		if (byte == 0 && i == 0)
 			continue;
-		initial = false;
+		nibble = byte & $0F;
+		@log_shift byte (-4) -> byte;
 		if (byte <= 9)
 			print (char) (byte+'0');
 		else
 			print (char) (byte-10+'A');
+		if (nibble <= 9)
+			print (char) (nibble+'0');
+		else
+			print (char) (nibble-10+'A');
 	}
 ];
 
@@ -161,6 +172,16 @@ Class TestClass
 	}
 	failures++;
 	print (Hex) val, " (should be ", (Hex) wanted, " FAIL)";
+	rfalse;
+];
+
+[ check_hex_min val min;
+	if (val >= min) {
+		print (Hex) val;
+		rtrue;
+	}
+	failures++;
+	print (Hex) val, " (should be >= ", (Hex) min, " FAIL)";
 	rfalse;
 ];
 
@@ -1950,4 +1971,32 @@ TestClass specfixes
 		.jumpfail;
 		failures++;
 		count_failures();
+	];
+
+TestClass gestalt
+	with name 'spec12' 'gestalt',
+	testfunc [ val ;
+		print "Z-Machine 1.2 (@@64gestalt):^^";
+		
+		! Check we're in a 1.2 version interpreter
+		val = HDR_SPECREVISION-->0;
+		if (val >= $0102)
+		{
+			print "Ok, interpreter is version "; Version(); print ".^^";
+		}
+		else
+		{
+			print "Stopping, interpreter is only version "; Version(); print ".^";
+			return;
+		}
+		
+		! Checking non-existant selector
+		@"EXT:30S" 0 0 -> val;
+		print "Selector 0 (non-existant) = "; check(val, 0); print "^";
+		! Checking non-existant selector
+		@"EXT:30S" 1 0 -> val;
+		print "Selector 1 (Standard Revision) >= "; check_hex_min(val, $0102); print "^";
+		
+		count_failures();
+		return;
 	];
