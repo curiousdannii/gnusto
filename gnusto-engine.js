@@ -1064,6 +1064,12 @@ function handleZ_check_unicode(engine, a) {
     return engine._storer('3');
 }
 
+function handleZ_gestalt( engine, a )
+{
+    // 1.2 Standard @gestalt
+    return engine._storer('gestalt(' + a[0] + ', ' + ( a.length < 2 ? 0 : a[1] ) + ')' );
+}
+
 ////////////////////////////////////////////////////////////////
 //
 // |handlers|
@@ -1192,7 +1198,7 @@ var handlers_v578 = {
     1009: handleZ_save_undo,
     1010: handleZ_restore_undo,
     1011: handleZ_print_unicode,
-    1012: handleZ_check_unicode
+    1012: handleZ_check_unicode,
 
     //1013-1015: illegal
     //1016: move_window (V6 opcode)
@@ -1208,6 +1214,7 @@ var handlers_v578 = {
     //1026: print_form (V6 opcode)
     //1027: make_menu (V6 opcode)
     //1028: picture_table (V6 opcode)
+    1030: handleZ_gestalt
 };
 
 // Differences between each version and v5.
@@ -1980,6 +1987,16 @@ GnustoEngine.prototype = {
 
     return outtext + spacebuffer + outtext2;
   },
+  
+	// @gestalt selectors
+	gestalt: function( id, arg )
+	{
+		// 1: Standard Revision
+		if ( id == 1 )
+			return 0x0102;
+		else
+			return 0;
+	},
 
   ////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////
