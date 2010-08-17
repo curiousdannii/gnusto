@@ -1980,22 +1980,21 @@ TestClass gestalt
 		
 		! Check we're in a 1.2 version interpreter
 		val = HDR_SPECREVISION-->0;
-		if (val >= $0102)
-		{
-			print "Ok, interpreter is version "; Version(); print ".^^";
-		}
-		else
+		if (val < $0102)
 		{
 			print "Stopping, interpreter is only version "; Version(); print ".^";
 			return;
 		}
 		
+		print "Ok, interpreter is version "; Version(); print ".^^";
+		
 		! Checking non-existant selector
 		@"EXT:30S" 0 0 -> val;
-		print "Selector 0 (non-existant) = "; check(val, 0); print "^";
-		! Checking non-existant selector
+		print "Selector 0 (non-existant): 0="; check(val, 0); print "^";
+		
+		! Checking Standard Revision selector
 		@"EXT:30S" 1 0 -> val;
-		print "Selector 1 (Standard Revision) >= "; check_hex_min(val, $0102); print "^";
+		print "Selector 1 (Standard Revision): $0102<= "; check_hex_min(val, $0102); print "^";
 		
 		count_failures();
 		return;
