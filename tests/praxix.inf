@@ -1882,6 +1882,290 @@ TestClass MultiUndoTest
 		count_failures();
 	];
 
+! The Indirect test is copied more-or-less whole from czech.inf
+! (as of Oct 1 2010). Comments copied also:
+!
+! Indirect-able opcodes: inc,  dec,  inc_chk,  dec_chk,  store,  pull,  load
+! Spec Version 1.1 (draft7): "an indirect reference to the stack 
+! pointer does not push or pull the top item of the stack - it is read
+! or written in place."
+! Based on my tests (see rec.arts.int-fiction 20031028), this seems to mean
+! that, e.g., for load, you NEVER pop the stack, for all cases
+! (a) load sp; (b) load [sp]; (c) i=0; load [i]; (d) sp=0; load [sp];
+!
+! Overall rules:
+! - Do NOT push/pop for "foo sp": write in place
+! - DO pop for "foo [sp]". However, if top of stack is 0, only pop ONCE.
+! - "bar = 0; foo [bar]" yields EXACTLY the same results as "foo sp"
+!   ("push 0; foo [sp] is also identical to "foo sp".)
+!
+TestClass IndirectTest
+	with name 'indirect',
+	testfunc [ ix;
+		print "Indirect opcodes:^^";
+
+		for (ix = 0: ix < 100: ix++) {
+			do_indirect_test(ix);
+		}
+
+		count_failures();
+	];
+
+[ do_indirect_test which
+	result local2 spointer lpointer rpointer
+	top_of_stack which_str expectr expect1 expect2;
+
+	! First, set up everything we're going to need.
+	
+	local2 = 51;
+	! Gtemp = 61;
+	result = 71;
+	spointer = 0; ! stack
+	rpointer = 2; ! points to 'result'
+	lpointer = 3; ! local2
+	! gpointer = 21; ! '21' means 6th global, which is (hopefully!) Gtemp
+	expectr = 999; ! don't test 'result' unless we change this value
+
+	@push 41; @push 42; @push 43; @push 44; @push 45;
+	switch (which) {
+	
+	! load -> result
+	0: 
+		@load sp -> result; ! compiles as 'load 0 -> result'
+		expectr = 45; expect1 = 45; expect2 = 44;
+		which_str = "load sp -> result";
+	1:
+		@load [spointer] -> result;
+		expectr = 45; expect1 = 45; expect2 = 44;
+		which_str = "load [spointer] -> result";
+	2:
+		@push lpointer; @load [sp] -> result;
+		expectr = 51; expect1 = 45; expect2 = 44;
+		which_str = "load [sp=lpointer] -> result";
+	3:
+		@push spointer; @load [sp] -> result;
+		expectr = 45; expect1 = 45; expect2 = 44;
+		which_str = "load [sp=spointer] -> result";
+
+	! load -> sp
+	4:
+		@load sp -> sp; 
+		expect1 = 45; expect2 = 45;
+		which_str = "load sp -> sp";
+	5:
+		@push lpointer; @load [sp] -> sp; 
+		expect1 = 51; expect2 = 45;
+		which_str = "load [sp=lpointer] -> sp";
+	6:
+		@push spointer; @load [sp] -> sp; 
+		expect1 = 45; expect2 = 45;
+		which_str = "load [sp=spointer] -> sp";
+
+	! store
+	10:
+		@store sp 83;
+		expect1 = 83; expect2 = 44;
+		which_str = "store sp 83";
+	11:
+		@store [spointer] 83;
+		expect1 = 83; expect2 = 44;
+		which_str = "store [spointer] 83";
+	12:
+		@push spointer; @store [sp] 83;
+		expect1 = 83; expect2 = 44;
+		which_str = "store [sp=spointer] 83";
+
+	13:
+		@store [rpointer] 83;
+		expectr = 83; expect1 = 45; expect2 = 44;
+		which_str = "store [rpointer] 83";
+	14:
+		@push rpointer; @store [sp] 83;
+		expectr = 83; expect1 = 45; expect2 = 44;
+		which_str = "store [sp=rpointer] 83";
+
+	15:
+		@store result sp;
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "store result sp";
+	16:
+		@store sp sp;
+		expect1 = 45; expect2 = 43;
+		which_str = "store sp sp";
+	17:
+		@push spointer; @store [sp] sp;
+		expect1 = 45; expect2 = 43;
+		which_str = "store [sp=spointer] sp";
+
+	18:
+		@store [rpointer] sp;
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "store [rpointer] sp";
+	19:
+		@push rpointer; @store [sp] sp;
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "store [sp=rpointer] sp";
+
+	! pull
+	20: 
+		@pull result;
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "pull result";
+	21:
+		@pull [rpointer];
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "pull [rpointer]";
+	22:
+		@push rpointer; @pull [sp];
+		expectr = 45; expect1 = 44; expect2 = 43;
+		which_str = "pull [sp=rpointer]";
+
+	23:
+		@pull sp;
+		expect1 = 45; expect2 = 43;
+		which_str = "pull sp";
+	24:
+		@push spointer; @pull [sp];
+		expect1 = 45; expect2 = 43;
+		which_str = "pull [sp=spointer]";
+	25:
+		@pull [spointer];
+		expect1 = 45; expect2 = 43;
+		which_str = "pull [spointer]";
+
+	! inc
+	30: 
+		@inc result;
+		expectr = 72; expect1 = 45; expect2 = 44;
+		which_str = "inc result";
+	31:
+		@inc [rpointer];
+		expectr = 72; expect1 = 45; expect2 = 44;
+		which_str = "inc [rpointer]";
+	32:
+		@push rpointer; @inc [sp];
+		expectr = 72; expect1 = 45; expect2 = 44;
+		which_str = "inc [sp=rpointer]";
+
+	33:
+		@inc sp;
+		expect1 = 46; expect2 = 44;
+		which_str = "inc sp";
+	34:
+		@inc [spointer];
+		expect1 = 46; expect2 = 44;
+		which_str = "inc [spointer]";
+	35:
+		@push spointer; @inc [sp];
+		expect1 = 46; expect2 = 44;
+		which_str = "inc [sp=spointer]";
+
+	! dec
+	40: 
+		@dec result;
+		expectr = 70; expect1 = 45; expect2 = 44;
+		which_str = "dec result";
+	41:
+		@dec [rpointer];
+		expectr = 70; expect1 = 45; expect2 = 44;
+		which_str = "dec [rpointer]";
+	42:
+		@push rpointer; @dec [sp];
+		expectr = 70; expect1 = 45; expect2 = 44;
+		which_str = "dec [sp=rpointer]";
+
+	43:
+		@dec sp;
+		expect1 = 44; expect2 = 44;
+		which_str = "dec sp";
+	44:
+		@dec [spointer];
+		expect1 = 44; expect2 = 44;
+		which_str = "dec [spointer]";
+	45:
+		@push spointer; @dec [sp];
+		expect1 = 44; expect2 = 44;
+		which_str = "dec [sp=spointer]";
+
+	! inc_chk
+	50: 
+		which_str = "inc_chk result";
+		@inc_chk result 72 ?bad_indirect_inc;
+		expectr = 72; expect1 = 45; expect2 = 44;
+	51: 
+		which_str = "inc_chk [rpointer]";
+		@inc_chk [rpointer] 72 ?bad_indirect_inc;
+		expectr = 72; expect1 = 45; expect2 = 44;
+	52: 
+		which_str = "inc_chk [sp=rpointer]";
+		@push rpointer; @inc_chk [sp] 72 ?bad_indirect_inc;
+		expectr = 72; expect1 = 45; expect2 = 44;
+
+	53: 
+		which_str = "inc_chk sp";
+		@inc_chk sp 46 ?bad_indirect_inc;
+		expect1 = 46; expect2 = 44;
+	54: 
+		which_str = "inc_chk [spointer]";
+		@inc_chk [spointer] 46 ?bad_indirect_inc;
+		expect1 = 46; expect2 = 44;
+	55: 
+		which_str = "inc_chk [sp=spointer]";
+		@push spointer; @inc_chk [sp] 46 ?bad_indirect_inc;
+		expect1 = 46; expect2 = 44;
+
+	! dec_chk
+	60: 
+		which_str = "dec_chk result";
+		@dec_chk result 70 ?bad_indirect_inc;
+		expectr = 70; expect1 = 45; expect2 = 44;
+	61: 
+		which_str = "dec_chk [rpointer]";
+		@dec_chk [rpointer] 70 ?bad_indirect_inc;
+		expectr = 70; expect1 = 45; expect2 = 44;
+	62: 
+		which_str = "dec_chk [sp=rpointer]";
+		@push rpointer; @dec_chk [sp] 70 ?bad_indirect_inc;
+		expectr = 70; expect1 = 45; expect2 = 44;
+
+	63: 
+		which_str = "dec_chk sp";
+		@dec_chk sp 44 ?bad_indirect_inc;
+		expect1 = 44; expect2 = 44;
+	64: 
+		which_str = "dec_chk [spointer]";
+		@dec_chk [spointer] 44 ?bad_indirect_inc;
+		expect1 = 44; expect2 = 44;
+	65: 
+		which_str = "dec_chk [sp=spointer]";
+		@push spointer; @dec_chk [sp] 44 ?bad_indirect_inc;
+		expect1 = 44; expect2 = 44;
+
+	default:
+		rfalse; ! no test here; do nothing.
+	}
+
+	! Test results
+	print (string) which_str, ": ";
+	@je expectr 999 ?skip_expectr;
+	check(result, expectr); print ", ";
+	.skip_expectr;
+	@pull top_of_stack;
+	check(top_of_stack, expect1); print ", ";
+	@pull top_of_stack;
+	check(top_of_stack, expect2); 
+
+	new_line;
+	rtrue;
+
+	! If you got here, inc_chk/dec_chk broke
+	.bad_indirect_inc;
+	print (string) which_str, ": ";
+	check(result, 123);
+	new_line;
+	rfalse;
+];
+	
 TestClass specfixes
 	with name 'specfixes' 'fixes',
 	testfunc [ val ;
