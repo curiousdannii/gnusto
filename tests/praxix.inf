@@ -2165,7 +2165,65 @@ TestClass IndirectTest
 	new_line;
 	rfalse;
 ];
-	
+
+! The lengths here must exceed the number of characters printed (below)
+! by at least 3.
+Array streambuf -> 170;
+Array streambufcmp -> 170;
+
+! The StreamTrip test sends every legal, printable ZSCII character to
+! a memory stream, and then reads them back. They should all survive
+! the journey unscathed.
+!
+! Note that character 9 (tab) and 10 (unix newline) are not legal for
+! output. (Despite the fact that Zork 1 uses tabs for indenting
+! the temple book's text.) (Tab is legal in V6, but this test is for
+! v5/8.)
+!
+! Printing character 0 is legal, but doesn't generate output. It should
+! not count towards the stream count either. (See 3.8.2.1.)
+!
+TestClass StreamTripTest
+	with name 'streamtrip',
+	short_name "streamtrip",
+	testfunc [ ix len pos ch;
+		print "Memory stream round-trip:^^";
+
+		@output_stream 3 streambuf;
+		pos = 0;
+		@print_char 13; ! newline
+		streambufcmp->pos = 13; pos++;
+		for (ix=32 : ix <= 126 : ix++) {
+		  streambufcmp->pos = ix; pos++;
+		  @print_char ix;
+		}
+		for (ix=155 : ix <= 223 : ix++) {
+		  streambufcmp->pos = ix; pos++;
+		  @print_char ix;
+		}
+		! no streambufcmp output for the no-op
+		@print_char 0; ! no-op
+		@output_stream -3;
+
+		ix = streambuf;
+		len = ix-->0;
+		print "Number of characters written: "; check(pos, 165); new_line;
+		print "Number of characters read: "; check(len, 165); new_line;
+
+		for (ix=0 : ix<len : ix++) {
+		  ch = streambufcmp->ix;
+		  if (streambuf->(ix+2) ~= ch) {
+		    print "Mismatch for ", ch, " '";
+		    @print_char ch;
+			print "': ";
+		    check(streambuf->(ix+2), ch);
+			new_line;
+		  }
+		}
+
+		count_failures();
+	];
+
 TestClass specfixes
 	with name 'specfixes' 'fixes',
 	testfunc [ val ;
