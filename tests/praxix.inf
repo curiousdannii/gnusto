@@ -2,6 +2,8 @@
 ! by Zarf and Dannii
 ! Public domain, but please share your changes so we can improve the tests
 
+! The indirect test is Copyright (C) 2003, Amir Karger
+
 Constant Story "Praxix";
 Constant Headline "A Z-code interpreter unit test^";
 Release 1;

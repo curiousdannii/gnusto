@@ -2645,9 +2645,15 @@ GnustoEngine.prototype = {
 
 			var result;
 
-			if (zscii_code==13 || zscii_code==10) {
-					result = 10;
-			} else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0) {
+			if ( zscii_code == 0 )
+			{
+				return '';
+			}
+			else if ( zscii_code == 10 || zscii_code == 13 )
+			{
+				return '\n';
+			}
+			else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0) {
 					result = zscii_code;
 			} else if (zscii_code>=155 && zscii_code<=251) {
 					// Extra characters.
@@ -2702,6 +2708,10 @@ GnustoEngine.prototype = {
 			}
 		}
 		
+		// Return linefeeds correctly
+		if ( ascii_code == 10 || ascii_code == 13 )
+			return 13;
+
 		// Standard ASCII characters, except for the arrow keys, plus NULL
 		if ( ( ascii_code > 31 && ascii_code < 127 ) || ascii_code == 0 )
 		{
