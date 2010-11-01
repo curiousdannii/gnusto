@@ -3,6 +3,7 @@ Change log started July 2009.
 November 2010
 ================================================================================
 Fixed some ZSCII/ASCII conversion errors, thanks for spotting Zarf.
+Added support for @parchment and its raw eval() mode function.
 
 August 2010
 ================================================================================

@@ -112,6 +112,8 @@ var CHILD_REC = 2;
 
 var CALLED_FROM_INTERRUPT = 0;
 
+var PARCHMENT_SECURITY_OVERRIDE = window.PARCHMENT_SECURITY_OVERRIDE;
+
 // Placeholder when decoding arguments for opcodes to indicate that
 // an argument needs to be popped from the stack.
 //var ARG_STACK_POP = "SP";
@@ -1140,6 +1142,11 @@ function handleZ_gestalt( engine, a )
     return engine._storer('gestalt(' + a[0] + ', ' + ( a.length < 2 ? 0 : a[1] ) + ')' );
 }
 
+function handleZ_parchment( engine, a )
+{
+	return engine._storer('op_parchment(' + a[0] + ', ' + ( a.length < 2 ? 0 : a[1] ) + ')' ); 
+}
+
 ////////////////////////////////////////////////////////////////
 //
 // |handlers|
@@ -1284,7 +1291,8 @@ var handlers_v578 = {
     //1026: print_form (V6 opcode)
     //1027: make_menu (V6 opcode)
     //1028: picture_table (V6 opcode)
-    1030: handleZ_gestalt
+    1030: handleZ_gestalt,
+    1031: handleZ_parchment
 };
 
 // Differences between each version and v5.
@@ -2063,8 +2071,53 @@ GnustoEngine.prototype = {
 		// 1: Standard Revision
 		if ( id == 1 )
 			return 0x0102;
-		else
-			return 0;
+		
+		// 0x20: @parchment
+		if ( id == 0x20 )
+		{
+			if (
+				arg == 0 ||
+				
+				// 1: Raw eval()
+				arg == 1 && PARCHMENT_SECURITY_OVERRIDE
+			)
+				return 1;
+		}
+		
+		return 0;
+	},
+	
+	// @parchment
+	op_parchment: function( id, arg )
+	{
+		var self = this;
+		
+		// 1: raw eval()
+		if ( id == 1 && PARCHMENT_SECURITY_OVERRIDE )
+		{
+			// Enable raw eval() mode
+			if ( arg == 1 )
+			{
+				self.op_parchment_data.saved_buffer = self.m_console_buffer;
+				self.m_console_buffer = '';
+				self.op_parchment_data.raw_eval = 1;
+			}
+			
+			// Return to normal mode, evaluating the buffer
+			else
+			{
+				if ( self.op_parchment_data.raw_eval )
+				{
+					eval( self.m_console_buffer );
+					self.m_console_buffer = self.op_parchment_data.saved_buffer;
+				}
+				self.op_parchment_data.raw_eval = 0;
+			}
+			
+			return 1;
+		}
+		
+		return 0;
 	},
 
   ////////////////////////////////////////////////////////////////
@@ -2281,9 +2334,11 @@ GnustoEngine.prototype = {
 		this.m_memory[1] |= 0x1D; // announce support for styled text and color
 		this.m_memory[0x26] = 1; // font width/height (dep. version) in 'units'
 		this.m_memory[0x27] = 1; // font width/height (dep. version) in 'units'
+		
 		// Z Machine Spec version
+		// For now only set 1.2 if PARCHMENT_SECURITY_OVERRIDE is set
 		this.m_memory[0x32] = 1;
-		this.m_memory[0x33] = 0;
+		this.m_memory[0x33] = PARCHMENT_SECURITY_OVERRIDE ? 2 : 0;
   },
 
 // Inlined some of these functions...
@@ -4078,10 +4133,21 @@ GnustoEngine.prototype = {
 
 	////////////////////////////////////////////////////////////////
 
-	consoleText: function ge_console_text() {
-			var temp = this.m_console_buffer.replace('\x00','','g');
-			this.m_console_buffer = '';
+	consoleText: function ge_console_text()
+	{
+		var self = this,
+		temp = self.m_console_buffer.replace('\x00','','g');
+		
+		// Don't print anything in @parchment's raw eval() mode
+		if ( self.op_parchment_data.raw_eval )
+		{
+			return '';
+		}
+		else
+		{
+			self.m_console_buffer = '';
 			return temp;
+		}
 	},
 
 	_transcript_text: function ge_transcript_text() {
@@ -4793,7 +4859,10 @@ GnustoEngine.prototype = {
 	// for the current interrupt service routines to do their jobs.
 	// Usually ISRs don't interrupt other ISRs, so this stack will have
 	// either one or no elements.
-	m_interrupt_information: []
+	m_interrupt_information: [],
+	
+	// Stuff for @parchment
+	op_parchment_data: {}
 
 };
 
