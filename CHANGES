@@ -1,5 +1,9 @@
 Change log started July 2009.
 
+November 2010
+================================================================================
+Fixed some ZSCII/ASCII conversion errors, thanks for spotting Zarf.
+
 August 2010
 ================================================================================
 Complies with the Z-Machine 1.1 updates/clarifications.
