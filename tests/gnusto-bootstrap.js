@@ -55,13 +55,14 @@ function download_to_array( url, callback )
 }
 
 // Out Gnusto bootstrap runner, taken somewhat from test_gnusto_engine.js
-function gnusto_runner( engine )
+function gnusto_runner( engine, commands )
 {
 	engine.run();
 	var retval = 1,
 	effect = '"' + engine.effect(0) + '"',
 	text = engine.consoleText(),
-	desc = '[' + effect + ']';
+	desc = '[' + effect + ']',
+	response;
 
 	// Display Gnusto's output
 	if ( text )
@@ -74,7 +75,14 @@ function gnusto_runner( engine )
 	switch (effect) {
 		case GNUSTO_EFFECT_INPUT:
 			// Prompt for user response - I know it's a horrible alert box, but it will do for now
-			var response = prompt('Text input' ) || '';
+			if ( commands[engine.commandID] )
+			{
+				engine.commandID++;
+				response = commands[engine.commandID];
+			}
+			else
+				response = prompt('Text input' ) || '';
+				
 			desc = '[GNUSTO_EFFECT_INPUT]';
 			desc += ' (responding with "' + response + '")';
 			$('#output').append( response + '<br>' );
@@ -84,6 +92,8 @@ function gnusto_runner( engine )
 		case GNUSTO_EFFECT_QUIT:
 			desc = '[GNUSTO_EFFECT_QUIT]';
 			retval = 0;
+			if ( window.console && console.profileEnd )
+				console.profileEnd();
 			break;
 		default:
 			break;
@@ -96,12 +106,28 @@ function gnusto_runner( engine )
 }
 
 // Bootstrap Gnusto with a given story URL
-function bootstrap_gnusto( url )
+function bootstrap_gnusto( url, walkthrough )
 {
 	// Instantiate Gnusto, load the story, and run till you can no more
 	window.engine = new GnustoEngine( logfunc );
-	download_to_array( url, function( data ){
-		engine.loadStory( data );
-		while ( gnusto_runner( engine ) ) {}
+	download_to_array( url, function( data ) {
+	
+		var run = function( commands ) {
+			engine.loadStory( data );
+			engine.commandID = 0;
+			while ( gnusto_runner( engine, commands ) ) {}
+		};
+		
+		// Get the walkthrough if one is provided.
+		if ( walkthrough )
+		{
+			$.get( walkthrough, function( commands ) {
+				commands = commands.split('\n');
+				run( commands );
+			});
+		}
+		else
+			run([]);
+		
 	});
 }

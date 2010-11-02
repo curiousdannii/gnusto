@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Sand dancer profiler</title>
+	<script src="jquery.js"></script>
+	<script src="../src/class.js"></script>
+	<script src="../src/iff.js"></script>
+	<script src="../src/quetzal.js"></script>
+	<script src="../gnusto-engine.js"></script>
+	<script src="gnusto-bootstrap.js"></script>
+	<script src="sanddancer.js"></script>
+	<script>
+$(function(){
+
+	// Run Sand dancer in Gnusto
+	if ( window.console && console.profile )
+		console.profile();
+	
+	bootstrap_gnusto( 'sanddancer.z8', 'sanddancer.txt' );
+
+});
+	</script>
+</head>
+<body>
+	<h1>Sand dancer profiler</h1>
+	<div id="output"></div>
+</body>
+</html>
