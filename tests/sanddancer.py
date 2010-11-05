@@ -3,9 +3,10 @@
 # Sand dancer tests
 
 import os
+import re
 from struct import unpack
 
-# The following classes are taken from Glulx's profile-analyze.py
+# The following classes are taken from Glulxe's profile-analyze.py
 class InformFunc:
     def __init__(self, funcnum):
         self.funcnum = funcnum
@@ -219,9 +220,12 @@ debugfile = file('gameinfo.dbg')
 debug = DebugFile(debugfile)
 
 # Prepare the JSON list of functions
+offset = debug.map['code area']
 funcs = {}
 for key, func in debug.functions.items():
-	funcs[func.addr] = func.name
+	funcs[func.addr + offset] = re.sub(r'\W', '', func.name)
+
+# Write out
 names = open('sanddancer.js', 'w')
 names.write('vm_functions = ' + str(funcs))
 names.close()

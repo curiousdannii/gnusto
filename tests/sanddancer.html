@@ -14,9 +14,7 @@
 $(function(){
 
 	// Run Sand dancer in Gnusto
-	if ( window.console && console.profile )
-		console.profile();
-	
+	PROFILE = 1;
 	bootstrap_gnusto( 'sanddancer.z8', 'sanddancer.txt' );
 
 });
@@ -24,6 +22,7 @@ $(function(){
 </head>
 <body>
 	<h1>Sand dancer profiler</h1>
+	<p>Please set up your profiler and then enter \walkthrough to follow the walkthrough.</p>
 	<div id="output"></div>
 </body>
 </html>
