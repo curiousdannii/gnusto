@@ -2457,7 +2457,7 @@ GnustoEngine.prototype = {
 	_compile: function ge_compile() {
 
 			this.m_compilation_running = 1;
-			var code = '', starting_pc = this.m_pc, varcode;
+			var code = '', starting_pc = this.m_pc, varcode, funcname;
 
       // Counter for naming any temporary variables that we create.
 //      var temp_var_counter = 0;
@@ -2615,9 +2615,14 @@ GnustoEngine.prototype = {
 		// Don't push() and pop(), just set variables directly
 		code = code.replace(/m_gamestack\.push\(([^;]+)\);var tmp_(\d+) = m_gamestack\.pop\(\);/, 'var tmp_$2 = $1;');
 
-		// Name the function after the starting position, to make life
-		// easier for Venkman.
-		return 'function JIT_' + starting_pc.toString(16) + '_' + starting_pc + '(){' + code + '}';
+		// Name the function after the starting position, to make life easier for debuggers
+		funcname = 'function JIT_' + starting_pc.toString(16) + '_' + starting_pc;
+		
+		// If we have function names append them
+		;;; var find_func_name = function(pc) { while ( !vm_functions[pc] && pc > 0 ) { pc--; } return vm_functions[pc]; };
+		;;; funcname = funcname + ( window.vm_functions ? '_' + find_func_name(starting_pc) : '' );
+		
+		return funcname + '(){' + code + '}';
 	},
 
 	_param_count: function ge_param_count() {

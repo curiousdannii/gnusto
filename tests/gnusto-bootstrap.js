@@ -7,7 +7,7 @@
  */
 
 // FatalError and logfunc
-var FatalError = new Error(),
+var FatalError = Error,
 logfunc = window.console && console.log ?
 	function(msg) { console.log(msg); } :
 	function() {} ;
@@ -67,7 +67,9 @@ function gnusto_runner( engine, commands )
 	// Display Gnusto's output
 	if ( text )
 	{
-		logfunc( text );
+		if ( !window.PROFILE )
+			logfunc( text );
+			
 		text = text.replace( /\n/g, '<br>' );
 		$('#output').append( text );
 	}
@@ -77,11 +79,18 @@ function gnusto_runner( engine, commands )
 			// Prompt for user response - I know it's a horrible alert box, but it will do for now
 			if ( commands[engine.commandID] )
 			{
-				engine.commandID++;
 				response = commands[engine.commandID];
+				engine.commandID++;
 			}
 			else
+			{
 				response = prompt('Text input' ) || '';
+				if ( response == '\\walkthrough' && commands[0] )
+				{
+					response = commands[0];
+					engine.commandID = 1;
+				}
+			}
 				
 			desc = '[GNUSTO_EFFECT_INPUT]';
 			desc += ' (responding with "' + response + '")';
@@ -92,15 +101,14 @@ function gnusto_runner( engine, commands )
 		case GNUSTO_EFFECT_QUIT:
 			desc = '[GNUSTO_EFFECT_QUIT]';
 			retval = 0;
-			if ( window.console && console.profileEnd )
-				console.profileEnd();
 			break;
 		default:
 			break;
 	};
 
 	// Log it
-	logfunc( desc );
+	if ( !window.PROFILE )
+		logfunc( desc );
 	
 	return retval;
 }
@@ -112,9 +120,10 @@ function bootstrap_gnusto( url, walkthrough )
 	window.engine = new GnustoEngine( logfunc );
 	download_to_array( url, function( data ) {
 	
-		var run = function( commands ) {
+		var run = function( commands )
+		{		
 			engine.loadStory( data );
-			engine.commandID = 0;
+			engine.commandID = -1;
 			while ( gnusto_runner( engine, commands ) ) {}
 		};
 		

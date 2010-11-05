@@ -2665,6 +2665,9 @@ Global dict_end;
 	print "[Random number generator seed is ", i, "]^";
 	@random i -> i;
 	#endif; ! FIX_RNG	
+	
+	! Make @random predictable
+	@random -2000 -> i;
 ];
 
 [ ENABLE_GLULX_ACCEL_R;
