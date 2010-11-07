@@ -2205,12 +2205,14 @@ TestClass StreamTripTest
 		}
 		! no streambufcmp output for the no-op
 		@print_char 0; ! no-op
+		@print_char 64; ! @-sign
+		streambufcmp->pos = 64; pos++;
 		@output_stream -3;
 
 		ix = streambuf;
 		len = ix-->0;
-		print "Number of characters written: "; check(pos, 165); new_line;
-		print "Number of characters read: "; check(len, 165); new_line;
+		print "Number of characters written: "; check(pos, 166); new_line;
+		print "Number of characters read: "; check(len, 166); new_line;
 
 		for (ix=0 : ix<len : ix++) {
 		  ch = streambufcmp->ix;
