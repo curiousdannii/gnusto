@@ -1,7 +1,7 @@
-**Gnusto** is a JIT compiler and virtual machine for the Z-Machine, originally written by Thomas Thurman.
+**Gnusto** is a JIT compiler and virtual machine for the Z-Machine, originally written by Marnanel Thurman.
 
 # History
-Thomas Thurman originally designed Gnusto as a Mozilla/Firefox extension for a full Z-Machine interpreter. He and a few others worked on it for several years, but stopped in 2005.
+Marnanel Thurman originally designed Gnusto as a Mozilla/Firefox extension for a full Z-Machine interpreter. He and a few others worked on it for several years, but stopped in 2005.
 
 In 2008 Atul Varma used the VM engine code and built a new interpreter interface around it. [Parchment](http://iplayif.com/), as it was named, was no longer a extension, but now a webpage that could run in any (modern) browser.
 
